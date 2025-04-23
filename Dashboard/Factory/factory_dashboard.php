@@ -26,21 +26,17 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body { font-family: sans-serif; margin: 0; padding: 0; box-sizing: border-box; color: #333; }
-        .sidebar { width: 60px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #2c2f3e; color: #fff; padding-top: 20px; transition: width 0.3s; overflow: hidden; }
-        .sidebar:hover { width: 200px; }
+        .sidebar { width: 200px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #2c2f3e; color: #fff; padding-top: 20px; overflow: hidden; }
         .sidebar .logo { font-size: 1.2rem; font-weight: bold; text-align: center; padding: 10px; background: #1a1d2a; }
-        .sidebar nav a { display: flex; align-items: center; padding: 10px; color: #ccc; text-decoration: none; transition: background 0.3s; }
+        .sidebar nav a { display: flex; align-items: center; padding: 10px; color: #ccc; text-decoration: none; }
         .sidebar nav a i { width: 24px; }
-        .sidebar nav a span { margin-left: 10px; opacity: 0; transition: opacity 0.3s; }
-        .sidebar:hover nav a span { opacity: 1; }
+        .sidebar nav a span { margin-left: 10px; }
         .sidebar nav a.active, .sidebar nav a:hover { background-color: #b0e0e6; color: #000; }
         .sidebar .footer { position: absolute; bottom: 0; width: 100%; padding: 10px; font-size: .8rem; background: #1a1d2a; text-align: center; }
-        main { margin-left: 60px; transition: margin-left 0.3s; padding: 20px; }
-        .sidebar:hover ~ main { margin-left: 200px; }
-        header.header { margin-left: 60px; transition: margin-left 0.3s; background: #fff; border-bottom: 1px solid #ddd; padding: 10px 20px; position: sticky; top: 0; z-index: 100; }
-        .sidebar:hover ~ header.header { margin-left: 200px; }
+        main { margin-left: 200px; padding: 20px; }
+        header.header { margin-left: 200px; background: #fff; border-bottom: 1px solid #ddd; padding: 10px 20px; position: sticky; top: 0; z-index: 100; }
         @media (max-width: 768px) {
-            .sidebar { transform: translateX(-200px); width: 200px; }
+            .sidebar { transform: translateX(-200px); }
             .sidebar.open { transform: translateX(0); }
             main, header.header { margin-left: 0; }
         }
