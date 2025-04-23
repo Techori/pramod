@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout_btn'])) {
     session_unset();
     session_destroy();
 
-    header("Location: ./login.php");
+    header("Location: ./index.php");
     exit();
 }
 else {

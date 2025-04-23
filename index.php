@@ -1,3 +1,7 @@
+<?php
+session_start();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,6 +9,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shree Unnati Wires & Traders - Premium Wire Manufacturing</title>
     <meta name="description" content="Leading manufacturer of high-quality copper and aluminum wires for industrial, commercial, and residential applications. Explore our range of quality-assured products.">
+    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
     <style>
         /* Basic CSS for layout and button styling */
         body {
@@ -21,8 +28,8 @@
             padding: 20px;
         }
         /* Header Styles */
-        .site-header {
-            background-color: #e3f2fd; /* Changed to a lighter blue color */
+        /* .site-header {
+            background-color: #e3f2fd; // Changed to a lighter blue color 
             padding: 1rem 0;
             border-bottom: 1px solid #eee;
         }
@@ -36,13 +43,13 @@
             align-items: center;
         }
         .logo img {
-            height: 50px; /* Adjust logo height as needed */
+            height: 50px; // Adjust logo height as needed 
             margin-right: 15px;
         }
         .logo h1 {
             margin: 0;
             font-size: 1.5rem;
-            color: #007bff; /* Changed back to the original blue color */
+            color: #007bff; // Changed back to the original blue color 
         }
         .main-navigation ul {
             list-style: none;
@@ -55,15 +62,15 @@
         }
         .main-navigation a {
             text-decoration: none;
-            color: #555; /* Changed back to the original dark gray color*/
+            color: #555; // Changed back to the original dark gray color
             transition: color 0.3s ease;
-            padding: 8px 12px; /* Add padding for better click area */
-            border-radius: 5px; /* Optional: round the links */
+            padding: 8px 12px; // Add padding for better click area 
+            border-radius: 5px; // Optional: round the links 
         }
         .main-navigation a:hover {
             color: #007bff;
-            background-color: #b0e0e6; /* Slight background change on hover for better feedback */
-        }
+            background-color: #b0e0e6; // Slight background change on hover for better feedback 
+        } */
         /* Hero Section */
         .hero-section {
             padding: 4rem 0;
@@ -266,78 +273,12 @@
         .form-group button:active {
             transform: scale(0.98);
         }
-        /* Site Footer */
-        .site-footer {
-            background-color: #333;
-            color: #fff;
-            padding: 3rem 0;
-            text-align: center;
-        }
-        .footer-widgets {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-        }
-        .footer-widget {
-            margin: 1rem;
-        }
-        .footer-widget h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.8rem;
-            color: #eee;
-        }
-        .footer-widget ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .footer-widget li {
-            margin-bottom: 0.5rem;
-        }
-        .footer-widget a {
-            color: #ccc;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-        .footer-widget a:hover {
-            color: #fff;
-        }
-        .footer-bottom {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #ccc;
-        }
-        .footer-bottom a {
-            color: #fff;
-            text-decoration: none;
-        }
-        .footer-bottom a:hover {
-             color: #b0e0e6; /* hover color for footer links */
-        }
     </style>
 </head>
 <body>
-    <header class="site-header">
-        <div class="container">
-            <div class="logo">
-                <img src="https://www.thermaxglobal.com/wp-content/uploads/2021/05/Unnati-Logo-min.jpg" alt="Shree Unnati Wires & Traders Logo">
-                <h1>Shree Unnati<br>WIRES & TRADERS</h1>
-            </div>
-            <nav class="main-navigation">
-                <ul>
-                    <li><a href="#" onclick="showAlert('Home')">Home</a></li>
-                    <li><a href="#" onclick="showAlert('About Us')">About Us</a></li>
-                    <li><a href="./product.php">Products</a></li>
-                    <li><a href="#" onclick="showAlert('Contact')">Contact</a></li>
-                    <li><a href="#" onclick="showAlert('Franchise')">Franchise</a></li>
-                    <li><a href="#" onclick="showAlert('Contact Us')">Contact Us</a></li>
-                    <li><a href="./login.php">Login</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
-
+    <?php
+        include('./_main_nav.php');
+    ?>
     <main>
         <section class="hero-section">
             <div class="container">
@@ -470,47 +411,9 @@
             </div>
         </section>
     </main>
-
-    <footer class="site-footer">
-        <div class="container">
-            <div class="footer-widgets">
-                <div class="footer-widget">
-                    <h3>Shree Unnati<br>WIRES & TRADERS</h3>
-                    <p>Leading manufacturer and supplier of wires and electric hardware in the region.</p>
-                </div>
-                <div class="footer-widget">
-                    <h3>Quick Links</h3>
-                    <ul>
-                        <li><a href="#" onclick="showAlert('Home')">Home</a></li>
-                        <li><a href="#" onclick="showAlert('About Us')">About Us</a></li>
-                        <li><a href="#" onclick="showAlert('Products')">Products</a></li>
-                        <li><a href="#" onclick="showAlert('Contact')">Contact</a></li>
-                        <li><a href="#" onclick="showAlert('Franchise & Distribution')">Franchise & Distribution</a></li>
-                    </ul>
-                </div>
-                <div class="footer-widget">
-                    <h3>Our Products</h3>
-                    <ul>
-                        <li><a href="#" onclick="showAlert('Copper Wires')">Copper Wires</a></li>
-                        <li><a href="#" onclick="showAlert('Aluminum Wires')">Aluminum Wires</a></li>
-                        <li><a href="#" onclick="showAlert('Switchgear')">Switchgear</a></li>
-                        <li><a href="#" onclick="showAlert('Circuit Breakers')">Circuit Breakers</a></li>
-                        <li><a href="#" onclick="showAlert('LED Lighting')">LED Lighting</a></li>
-                    </ul>
-                </div>
-                <div class="footer-widget">
-                    <h3>Contact Us</h3>
-                    <p>123 Industrial Area, Business District, City - 123456</p>
-                    <p>+91 98765 43210</p>
-                    <p><a href="mailto:info@unnatitraders.com" onclick="showAlert('Email: info@unnatitraders.com')">info@unnatitraders.com</a></p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                © 2025 Shree Unnati Wires & Traders. All rights reserved. | <a href="#" onclick="showAlert('Privacy Policy')">Privacy Policy</a> | <a href="#" onclick="showAlert('Terms of Service')">Terms of Service</a>
-            </div>
-        </div>
-    </footer>
-
+    <?php
+        include('./_footer.php');
+    ?>
     <script>
         function showAlert(buttonName) {
             alert(`You clicked the "${buttonName}" button/link! This functionality would be implemented with further development to navigate to different pages or perform specific actions.`);

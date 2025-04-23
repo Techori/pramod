@@ -1,10 +1,5 @@
 <?php
 session_start();
-if (isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION["session_id"])) {
-  $loggedin = true;
-} else {
-  $loggedin = false;
-}
 ?>
 
 <!DOCTYPE html>
@@ -14,8 +9,8 @@ if (isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION[
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shree Unnati Wires & Traders - Premium Wire Manufacturing</title>
     <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="unnati">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="unnati"></script>
     <style>
         .card {
           border: none;
@@ -79,7 +74,7 @@ if (isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION[
           }
         }
 
-        .process-list li {
+    .process-list li {
       list-style: none;
       padding-left: 1.5rem;
       position: relative;
@@ -135,14 +130,12 @@ if (isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION[
       
 </head>
 <body>
+      <?php
+        include('./_main_nav.php');
+        ?>
     <div class="bg-opacity-75 text-center" style="background-image: linear-gradient(to bottom right, #33d6ff, white)">
         <h1 class="pt-5">Our Products</h1>
         <p class="fs-5 fw-light pb-5">Explore our comprehensive range of high-quality electrical products manufactured with precision and excellence.</p>
-        <?php if ($loggedin) { ?>
-            <form action="./logout.php" method="POST">
-                <button name="logout_btn" class="btn btn-fancy" type="submit" value="true">Logout</button>
-            </form>
-        <?php } ?>
     </div>
     <div class="text-center">
         <p class="fs-3 fw-semibold pt-4">Quality Electrical Products</p>
@@ -364,6 +357,9 @@ if (isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION[
             <a href="#" class="btn btn-fancy">Find Our Retail Store</a>
         </div>
     </div>
+    <?php
+        include('./_footer.php');
+    ?>
     
     <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
     <script>
