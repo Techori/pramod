@@ -1,7 +1,30 @@
 <?php
 session_start();
-$page = isset($_GET['page']) ? $_GET['page'] : 'dashboard'; 
+
+if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION["session_id"]))) {
+
+    header("location:../../login.php");
+
+    exit;
+
+} else {
+
+    if (in_array($_SESSION["user_type"] ,  ['Factory','Store','Admin'])) {
+        header("location:../index.php");
+        exit;
+    } else if (!($_SESSION["user_type"] == 'Vendor')) {
+
+        header("location:../../login.php");
+
+        exit;
+
+    }
+
+}
+$page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
+
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,6 +42,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             box-sizing: border-box;
             color: #333;
             background-color: #f8f9fa;
+            overflow-x: hidden;
         }
         .sidebar {
             width: 200px;
@@ -30,6 +54,30 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
             padding-top: 20px;
             overflow-y: auto;
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+            box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), /* Golden glow */
+                       0 2px 6px rgba(0, 0, 0, 0.05); /* Original shadow */
+            animation: glowingEffect 2.5s infinite;
+
+            @media (max-width: 768px) {
+                .sidebar.open {
+                    box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78),
+                               0 0 25px rgba(0, 0, 0, 0.95);
+                    animation: glowingEffect 2.5s infinite;
+                }
+            }
+        }
+        .sidebar-header {
+            text-align: center;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+        .sidebar-header img {
+            width: 50px;
+            height: auto;
+            margin-bottom: 10px;
         }
         .sidebar .logo {
             font-size: 1.2rem;
@@ -69,6 +117,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
         main {
             margin-left: 200px;
             padding: 20px;
+            transition: margin-left 0.3s ease-in-out;
         }
         header.header {
             margin-left: 200px;
@@ -79,6 +128,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             top: 0;
             z-index: 100;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: margin-left 0.3s ease-in-out;
         }
         .cards {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -119,6 +169,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             padding: 10px;
             border: 1px solid #ddd;
             text-align: left;
+            font-size: 0.9rem;
         }
         .green-bg {
             background-color: #d4edda;
@@ -141,23 +192,41 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
         .alert {
             border-radius: 0.5rem;
             padding: 15px;
+            font-size: 0.9rem;
         }
-        .quick-access .card {
-            min-height: 100px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+        .hamburger {
+            display: none;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            color: #0d6efd;
+            cursor: pointer;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
         }
         @media (max-width: 768px) {
             .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                box-shadow: none;
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
             }
             main, header.header {
                 margin-left: 0;
+            }
+            .hamburger {
+                display: block;
+            }
+            .overlay.show {
+                display: block;
             }
             .container-fluid {
                 padding-left: 10px;
@@ -166,13 +235,35 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             .chart-box {
                 flex: 1 1 100%;
             }
+            th, td {
+                font-size: 0.85rem;
+                padding: 8px;
+            }
+            .table-responsive {
+                overflow-x: auto;
+            }
+            .card-body {
+                padding: 15px;
+            }
+            .alert {
+                font-size: 0.85rem;
+            }
+            .btn-sm {
+                font-size: 0.8rem;
+                padding: 5px 10px;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="logo">Vendor Dashboard</div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="../../public/unnati_logo.png" alt="Logo" class="img-fluid" style="width: auto; height: auto;">
+            <h6 class="mb-0">Unnati Vendor Portal</h6>
+            <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
+
+            </div>
         <nav class="nav flex-column mt-2">
             <a href="?page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>">
                 <i class="fas fa-tachometer-alt"></i> Dashboard
@@ -202,12 +293,16 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
         <div class="footer">© 2025 Unnati Traders</div>
     </div>
 
+    <!-- Overlay for Mobile -->
+    <div class="overlay" id="overlay"></div>
+
     <!-- Header -->
     <header class="header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
-            <h5 class="mb-0 fw-bold">Vendor Dashboard</h5>
+            <button class="hamburger me-3" id="hamburger"><i class="fas fa-bars"></i></button>
+            <h5 class="mb-0 fw-bold">Hey! <?php echo isset($_SESSION['user']) ? $_SESSION['user'] : 'Vendor'; ?></h5>
         </div>
-        <form class="d-flex" role="search">
+        <form class="d-flex" role="search" method="GET" action="search.php">
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                 <input class="form-control border-start-0" type="search" placeholder="Search orders, products, or invoices..." aria-label="Search">
@@ -296,7 +391,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 col-sm-12 my-4">
+                    <div class="col-md-6 col-sm-12 mb-4">
                         <div class="card stat-card cards shadow-sm" style="background-color: #fbf3d7;">
                             <div class="card-body">
                                 <h5 class="text-muted">Low Stock Alert</h5>
@@ -305,7 +400,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 col-sm-12 my-4">
+                    <div class="col-md-6 col-sm-12 mb-4">
                         <div class="card stat-card cards shadow-sm" style="background-color: #d4ffe9;">
                             <div class="card-body">
                                 <h5 class="text-muted">Recent Payments</h5>
@@ -315,7 +410,22 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                         </div>
                     </div>
                 </div>
-            </div>
+                <div class="row">
+                <h5 class="text-muted">Quick Actions</h5>
+                <p>Manage your orders, deliveries, and payments quickly.</p>
+                    <div class="col-md-12 col-sm-12 mb-4">
+                        <div class="card stat-card cards shadow-sm" style="background-color: #f8d7da;">
+                            <div class="card-body">
+                                <d class="d-flex gap-2 flex-wrap">
+                                  <a href="?page=orders">  <button class="btn btn-outline-primary btn-sm" ><i class="fas fa-plus"></i> Add New Order</button></a>
+
+                                  <a href="?page=deliveries"  <button class="btn btn-outline-primary btn-sm"><i class="fas fa-truck"></i> Schedule Delivery</button></a>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-invoice"></i> Generate Invoice</button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i>Payments</button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-line"></i> View Reports</button>
+                                    </div>
+                                    </div>
+            </div></div></div>
         <?php elseif ($page === 'orders'): ?>
             <div class="container-fluid">
                 <h4><i class="fas fa-shopping-cart text-primary"></i> Order Management</h4>
@@ -329,59 +439,61 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                 <button class="btn btn-outline-primary btn-sm"><i class="fas fa-list"></i> View All Orders</button>
                             </div>
                         </div>
-                        <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer Name</th>
-                                    <th>Order Date</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>ORD-2854</td>
-                                    <td>Unnati Traders</td>
-                                    <td>12 Apr 2025</td>
-                                    <td>₹24,500</td>
-                                    <td><span class="green-bg">New</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>ORD-2853</td>
-                                    <td>Modern Electricals</td>
-                                    <td>10 Apr 2025</td>
-                                    <td>₹8,750</td>
-                                    <td><span class="orange-bg">Processing</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>ORD-2852</td>
-                                    <td>City Lights</td>
-                                    <td>08 Apr 2025</td>
-                                    <td>₹12,300</td>
-                                    <td><span class="green-bg">Shipped</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer Name</th>
+                                        <th>Order Date</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>ORD-2854</td>
+                                        <td>Unnati Traders</td>
+                                        <td>12 Apr 2025</td>
+                                        <td>₹24,500</td>
+                                        <td><span class="green-bg">New</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ORD-2853</td>
+                                        <td>Modern Electricals</td>
+                                        <td>10 Apr 2025</td>
+                                        <td>₹8,750</td>
+                                        <td><span class="orange-bg">Processing</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ORD-2852</td>
+                                        <td>City Lights</td>
+                                        <td>08 Apr 2025</td>
+                                        <td>₹12,300</td>
+                                        <td><span class="green-bg">Shipped</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -394,50 +506,123 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="text-muted">Upcoming Deliveries</h5>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-truck"></i> Schedule Delivery</button>
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleDeliveryModal"><i class="fas fa-truck"></i> Schedule Delivery</button>
+
+                                <!-- Schedule Delivery Modal -->
+                                <div class="modal fade" id="scheduleDeliveryModal" tabindex="-1" aria-labelledby="scheduleDeliveryModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="scheduleDeliveryModalLabel">Schedule New Delivery</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form id="deliveryForm">
+                                                    <div class="mb-3">
+                                                        <label for="orderSelect" class="form-label">Select Order</label>
+                                                        <select class="form-select" id="orderSelect" required>
+                                                            <option value="">Choose an order...</option>
+                                                            <option value="ORD-2846">ORD-2846 - Modern Electricals</option>
+                                                            <option value="ORD-2840">ORD-2840 - City Lights</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="deliveryDate" class="form-label">Delivery Date</label>
+                                                        <input type="date" class="form-control" id="deliveryDate" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="timeSlot" class="form-label">Time Slot</label>
+                                                        <select class="form-select" id="timeSlot" required>
+                                                            <option value="">Choose time slot...</option>
+                                                            <option value="morning">Morning (9 AM - 12 PM)</option>
+                                                            <option value="afternoon">Afternoon (1 PM - 4 PM)</option>
+                                                            <option value="evening">Evening (4 PM - 7 PM)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="deliveryNotes" class="form-label">Delivery Notes</label>
+                                                        <textarea class="form-control" id="deliveryNotes" rows="3" placeholder="Enter any special instructions..."></textarea>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-primary" onclick="scheduleDelivery()">Schedule Delivery</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <script>
+                                function scheduleDelivery() {
+                                    // Get form values
+                                    const order = document.getElementById('orderSelect').value;
+                                    const date = document.getElementById('deliveryDate').value;
+                                    const timeSlot = document.getElementById('timeSlot').value;
+                                    const notes = document.getElementById('deliveryNotes').value;
+
+                                    if (!order || !date || !timeSlot) {
+                                        alert('Please fill in all required fields');
+                                        return;
+                                    }
+
+                                    // Here you would typically make an AJAX call to your backend
+                                    alert('Delivery scheduled successfully!\nOrder: ' + order + '\nDate: ' + date + '\nTime Slot: ' + timeSlot);
+                                    
+                                    // Close the modal
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleDeliveryModal'));
+                                    modal.hide();
+                                    
+                                    // Reset form
+                                    document.getElementById('deliveryForm').reset();
+                                }
+                                </script>
+
                                 <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i> View Delivery Status</button>
                             </div>
                         </div>
-                        <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Delivery ID</th>
-                                    <th>Order ID</th>
-                                    <th>Customer Name</th>
-                                    <th>Delivery Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>DEL-485</td>
-                                    <td>ORD-2846</td>
-                                    <td>Modern Electricals</td>
-                                    <td>14 Apr 2025</td>
-                                    <td><span class="green-bg">Scheduled</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>DEL-484</td>
-                                    <td>ORD-2840</td>
-                                    <td>City Lights</td>
-                                    <td>13 Apr 2025</td>
-                                    <td><span class="orange-bg">In Transit</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Delivery ID</th>
+                                        <th>Order ID</th>
+                                        <th>Customer Name</th>
+                                        <th>Delivery Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>DEL-485</td>
+                                        <td>ORD-2846</td>
+                                        <td>Modern Electricals</td>
+                                        <td>14 Apr 2025</td>
+                                        <td><span class="green-bg">Scheduled</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>DEL-484</td>
+                                        <td>ORD-2840</td>
+                                        <td>City Lights</td>
+                                        <td>13 Apr 2025</td>
+                                        <td><span class="orange-bg">In Transit</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -447,9 +632,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 <p>Manage your product inventory and stock levels.</p>
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex gap-2">
-                                <div class="input-group w-100 me-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="d-flex gap-2 flex-grow-1">
+                                <div class="input-group w-auto flex-grow-1">
                                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                                     <input type="text" class="form-control border-start-0" placeholder="Search products..." />
                                 </div>
@@ -460,46 +645,48 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                 <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-alt"></i> Generate Stock Report</button>
                             </div>
                         </div>
-                        <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Product ID</th>
-                                    <th>Name</th>
-                                    <th>Category</th>
-                                    <th>Stock</th>
-                                    <th>Price</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>PROD-001</td>
-                                    <td>1.5mm Wire</td>
-                                    <td>Wires</td>
-                                    <td>500 m</td>
-                                    <td>₹50/m</td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-trash-can"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>PROD-002</td>
-                                    <td>LED Bulb</td>
-                                    <td>Lights</td>
-                                    <td>200 units</td>
-                                    <td>₹150/unit</td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-trash-can"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Product ID</th>
+                                        <th>Name</th>
+                                        <th>Category</th>
+                                        <th>Stock</th>
+                                        <th>Price</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>PROD-001</td>
+                                        <td>1.5mm Wire</td>
+                                        <td>Wires</td>
+                                        <td>500 m</td>
+                                        <td>₹50/m</td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-trash-can"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>PROD-002</td>
+                                        <td>LED Bulb</td>
+                                        <td>Lights</td>
+                                        <td>200 units</td>
+                                        <td>₹150/unit</td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-trash-can"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -509,9 +696,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 <p>Track vendor payments and BNPL transactions.</p>
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex gap-2">
-                                <div class="input-group w-100 me-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="d-flex gap-2 flex-grow-1">
+                                <div class="input-group w-auto flex-grow-1">
                                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                                     <input type="text" class="form-control border-start-0" placeholder="Search payments..." />
                                 </div>
@@ -523,46 +710,48 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                 <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i> Send Payment Reminder</button>
                             </div>
                         </div>
-                        <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Transaction ID</th>
-                                    <th>Vendor</th>
-                                    <th>Amount</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>TRX-001</td>
-                                    <td>Modern Electricals</td>
-                                    <td>₹36,500</td>
-                                    <td>10 Apr 2025</td>
-                                    <td><span class="green-bg">Paid</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>TRX-002</td>
-                                    <td>City Lights</td>
-                                    <td>₹43,250</td>
-                                    <td>08 Apr 2025</td>
-                                    <td><span class="red-bg">Overdue</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Transaction ID</th>
+                                        <th>Vendor</th>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>TRX-001</td>
+                                        <td>Modern Electricals</td>
+                                        <td>₹36,500</td>
+                                        <td>10 Apr 2025</td>
+                                        <td><span class="green-bg">Paid</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>TRX-002</td>
+                                        <td>City Lights</td>
+                                        <td>₹43,250</td>
+                                        <td>08 Apr 2025</td>
+                                        <td><span class="red-bg">Overdue</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                         <div class="mt-3">
                             <h5 class="text-muted">BNPL Overview</h5>
                             <p>Outstanding: ₹2,85,450 | Interest Accrued: ₹5,250</p>
@@ -576,9 +765,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 <p>Create and track GST & Non-GST invoices.</p>
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex gap-2">
-                                <div class="input-group w-100 me-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="d-flex gap-2 flex-grow-1">
+                                <div class="input-group w-auto flex-grow-1">
                                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                                     <input type="text" class="form-control border-start-0" placeholder="Search invoices..." />
                                 </div>
@@ -589,56 +778,58 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                 <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i> Download Invoice</button>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-start gap-2 mb-3">
+                        <div class="d-flex justify-content-start gap-2 mb-3 flex-wrap">
                             <button class="btn btn-outline-primary btn-sm">All</button>
                             <button class="btn btn-outline-primary btn-sm"><i class="fas fa-check-circle text-success"></i> Paid</button>
                             <button class="btn btn-outline-primary btn-sm"><i class="fas fa-clock text-warning"></i> Pending</button>
                             <button class="btn btn-outline-primary btn-sm"><i class="fas fa-exclamation-circle text-danger"></i> Overdue</button>
                         </div>
-                        <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Invoice ID</th>
-                                    <th>Customer</th>
-                                    <th>Amount</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>INV-3845</td>
-                                    <td>Unnati Traders</td>
-                                    <td>₹36,500</td>
-                                    <td>12 Apr 2025</td>
-                                    <td><span class="green-bg">Paid</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>INV-3844</td>
-                                    <td>City Lights</td>
-                                    <td>₹24,500</td>
-                                    <td>10 Apr 2025</td>
-                                    <td><span class="orange-bg">Pending</span></td>
-                                    <td>
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
-                                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice ID</th>
+                                        <th>Customer</th>
+                                        <th>Amount</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>INV-3845</td>
+                                        <td>Unnati Traders</td>
+                                        <td>₹36,500</td>
+                                        <td>12 Apr 2025</td>
+                                        <td><span class="green-bg">Paid</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>INV-3844</td>
+                                        <td>City Lights</td>
+                                        <td>₹24,500</td>
+                                        <td>10 Apr 2025</td>
+                                        <td><span class="orange-bg">Pending</span></td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -654,7 +845,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                     <div class="chart-box">
                         <h3>BNPL Recovery</h3>
                         <p>Outstanding: ₹2,85,450 | Recovered: ₹1,50,000</p>
-                        <div class="d-flex gap-2 mt-3">
+                        <div class="d-flex gap-2 mt-3 flex-wrap">
                             <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-bar"></i> Generate Sales Report</button>
                             <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-alt"></i> View Profit & Loss</button>
                         </div>
@@ -754,7 +945,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6 col-sm-12 my-4">
+                    <div class="col-md-6 col-sm-12 mb-4">
                         <div class="card stat-card cards shadow-sm" style="background-color: #fbf3d7;">
                             <div class="card-body">
                                 <h5 class="text-muted">Low Stock Alert</h5>
@@ -763,7 +954,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6 col-sm-12 my-4">
+                    <div class="col-md-6 col-sm-12 mb-4">
                         <div class="card stat-card cards shadow-sm" style="background-color: #d4ffe9;">
                             <div class="card-body">
                                 <h5 class="text-muted">Recent Payments</h5>
@@ -779,6 +970,32 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Sidebar Toggle
+        const hamburger = document.getElementById('hamburger');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        hamburger.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        });
+
+        // Close sidebar when clicking a nav link on mobile
+        document.querySelectorAll('.sidebar nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                }
+            });
+        });
+
+        // Chart.js Scripts
         <?php if ($page === 'dashboard'): ?>
             const orderTrendsCtx = document.getElementById('orderTrendsChart').getContext('2d');
             new Chart(orderTrendsCtx, {
@@ -794,13 +1011,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                     }]
                 },
                 options: {
-                    responsive: true,
+                   
+                    maintainAspectRatio: true,
                     plugins: {
                         legend: { display: false }
                     },
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
                 }
             });
         <?php endif; ?>
@@ -823,6 +1038,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: true,
                     plugins: {
                         legend: { display: false }
                     },
