@@ -4,50 +4,44 @@
     }
 
     .sidebar {
+      width: 260px;
       height: 100vh;
       position: fixed;
       top: 0;
       left: 0;
-      width: 260px;
-      background-color: #192134;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.3s ease;
-      z-index: 1050;
+      background-color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      padding-top: 20px;
+      overflow-y: auto;
+      transition: transform 0.3s ease-in-out;
+      z-index: 1000;
+      box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), 0 2px 6px rgba(0, 0, 0, 0.05);
+      animation: glowingEffect 2.5s infinite;
     }
 
     .sidebar-hidden {
       transform: translateX(-100%);
     }
 
-    .sidebar-header {
-      background: linear-gradient(to right,rgb(11, 18, 49),rgb(19, 68, 136));
-      padding: 1rem 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .sidebar-header h5 {
-      margin: 0;
-      font-size: 1.05rem;
-      font-weight: bold;
-      color: white;
-    }
-
     .sidebar-header .user-icon {
-      background:rgb(39, 58, 101);
+      background-color: #f8f9fa;
       width: 35px;
       height: 35px;
       border-radius: 50%;
-      color: white;
+      color: black;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-right: 10px;
       font-weight: bold;
+      padding: 1rem 1.5rem;
     }
+
+    .sidebar-header img {
+        width: 50px;
+        height: auto;
+        margin-bottom: 10px;
+      }
 
     .sidebar-menu {
       flex-grow: 1;
@@ -58,35 +52,37 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      color: #cbd5e1;
+      color: black;
       text-decoration: none;
       padding: 0.75rem 1.5rem;
       transition: background 0.3s;
+      font-size: 0.95rem;
     }
 
     .sidebar-menu a:hover,
     .sidebar-menu a.active {
-      background-color: #0e7490;
-      color: white;
+      background-color: #e9ecef;
+      color: #0d6efd;
       border-radius: 6px;
+      font-weight: bold;
     }
 
     .sidebar-footer {
       padding: 0.75rem 1.5rem;
       font-size: 0.85rem;
-      color: #94a3b8;
-      border-top: 1px solid #334155;
+      color: #6c757d;
+      border-top: 1px solid #ddd;
     }
 
     .close-btn {
       background: none;
       border: none;
-      color: white;
+      color: black;
       font-size: 1.2rem;
     }
 
     .navbar .user-icon {
-        background: rgb(39, 58, 101);
+        background: #0d6efd;
         width: 35px;
         height: 35px;
         border-radius: 50%;
@@ -125,14 +121,15 @@
     <!-- Sidebar -->
     <div id="sidebar" class="sidebar sidebar-hidden d-md-block">
         <!-- Header -->
-        <div class="sidebar-header">
-        <div class="d-flex align-items-center">
-            <a href="./admin_dashboard.php" class="d-flex align-items-center text-decoration-none text-white">
-              <div class="user-icon">U</div>
-              <h5>Shree Unnati Traders</h5>
-            </a>
-        </div>
-        <button class="close-btn d-md-none" onclick="toggleSidebar()">&times;</button>
+        <div class="sidebar-header d-flex">
+            <div class="align-items-center text-center">
+              <a href="./admin_dashboard.php" class="align-items-center text-decoration-none">
+                <img src="../../public/unnati_logo.png" alt="Logo" class="img-fluid" style="width: auto; height: auto;">
+                <h6 class="mb-0 text-dark">Unnati Vendor Portal</h6>
+                <small class="text-muted text-dark" style="font-size: 0.8rem;">Manage your business</small>
+              </a>
+            </div>
+          <button class="close-btn d-md-none" onclick="toggleSidebar()">&times;</button>
         </div>
 
         <?php
@@ -143,11 +140,11 @@
         <a href="./admin_dashboard.php" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
         <a href="./billing_desk.php" class="<?= $currentPage === 'billing_desk.php' ? 'active' : '' ?>"><i class="fas fa-file-invoice"></i> Billing Desk</a>
         <a href="./accounting.php" class="<?= $currentPage === 'accounting.php' ? 'active' : '' ?>"><i class="fas fa-dollar-sign"></i> Accounting</a>
-        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Inventory</a>
-        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-line"></i> Expenses</a>
-        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-warehouse"></i> Factory Stock</a>
-        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-store"></i> Retail Store</a>
-        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
+        <a href="./inventory.php" class="<?= $currentPage === 'inventory.php' ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Inventory</a>
+        <a href="./expenses_dashboard.php" class="<?= $currentPage === 'expenses_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-line"></i> Expenses</a>
+        <a href="./factory_stock.php" class="<?= $currentPage === 'factory_stock.php' ? 'active' : '' ?>"><i class="fas fa-warehouse"></i> Factory Stock</a>
+        <a href="./retail_store.php" class="<?= $currentPage === 'retail_store.php' ? 'active' : '' ?>"><i class="fas fa-store"></i> Retail Store</a>
+        <a href="./After_sales_service.php" class="<?= $currentPage === 'After_sales_service.php' ? 'active' : '' ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
         <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-truck-moving"></i> Suppliers</a>
         <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-bar"></i> Reports</a>
         <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-users-gear"></i> User Management</a>
@@ -166,7 +163,7 @@
 
             <!-- Mobile Sidebar Toggle Button -->
             <div class="d-flex align-items-center">
-            <button class="btn btn-dark m-2 toggle-btn d-md-none" onclick="toggleSidebar()">
+            <button class="btn btn-primary m-2 toggle-btn d-md-none" onclick="toggleSidebar()">
                 ☰
             </button>
             </div>
