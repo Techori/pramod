@@ -135,7 +135,7 @@
 
         <!-- Menu -->
         <div class="sidebar-menu">
-        <a href="./dashboard.php" class="active"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
+        <a href="./admin_dashboard.php" class="active"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
         <a href="#"><i class="fas fa-file-invoice"></i> Billing Desk</a>
         <a href="#"><i class="fas fa-dollar-sign"></i> Accounting</a>
         <a href="#"><i class="fas fa-box-open"></i> Inventory</a>
@@ -146,7 +146,7 @@
         <a href="#"><i class="fas fa-truck-moving"></i> Suppliers</a>
         <a href="#"><i class="fas fa-chart-bar"></i> Reports</a>
         <a href="#"><i class="fas fa-users-gear"></i> User Management</a>
-        <a href="#"><i class="fas fa-gear"></i> Settings</a>
+        <a href="./setting.php"><i class="fas fa-gear"></i> Settings</a>
         </div>
 
         <!-- Footer -->
