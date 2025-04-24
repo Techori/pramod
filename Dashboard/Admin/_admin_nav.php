@@ -127,26 +127,31 @@
         <!-- Header -->
         <div class="sidebar-header">
         <div class="d-flex align-items-center">
-            <div class="user-icon">U</div>
-            <h5>Shree Unnati Traders</h5>
+            <a href="./admin_dashboard.php" class="d-flex align-items-center text-decoration-none text-white">
+              <div class="user-icon">U</div>
+              <h5>Shree Unnati Traders</h5>
+            </a>
         </div>
         <button class="close-btn d-md-none" onclick="toggleSidebar()">&times;</button>
         </div>
 
+        <?php
+          $currentPage = basename($_SERVER['PHP_SELF']);
+        ?>
         <!-- Menu -->
         <div class="sidebar-menu">
-        <a href="./admin_dashboard.php" class="active"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
-        <a href="#"><i class="fas fa-file-invoice"></i> Billing Desk</a>
-        <a href="#"><i class="fas fa-dollar-sign"></i> Accounting</a>
-        <a href="#"><i class="fas fa-box-open"></i> Inventory</a>
-        <a href="#"><i class="fas fa-chart-line"></i> Expenses</a>
-        <a href="#"><i class="fas fa-warehouse"></i> Factory Stock</a>
-        <a href="#"><i class="fas fa-store"></i> Retail Store</a>
-        <a href="#"><i class="fas fa-headset"></i> After-Sales Service</a>
-        <a href="#"><i class="fas fa-truck-moving"></i> Suppliers</a>
-        <a href="#"><i class="fas fa-chart-bar"></i> Reports</a>
-        <a href="#"><i class="fas fa-users-gear"></i> User Management</a>
-        <a href="./setting.php"><i class="fas fa-gear"></i> Settings</a>
+        <a href="./admin_dashboard.php" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
+        <a href="./billing_desk.php" class="<?= $currentPage === 'billing_desk.php' ? 'active' : '' ?>"><i class="fas fa-file-invoice"></i> Billing Desk</a>
+        <a href="./accounting.php" class="<?= $currentPage === 'accounting.php' ? 'active' : '' ?>"><i class="fas fa-dollar-sign"></i> Accounting</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Inventory</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-line"></i> Expenses</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-warehouse"></i> Factory Stock</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-store"></i> Retail Store</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-truck-moving"></i> Suppliers</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-bar"></i> Reports</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-users-gear"></i> User Management</a>
+        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-gear"></i> Settings</a>
         </div>
 
         <!-- Footer -->
@@ -186,7 +191,7 @@
                 <small class="text-muted">Admin</small>
             </div>
             <div class="user-icon">A</div>
-                <form action="../logout.php" method="POST">
+                <form action="../../logout.php" method="POST">
                     <button name="logout_btn" class="btn btn-outline-dark nav-right-btn fw-bold" type="submit" value="true">Logout</button>
                 </form>
             </div>

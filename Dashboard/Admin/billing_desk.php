@@ -211,7 +211,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <div class="card-body">
                     <h6 class="text-muted">BNPL Outstanding</h6>
                     <h3 class="fw-bold">₹85,450</h3>
-                    <p class="text-danger">5.7% vs last month</p>
+                    <p class="text-success">5.7% vs last month</p>
                 </div>
                 </div>
             </div>
