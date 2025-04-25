@@ -22,11 +22,13 @@ require_once 'database.php';
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vendor Dashboard - Shree Unnati Wires & Traders</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet"
+        crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -39,6 +41,7 @@ require_once 'database.php';
             background-color: #f8f9fa;
             overflow-x: hidden;
         }
+
         .sidebar {
             width: 200px;
             height: 100vh;
@@ -54,17 +57,20 @@ require_once 'database.php';
             box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), 0 2px 6px rgba(0, 0, 0, 0.05);
             animation: glowingEffect 2.5s infinite;
         }
+
         .sidebar-header {
             text-align: center;
             padding: 20px;
             background-color: #f8f9fa;
             border-bottom: 1px solid #ddd;
         }
+
         .sidebar-header img {
             width: 50px;
             height: auto;
             margin-bottom: 10px;
         }
+
         .sidebar nav a {
             display: flex;
             align-items: center;
@@ -73,15 +79,19 @@ require_once 'database.php';
             text-decoration: none;
             font-size: 0.95rem;
         }
+
         .sidebar nav a i {
             width: 24px;
             margin-right: 10px;
         }
-        .sidebar nav a:hover, .sidebar nav a.active {
+
+        .sidebar nav a:hover,
+        .sidebar nav a.active {
             background-color: #e9ecef;
             color: #0d6efd;
             font-weight: bold;
         }
+
         .sidebar .footer {
             position: absolute;
             bottom: 0;
@@ -92,11 +102,13 @@ require_once 'database.php';
             color: #6c757d;
             border-top: 1px solid #ddd;
         }
+
         main {
             margin-left: 200px;
             padding: 20px;
             transition: margin-left 0.3s ease-in-out;
         }
+
         header.header {
             margin-left: 200px;
             background: #fff;
@@ -108,27 +120,32 @@ require_once 'database.php';
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             transition: margin-left 0.3s ease-in-out;
         }
+
         .cards {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
             height: 100%;
         }
+
         .cards:hover {
             transform: translateY(-5px) scale(1.02);
             box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1);
         }
+
         .card-border {
             border-radius: 0.5rem;
             border-top: none;
             border-right: none;
             border-bottom: none;
         }
+
         .chart-container {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             justify-content: center;
         }
+
         .chart-box {
             background: white;
             padding: 20px;
@@ -138,52 +155,62 @@ require_once 'database.php';
             max-width: 600px;
             flex: 1 1 300px;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
-        th, td {
+
+        th,
+        td {
             padding: 10px;
             border: 1px solid #ddd;
             text-align: left;
             font-size: 0.9rem;
         }
+
         .green-bg {
             background-color: #d4edda;
             color: #155724;
             padding: 4px 10px;
             border-radius: 10px;
         }
+
         .orange-bg {
             background-color: #fff3cd;
             color: #856404;
             padding: 4px 10px;
             border-radius: 10px;
         }
+
         .red-bg {
             background-color: #f8d7da;
             color: #721c24;
             padding: 4px 10px;
             border-radius: 10px;
         }
+
         .blue-bg {
             background-color: #d1e7ff;
             color: #004085;
             padding: 4px 10px;
             border-radius: 10px;
         }
+
         .purple-bg {
             background-color: #e2d9f3;
             color: #4c2889;
             padding: 4px 10px;
             border-radius: 10px;
         }
+
         .alert {
             border-radius: 0.5rem;
             padding: 15px;
             font-size: 0.9rem;
         }
+
         .hamburger {
             display: none;
             font-size: 1.5rem;
@@ -192,6 +219,7 @@ require_once 'database.php';
             color: #0d6efd;
             cursor: pointer;
         }
+
         .overlay {
             display: none;
             position: fixed;
@@ -202,49 +230,64 @@ require_once 'database.php';
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
         }
+
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
             }
+
             .sidebar.open {
                 transform: translateX(0);
                 box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), 0 0 25px rgba(0, 0, 0, 0.95);
                 animation: glowingEffect 2.5s infinite;
             }
-            main, header.header {
+
+            main,
+            header.header {
                 margin-left: 0;
             }
+
             .hamburger {
                 display: block;
             }
+
             .overlay.show {
                 display: block;
             }
+
             .container-fluid {
                 padding-left: 10px;
                 padding-right: 10px;
             }
+
             .chart-box {
                 flex: 1 1 100%;
             }
-            th, td {
+
+            th,
+            td {
                 font-size: 0.85rem;
                 padding: 8px;
             }
+
             .table-responsive {
                 overflow-x: auto;
             }
+
             .card-body {
                 padding: 15px;
             }
+
             .alert {
                 font-size: 0.85rem;
             }
+
             .btn-sm {
                 font-size: 0.8rem;
                 padding: 5px 10px;
             }
         }
+
         .notification-dropdown {
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
             border: 1px solid rgba(0, 0, 0, 0.1);
@@ -264,6 +307,7 @@ require_once 'database.php';
         }
     </style>
 </head>
+
 <body>
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
@@ -313,7 +357,8 @@ require_once 'database.php';
         <form class="d-flex" role="search" method="GET" action="search.php">
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                <input class="form-control border-start-0" type="search" placeholder="Search orders, products, or invoices..." aria-label="Search">
+                <input class="form-control border-start-0" type="search"
+                    placeholder="Search orders, products, or invoices..." aria-label="Search">
             </div>
         </form>
         <div class="d-flex align-items-center">
@@ -322,44 +367,51 @@ require_once 'database.php';
                     <i class="fas fa-bell"></i>
                     <?php
                     $notifications = get_notifications();
-                    $unread = array_filter($notifications, function($n) { return !$n['read']; });
+                    $unread = array_filter($notifications, function ($n) {
+                        return !$n['read']; });
                     if (count($unread) > 0):
-                    ?>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                        <?php echo count($unread); ?>
-                        <span class="visually-hidden">unread notifications</span>
-                    </span>
+                        ?>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            <?php echo count($unread); ?>
+                            <span class="visually-hidden">unread notifications</span>
+                        </span>
                     <?php endif; ?>
                 </button>
-                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0"
+                    style="width: 320px; max-height: 400px; overflow-y: auto;">
                     <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Notifications</h6>
                         <?php if (count($unread) > 0): ?>
-                        <button class="btn btn-link btn-sm text-decoration-none">Mark all read</button>
+                            <button class="btn btn-link btn-sm text-decoration-none">Mark all read</button>
                         <?php endif; ?>
                     </div>
                     <div class="notifications-list">
                         <?php foreach ($notifications as $notification): ?>
-                        <div class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <span class="fa-stack fa-sm">
-                                        <i class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
-                                        <i class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
-                                    </span>
+                            <div
+                                class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <span class="fa-stack fa-sm">
+                                            <i
+                                                class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
+                                            <i
+                                                class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
+                                        </span>
+                                    </div>
+                                    <div class="flex-grow-1 ms-2">
+                                        <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?>
+                                        </h6>
+                                        <p class="mb-0 small"><?php echo htmlspecialchars($notification['message']); ?></p>
+                                        <small
+                                            class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
+                                    </div>
+                                    <?php if (!$notification['read']): ?>
+                                        <div class="flex-shrink-0 ms-2">
+                                            <span class="badge bg-primary rounded-pill">New</span>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                                <div class="flex-grow-1 ms-2">
-                                    <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?></h6>
-                                    <p class="mb-0 small"><?php echo htmlspecialchars($notification['message']); ?></p>
-                                    <small class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
-                                </div>
-                                <?php if (!$notification['read']): ?>
-                                <div class="flex-shrink-0 ms-2">
-                                    <span class="badge bg-primary rounded-pill">New</span>
-                                </div>
-                                <?php endif; ?>
                             </div>
-                        </div>
                         <?php endforeach; ?>
                     </div>
                     <div class="p-2 border-top text-center">
@@ -368,15 +420,17 @@ require_once 'database.php';
                 </div>
             </div>
             <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-user-circle"></i></button>
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i
+                        class="fas fa-user-circle"></i></button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <small class="text-muted text-center d-block" style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>
+                    <!--May be a need to change the username or user_email variable to be dynamic in the future. -->
+                    <small class="text-muted text-center d-block"
+                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>
                     <li><a class="dropdown-item" href="?page=settings">Update Profile</a></li>
-                    <li>
-                        <form action="../../logout.php" method="POST" class="d-inline">
-                            <input type="hidden" name="logout_btn" value="logout">
-                            <button type="submit" class="dropdown-item">Logout</button>
-                        </form>
+                    <form action="../../logout.php" method="POST" class="d-inline">
+                        <input type="hidden" name="logout_btn" value="logout">
+                        <button type="submit" class="dropdown-item">Logout</button>
+                    </form>
                     </li>
                 </ul>
             </div>
@@ -454,7 +508,8 @@ require_once 'database.php';
                             <div class="card-body">
                                 <h5 class="text-muted">Low Stock Alert</h5>
                                 <p>2 products are below minimum stock levels. Review inventory soon.</p>
-                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products →</a>
+                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products
+                                    →</a>
                             </div>
                         </div>
                     </div>
@@ -463,7 +518,8 @@ require_once 'database.php';
                             <div class="card-body">
                                 <h5 class="text-muted">Recent Payments</h5>
                                 <p>3 payments received today totaling ₹28,450.</p>
-                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments →</a>
+                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments
+                                    →</a>
                             </div>
                         </div>
                     </div>
@@ -490,18 +546,29 @@ require_once 'database.php';
                         </ul>
                         <div class="tab-content">
                             <div class="tab-pane fade show active" id="invoices">
-                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                                <div
+                                    class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 flex-wrap gap-2">
                                     <div class="input-group w-auto flex-grow-1" style="max-width: 300px;">
-                                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                                        <input type="text" class="form-control border-start-0" placeholder="Search invoices..." />
+                                        <span class="input-group-text bg-light border-end-0"><i
+                                                class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control border-start-0"
+                                            placeholder="Search invoices..." />
                                     </div>
                                     <div class="d-flex gap-2 flex-wrap">
                                         <button class="btn btn-outline-primary btn-sm">All</button>
-                                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-check-circle text-success me-1"></i> Paid</button>
-                                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-clock text-warning me-1"></i> Pending</button>
-                                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-exclamation-circle text-danger me-1"></i> Overdue</button>
+                                        <button class="btn btn-outline-primary btn-sm"><i
+                                                class="fas fa-check-circle text-success me-1"></i> Paid</button>
+                                        <button class="btn btn-outline-primary btn-sm"><i
+                                                class="fas fa-clock text-warning me-1"></i> Pending</button>
+                                        <button class="btn btn-outline-primary btn-sm"><i
+                                                class="fas fa-exclamation-circle text-danger me-1"></i> Overdue</button>
                                     </div>
-                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Create Invoice</button>
+                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Create
+                                        Invoice</button>
+                                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                        data-bs-target="#generateInvoiceModal">
+                                        <i class="fas fa-plus"></i> Generate Invoice
+                                    </button>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-hover">
@@ -523,8 +590,8 @@ require_once 'database.php';
                                                     <td><?php echo htmlspecialchars($invoice['amount']); ?></td>
                                                     <td>
                                                         <span class="<?php
-                                                            echo $invoice['status'] === 'Paid' ? 'green-bg' :
-                                                                 ($invoice['status'] === 'Pending' ? 'orange-bg' : 'red-bg');
+                                                        echo $invoice['status'] === 'Paid' ? 'green-bg' :
+                                                            ($invoice['status'] === 'Pending' ? 'orange-bg' : 'red-bg');
                                                         ?>">
                                                             <?php echo htmlspecialchars($invoice['status']); ?>
                                                         </span>
@@ -532,10 +599,16 @@ require_once 'database.php';
                                                     <td><?php echo htmlspecialchars($invoice['date']); ?></td>
                                                     <td>
                                                         <div class="d-flex gap-2">
-                                                            <button class="btn btn-outline-primary btn-sm" title="View"><i class="fas fa-eye"></i></button>
-                                                            <button class="btn btn-outline-primary btn-sm" title="Edit"><i class="fas fa-pen-to-square"></i></button>
-                                                            <button class="btn btn-outline-primary btn-sm" title="Download" onclick="alert('Downloading Document: <?php echo htmlspecialchars($invoice['id']); ?>')"><i class="fas fa-download"></i></button>
-                                                            <button class="btn btn-outline-primary btn-sm" title="Print" onclick="alert('Printing Document: <?php echo htmlspecialchars($invoice['id']); ?>')"><i class="fas fa-print"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="View"><i
+                                                                    class="fas fa-eye"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Edit"><i
+                                                                    class="fas fa-pen-to-square"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Download"
+                                                                onclick="alert('Downloading Document: <?php echo htmlspecialchars($invoice['id']); ?>')"><i
+                                                                    class="fas fa-download"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Print"
+                                                                onclick="alert('Printing Document: <?php echo htmlspecialchars($invoice['id']); ?>')"><i
+                                                                    class="fas fa-print"></i></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -544,21 +617,26 @@ require_once 'database.php';
                                     </table>
                                 </div>
                                 <div class="text-center mt-4">
-                                    <a href="#" class="btn btn-outline-primary btn-sm">View All Invoices <i class="fas fa-arrow-right ms-1"></i></a>
+                                    <a href="#" class="btn btn-outline-primary btn-sm">View All Invoices <i
+                                            class="fas fa-arrow-right ms-1"></i></a>
                                 </div>
                             </div>
                             <div class="tab-pane fade" id="payments">
-                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                                <div
+                                    class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 flex-wrap gap-2">
                                     <div class="input-group w-auto flex-grow-1" style="max-width: 300px;">
-                                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                                        <input type="text" class="form-control border-start-0" placeholder="Search payments..." />
+                                        <span class="input-group-text bg-light border-end-0"><i
+                                                class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control border-start-0"
+                                            placeholder="Search payments..." />
                                     </div>
                                     <div class="d-flex gap-2 flex-wrap">
                                         <button class="btn btn-outline-primary btn-sm">All Payments</button>
                                         <button class="btn btn-outline-primary btn-sm">This Month</button>
                                         <button class="btn btn-outline-primary btn-sm">Last Month</button>
                                     </div>
-                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Record Payment</button>
+                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Record
+                                        Payment</button>
                                 </div>
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-hover">
@@ -584,9 +662,14 @@ require_once 'database.php';
                                                     <td><?php echo htmlspecialchars($payment['date']); ?></td>
                                                     <td>
                                                         <div class="d-flex gap-2">
-                                                            <button class="btn btn-outline-primary btn-sm" title="View"><i class="fas fa-eye"></i></button>
-                                                            <button class="btn btn-outline-primary btn-sm" title="Download" onclick="alert('Downloading Document: <?php echo htmlspecialchars($payment['id']); ?>')"><i class="fas fa-download"></i></button>
-                                                            <button class="btn btn-outline-primary btn-sm" title="Print" onclick="alert('Printing Document: <?php echo htmlspecialchars($payment['id']); ?>')"><i class="fas fa-print"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="View"><i
+                                                                    class="fas fa-eye"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Download"
+                                                                onclick="alert('Downloading Document: <?php echo htmlspecialchars($payment['id']); ?>')"><i
+                                                                    class="fas fa-download"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Print"
+                                                                onclick="alert('Printing Document: <?php echo htmlspecialchars($payment['id']); ?>')"><i
+                                                                    class="fas fa-print"></i></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -595,21 +678,25 @@ require_once 'database.php';
                                     </table>
                                 </div>
                                 <div class="text-center mt-4">
-                                    <a href="#" class="btn btn-outline-primary btn-sm">View Payment History <i class="fas fa-arrow-right ms-1"></i></a>
+                                    <a href="#" class="btn btn-outline-primary btn-sm">View Payment History <i
+                                            class="fas fa-arrow-right ms-1"></i></a>
                                 </div>
                             </div>
                             <div class="tab-pane fade" id="quickbill">
                                 <div class="row">
                                     <div class="col-md-8 mb-4">
-                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #198754;">
+                                        <div class="card shadow-sm cards card-border"
+                                            style="border-left: 5px solid #198754;">
                                             <div class="card-body">
                                                 <h5 class="card-title">Quick Bill</h5>
                                                 <form id="quickBillForm" onsubmit="handleQuickBillSubmit(event)">
                                                     <div class="mb-3">
                                                         <label for="billTotal" class="form-label">Total Amount</label>
-                                                        <input type="text" class="form-control" id="billTotal" placeholder="Enter total amount" required>
+                                                        <input type="text" class="form-control" id="billTotal"
+                                                            placeholder="Enter total amount" required>
                                                     </div>
-                                                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-receipt me-1"></i> Generate Bill</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm"><i
+                                                            class="fas fa-receipt me-1"></i> Generate Bill</button>
                                                 </form>
                                                 <script>
                                                     function handleQuickBillSubmit(event) {
@@ -623,7 +710,8 @@ require_once 'database.php';
                                         </div>
                                     </div>
                                     <div class="col-md-4 mb-4">
-                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #ffc107;">
+                                        <div class="card shadow-sm cards card-border"
+                                            style="border-left: 5px solid #ffc107;">
                                             <div class="card-body">
                                                 <h5 class="card-title d-flex align-items-center">
                                                     <i class="fas fa-receipt me-2 text-warning"></i> Recent Quick Bills
@@ -633,18 +721,26 @@ require_once 'database.php';
                                                         <div class="border rounded p-3 mb-2 hover-bg-light">
                                                             <div class="d-flex justify-content-between">
                                                                 <div>
-                                                                    <p class="fw-medium mb-1"><?php echo htmlspecialchars($bill['id']); ?></p>
-                                                                    <p class="text-muted small"><?php echo htmlspecialchars($bill['customer']); ?></p>
+                                                                    <p class="fw-medium mb-1">
+                                                                        <?php echo htmlspecialchars($bill['id']); ?></p>
+                                                                    <p class="text-muted small">
+                                                                        <?php echo htmlspecialchars($bill['customer']); ?></p>
                                                                 </div>
-                                                                <span class="text-success fw-semibold"><?php echo htmlspecialchars($bill['amount']); ?></span>
+                                                                <span
+                                                                    class="text-success fw-semibold"><?php echo htmlspecialchars($bill['amount']); ?></span>
                                                             </div>
                                                             <div class="d-flex justify-content-between text-muted small">
                                                                 <span><?php echo htmlspecialchars($bill['date']); ?></span>
-                                                                <span><?php echo htmlspecialchars($bill['items']); ?> items • <?php echo htmlspecialchars($bill['method']); ?></span>
+                                                                <span><?php echo htmlspecialchars($bill['items']); ?> items •
+                                                                    <?php echo htmlspecialchars($bill['method']); ?></span>
                                                             </div>
                                                             <div class="d-flex gap-2 mt-2">
-                                                                <button class="btn btn-outline-primary btn-sm" onclick="alert('Printing Document: <?php echo htmlspecialchars($bill['id']); ?>')"><i class="fas fa-print me-1"></i> Print</button>
-                                                                <button class="btn btn-outline-primary btn-sm" onclick="alert('Downloading Document: <?php echo htmlspecialchars($bill['id']); ?>')"><i class="fas fa-download me-1"></i> Download</button>
+                                                                <button class="btn btn-outline-primary btn-sm"
+                                                                    onclick="alert('Printing Document: <?php echo htmlspecialchars($bill['id']); ?>')"><i
+                                                                        class="fas fa-print me-1"></i> Print</button>
+                                                                <button class="btn btn-outline-primary btn-sm"
+                                                                    onclick="alert('Downloading Document: <?php echo htmlspecialchars($bill['id']); ?>')"><i
+                                                                        class="fas fa-download me-1"></i> Download</button>
                                                             </div>
                                                         </div>
                                                     <?php endforeach; ?>
@@ -657,27 +753,32 @@ require_once 'database.php';
                             <div class="tab-pane fade" id="reports">
                                 <div class="row">
                                     <div class="col-md-6 mb-4">
-                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #0d6efd;">
+                                        <div class="card shadow-sm cards card-border"
+                                            style="border-left: 5px solid #0d6efd;">
                                             <div class="card-body">
                                                 <h5 class="card-title">Monthly Revenue</h5>
-                                                <div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 192px;">
+                                                <div class="d-flex align-items-center justify-content-center bg-light rounded"
+                                                    style="height: 192px;">
                                                     <p class="text-muted">Revenue Chart Placeholder</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-6 mb-4">
-                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #6f42c1;">
+                                        <div class="card shadow-sm cards card-border"
+                                            style="border-left: 5px solid #6f42c1;">
                                             <div class="card-body">
                                                 <h5 class="card-title">Payment Methods</h5>
-                                                <div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 192px;">
+                                                <div class="d-flex align-items-center justify-content-center bg-light rounded"
+                                                    style="height: 192px;">
                                                     <p class="text-muted">Payment Methods Chart Placeholder</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-12">
-                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #dc3545;">
+                                        <div class="card shadow-sm cards card-border"
+                                            style="border-left: 5px solid #dc3545;">
                                             <div class="card-body">
                                                 <h5 class="card-title">Outstanding Payments</h5>
                                                 <div class="table-responsive">
@@ -695,10 +796,13 @@ require_once 'database.php';
                                                             <?php foreach (get_outstanding_payments() as $payment): ?>
                                                                 <tr>
                                                                     <td><?php echo htmlspecialchars($payment['id']); ?></td>
-                                                                    <td><?php echo htmlspecialchars($payment['customer']); ?></td>
+                                                                    <td><?php echo htmlspecialchars($payment['customer']); ?>
+                                                                    </td>
                                                                     <td><?php echo htmlspecialchars($payment['amount']); ?></td>
-                                                                    <td><?php echo htmlspecialchars($payment['due_date']); ?></td>
-                                                                    <td class="<?php echo $payment['days_overdue'] !== '-' ? 'text-danger' : ''; ?>">
+                                                                    <td><?php echo htmlspecialchars($payment['due_date']); ?>
+                                                                    </td>
+                                                                    <td
+                                                                        class="<?php echo $payment['days_overdue'] !== '-' ? 'text-danger' : ''; ?>">
                                                                         <?php echo htmlspecialchars($payment['days_overdue']); ?>
                                                                     </td>
                                                                 </tr>
@@ -721,11 +825,16 @@ require_once 'database.php';
                         <div class="card stat-card cards shadow-sm" style="background-color: #f8d7da;">
                             <div class="card-body">
                                 <div class="d-flex gap-2 flex-wrap">
-                                    <a href="?page=orders"><button class="btn btn-outline-primary btn-sm"><i class="fas fa-plus"></i> Add New Order</button></a>
-                                    <a href="?page=deliveries"><button class="btn btn-outline-primary btn-sm"><i class="fas fa-truck"></i> Schedule Delivery</button></a>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-invoice"></i> Generate Invoice</button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i> Payments</button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-line"></i> View Reports</button>
+                                    <a href="?page=orders"><button class="btn btn-outline-primary btn-sm"><i
+                                                class="fas fa-plus"></i> Add New Order</button></a>
+                                    <a href="?page=deliveries"><button class="btn btn-outline-primary btn-sm"><i
+                                                class="fas fa-truck"></i> Schedule Delivery</button></a>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-invoice"></i>
+                                        Generate Invoice</button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i>
+                                        Payments</button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-line"></i> View
+                                        Reports</button>
                                 </div>
                             </div>
                         </div>
@@ -734,260 +843,22 @@ require_once 'database.php';
             </div>
         <?php elseif ($page === 'orders'): ?>
             <?php include 'orders.php'; ?>
+            
         <?php elseif ($page === 'deliveries'): ?>
-            <div class="container-fluid">
-                <h4><i class="fas fa-truck text-primary"></i> Delivery Management</h4>
-                <p>Monitor and schedule vendor deliveries.</p>
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="text-muted">Upcoming Deliveries</h5>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleDeliveryModal"><i class="fas fa-truck"></i> Schedule Delivery</button>
-                                <!-- Schedule Delivery Modal -->
-                                <div class="modal fade" id="scheduleDeliveryModal" tabindex="-1" aria-labelledby="scheduleDeliveryModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="scheduleDeliveryModalLabel">Schedule New Delivery</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <form id="deliveryForm">
-                                                    <div class="mb-3">
-                                                        <label for="orderSelect" class="form-label">Select Order</label>
-                                                        <select class="form-select" id="orderSelect" required>
-                                                            <option value="">Choose an order...</option>
-                                                            <option value="ORD-2846">ORD-2846 - Modern Electricals</option>
-                                                            <option value="ORD-2840">ORD-2840 - City Lights</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="deliveryDate" class="form-label">Delivery Date</label>
-                                                        <input type="date" class="form-control" id="deliveryDate" required>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="timeSlot" class="form-label">Time Slot</label>
-                                                        <select class="form-select" id="timeSlot" required>
-                                                            <option value="">Choose time slot...</option>
-                                                            <option value="morning">Morning (9 AM - 12 PM)</option>
-                                                            <option value="afternoon">Afternoon (1 PM - 4 PM)</option>
-                                                            <option value="evening">Evening (4 PM - 7 PM)</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="deliveryNotes" class="form-label">Delivery Notes</label>
-                                                        <textarea class="form-control" id="deliveryNotes" rows="3" placeholder="Enter any special instructions..."></textarea>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                <button type="button" class="btn btn-primary" onclick="scheduleDelivery()">Schedule Delivery</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <script>
-                                    function scheduleDelivery() {
-                                        const order = document.getElementById('orderSelect').value;
-                                        const date = document.getElementById('deliveryDate').value;
-                                        const timeSlot = document.getElementById('timeSlot').value;
-                                        const notes = document.getElementById('deliveryNotes').value;
-                                        if (!order || !date || !timeSlot) {
-                                            alert('Please fill in all required fields');
-                                            return;
-                                        }
-                                        alert('Delivery scheduled successfully!\nOrder: ' + order + '\nDate: ' + date + '\nTime Slot: ' + timeSlot);
-                                        const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleDeliveryModal'));
-                                        modal.hide();
-                                        document.getElementById('deliveryForm').reset();
-                                    }
-                                </script>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i> View Delivery Status</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Delivery ID</th>
-                                        <th>Order ID</th>
-                                        <th>Customer Name</th>
-                                        <th>Delivery Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach (get_deliveries() as $delivery): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($delivery['id']); ?></td>
-                                            <td><?php echo htmlspecialchars($delivery['order_id']); ?></td>
-                                            <td><?php echo htmlspecialchars($delivery['customer']); ?></td>
-                                            <td><?php echo htmlspecialchars($delivery['date']); ?></td>
-                                            <td><span class="<?php echo $delivery['status'] === 'Scheduled' ? 'green-bg' : 'orange-bg'; ?>">
-                                                <?php echo htmlspecialchars($delivery['status']); ?>
-                                            </span></td>
-                                            <td>
-                                                <div class="d-flex gap-2">
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <?php include 'deliveries.php'; ?>
+
         <?php elseif ($page === 'products'): ?>
             <?php include 'products.php'; ?>
 
         <?php elseif ($page === 'payments'): ?>
-            <div class="container-fluid">
-                <h4><i class="fas fa-wallet text-primary"></i> Payment Management</h4>
-                <p>Track vendor payments and BNPL transactions.</p>
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <div class="d-flex gap-2 flex-grow-1">
-                                <div class="input-group w-auto flex-grow-1">
-                                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control border-start-0" placeholder="Search payments..." />
-                                </div>
-                                <button class="btn btn-outline-primary btn-sm">Filter</button>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-user"></i> View Vendors</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-cog"></i> Set Credit Limit</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i> Send Payment Reminder</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Transaction ID</th>
-                                        <th>Vendor</th>
-                                        <th>Amount</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach (get_transactions() as $transaction): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($transaction['id']); ?></td>
-                                            <td><?php echo htmlspecialchars($transaction['vendor']); ?></td>
-                                            <td><?php echo htmlspecialchars($transaction['amount']); ?></td>
-                                            <td><?php echo htmlspecialchars($transaction['date']); ?></td>
-                                            <td><span class="<?php echo $transaction['status'] === 'Paid' ? 'green-bg' : 'red-bg'; ?>">
-                                                <?php echo htmlspecialchars($transaction['status']); ?>
-                                            </span></td>
-                                            <td>
-                                                <div class="d-flex gap-2">
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-3">
-                            <h5 class="text-muted">BNPL Overview</h5>
-                            <p>Outstanding: ₹2,85,450 | Interest Accrued: ₹5,250</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <?php include 'payments.php'; ?>
+
         <?php elseif ($page === 'invoices'): ?>
-            <div class="container-fluid">
-                <h4><i class="fas fa-file-invoice text-primary"></i> Invoice Management</h4>
-                <p>Create and track GST & Non-GST invoices.</p>
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <div class="d-flex gap-2 flex-grow-1">
-                                <div class="input-group w-auto flex-grow-1">
-                                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control border-start-0" placeholder="Search invoices..." />
-                                </div>
-                                <button class="btn btn-outline-primary btn-sm">Filter</button>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-plus"></i> Generate Invoice</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i> Download Invoice</button>
-                            </div>
-                        </div>
-                        <div class="d-flex justify-content-start gap-2 mb-3 flex-wrap">
-                            <button class="btn btn-outline-primary btn-sm">All</button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-check-circle text-success"></i> Paid</button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-clock text-warning"></i> Pending</button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-exclamation-circle text-danger"></i> Overdue</button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Invoice ID</th>
-                                        <th>Customer</th>
-                                        <th>Amount</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach (get_invoices_page() as $invoice): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($invoice['id']); ?></td>
-                                            <td><?php echo htmlspecialchars($invoice['customer']); ?></td>
-                                            <td><?php echo htmlspecialchars($invoice['amount']); ?></td>
-                                            <td><?php echo htmlspecialchars($invoice['date']); ?></td>
-                                            <td><span class="<?php echo $invoice['status'] === 'Paid' ? 'green-bg' : 'orange-bg'; ?>">
-                                                <?php echo htmlspecialchars($invoice['status']); ?>
-                                            </span></td>
-                                            <td>
-                                                <div class="d-flex gap-2">
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
-                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <?php include 'invoices.php'; ?>
+
         <?php elseif ($page === 'reports'): ?>
-            <div class="container-fluid">
-                <h4><i class="fas fa-chart-bar text-primary"></i> Reports & Analytics</h4>
-                <p>Analyze sales, BNPL, and financial performance.</p>
-                <div class="chart-container">
-                    <div class="chart-box">
-                        <h3>Sales Trends</h3>
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <h3>BNPL Recovery</h3>
-                        <p>Outstanding: ₹2,85,450 | Recovered: ₹1,50,000</p>
-                        <div class="d-flex gap-2 mt-3 flex-wrap">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-bar"></i> Generate Sales Report</button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-alt"></i> View Profit & Loss</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <?php include 'reports.php'; ?>
+
         <?php elseif ($page === 'settings'): ?>
             <?php include 'settings.php'; ?>
         <?php else: ?>
@@ -1059,7 +930,8 @@ require_once 'database.php';
                             <div class="card-body">
                                 <h5 class="text-muted">Low Stock Alert</h5>
                                 <p>2 products are below minimum stock levels. Review inventory soon.</p>
-                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products →</a>
+                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products
+                                    →</a>
                             </div>
                         </div>
                     </div>
@@ -1068,7 +940,8 @@ require_once 'database.php';
                             <div class="card-body">
                                 <h5 class="text-muted">Recent Payments</h5>
                                 <p>3 payments received today totaling ₹28,450.</p>
-                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments →</a>
+                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments
+                                    →</a>
                             </div>
                         </div>
                     </div>
@@ -1077,8 +950,266 @@ require_once 'database.php';
         <?php endif; ?>
     </main>
 
+    <!-- Generate Invoice Modal -->
+    <div class="modal fade" id="generateInvoiceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Generate New Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="invoiceForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Invoice Type</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="invoiceType" id="gstInvoice"
+                                            value="gst" checked>
+                                        <label class="form-check-label" for="gstInvoice">GST Invoice</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="invoiceType"
+                                            id="nonGstInvoice" value="non-gst">
+                                        <label class="form-check-label" for="nonGstInvoice">Non-GST Invoice</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Invoice Date</label>
+                                <input type="date" class="form-control" id="invoiceDate" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" class="form-control" id="customerName" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Customer GSTIN</label>
+                                <input type="text" class="form-control" id="customerGstin">
+                            </div>
+                        </div>
+
+                        <div id="invoiceItems">
+                            <h6>Items</h6>
+                            <div class="item-row row mb-2">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control" placeholder="Item Name" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control quantity" placeholder="Qty" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control price" placeholder="Price" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control gst-rate" placeholder="GST %" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <span class="item-total">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="addInvoiceItem()">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6 offset-md-6">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Subtotal:</span>
+                                    <span id="subtotal">₹0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>GST:</span>
+                                    <span id="totalGst">₹0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Total:</span>
+                                    <span id="grandTotal">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="generateInvoice()">Generate Invoice</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function addInvoiceItem() {
+            const newRow = `
+        <div class="item-row row mb-2">
+            <div class="col-md-4">
+                <input type="text" class="form-control" placeholder="Item Name" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control quantity" placeholder="Qty" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control price" placeholder="Price" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control gst-rate" placeholder="GST %" required>
+            </div>
+            <div class="col-md-2">
+                <span class="item-total">₹0.00</span>
+                <button type="button" class="btn btn-link text-danger btn-sm" onclick="removeItem(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+            document.getElementById('invoiceItems').insertAdjacentHTML('beforeend', newRow);
+        }
+
+        function removeItem(button) {
+            button.closest('.item-row').remove();
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let subtotal = 0;
+            let totalGst = 0;
+
+            document.querySelectorAll('.item-row').forEach(row => {
+                const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+                const price = parseFloat(row.querySelector('.price').value) || 0;
+                const gstRate = parseFloat(row.querySelector('.gst-rate').value) || 0;
+
+                const itemTotal = quantity * price;
+                const itemGst = itemTotal * (gstRate / 100);
+
+                subtotal += itemTotal;
+                totalGst += itemGst;
+
+                row.querySelector('.item-total').textContent = `₹${itemTotal.toFixed(2)}`;
+            });
+
+            const grandTotal = subtotal + totalGst;
+
+            document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('totalGst').textContent = `₹${totalGst.toFixed(2)}`;
+            document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+        }
+
+        function generateInvoice() {
+            const invoiceData = {
+                type: document.querySelector('input[name="invoiceType"]:checked').value,
+                date: document.getElementById('invoiceDate').value,
+                customer: {
+                    name: document.getElementById('customerName').value,
+                    gstin: document.getElementById('customerGstin').value
+                },
+                items: [],
+                totals: {
+                    subtotal: document.getElementById('subtotal').textContent,
+                    gst: document.getElementById('totalGst').textContent,
+                    total: document.getElementById('grandTotal').textContent
+                }
+            };
+
+            // Collect items
+            document.querySelectorAll('.item-row').forEach(row => {
+                invoiceData.items.push({
+                    name: row.querySelector('input[placeholder="Item Name"]').value,
+                    quantity: row.querySelector('.quantity').value,
+                    price: row.querySelector('.price').value,
+                    gst: row.querySelector('.gst-rate').value,
+                    total: row.querySelector('.item-total').textContent
+                });
+            });
+
+            // Mock invoice generation
+            const invoiceNumber = 'INV-' + Math.floor(Math.random() * 10000);
+
+            // Show success message
+            const modal = bootstrap.Modal.getInstance(document.getElementById('generateInvoiceModal'));
+            modal.hide();
+
+            // Show download options
+            showDownloadOptions(invoiceNumber, invoiceData);
+        }
+
+        function showDownloadOptions(invoiceNumber, invoiceData) {
+            const downloadModal = `
+        <div class="modal fade" id="downloadModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Invoice Generated Successfully</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Invoice ${invoiceNumber} has been generated successfully!</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="downloadInvoice('pdf', '${invoiceNumber}')">
+                                <i class="fas fa-file-pdf"></i> Download as PDF
+                            </button>
+                            <button class="btn btn-secondary" onclick="downloadInvoice('excel', '${invoiceNumber}')">
+                                <i class="fas fa-file-excel"></i> Download as Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.body.insertAdjacentHTML('beforeend', downloadModal);
+            const modal = new bootstrap.Modal(document.getElementById('downloadModal'));
+            modal.show();
+
+            // Remove modal from DOM after it's hidden
+            document.getElementById('downloadModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+        }
+
+        function downloadInvoice(format, invoiceNumber) {
+            // Mock download process
+            const message = `Downloading invoice ${invoiceNumber} in ${format.toUpperCase()} format...`;
+            alert(message);
+        }
+
+        // Add event listeners for real-time calculation
+        document.addEventListener('input', function (e) {
+            if (e.target.matches('.quantity, .price, .gst-rate')) {
+                calculateTotals();
+            }
+        }
+
+document.querySelectorAll('input[name="invoiceType"]').forEach(radio => {
+            radio.addEventListener('change', function () {
+                const gstInputs = document.querySelectorAll('.gst-rate');
+                const gstinInput = document.getElementById('customerGstin');
+
+                if (this.value === 'non-gst') {
+                    gstInputs.forEach(input => {
+                        input.value = '0';
+                        input.disabled = true;
+                    });
+                    gstinInput.disabled = true;
+                    gstinInput.value = '';
+                } else {
+                    gstInputs.forEach(input => {
+                        input.disabled = false;
+                    });
+                    gstinInput.disabled = false;
+                }
+                calculateTotals();
+            });
+        });
+);
         // Sidebar Toggle
         const hamburger = document.getElementById('hamburger');
         const sidebar = document.getElementById('sidebar');
@@ -1158,4 +1289,5 @@ require_once 'database.php';
         <?php endif; ?>
     </script>
 </body>
+
 </html>

@@ -1,21 +1,134 @@
 <?php
 
-// Simulated database file for mock data
-// In the future, replace these arrays and functions with actual database queries (e.g., MySQL)
+// Database file for mock data
+// In the future, replace these arrays and functions with actual database queries
 
 // Mock data arrays
 $invoices = [
-    ["id" => "INV-0001", "customer" => "Rajesh Electronics", "amount" => "₹24,500", "status" => "Paid", "date" => "11/04/2025"],
-    ["id" => "INV-0002", "customer" => "Sharma Electrical", "amount" => "₹36,750", "status" => "Pending", "date" => "10/04/2025"],
-    ["id" => "INV-0003", "customer" => "Gupta Traders", "amount" => "₹18,300", "status" => "Overdue", "date" => "05/04/2025"],
-    ["id" => "INV-0004", "customer" => "Patel Wire Co.", "amount" => "₹42,800", "status" => "Paid", "date" => "01/04/2025"],
-    ["id" => "INV-0005", "customer" => "Singh Distributors", "amount" => "₹15,600", "status" => "Pending", "date" => "30/03/2025"],
+    [
+        "id" => "INV-2025-001",
+        "date" => "2025-04-12",
+        "dueDate" => "2025-05-12",
+        "amount" => 24500,
+        "status" => "Paid",
+        "type" => "GST",
+        "gstNumber" => "29ABCDE1234F1Z5",
+        "customer" => "Unnati Traders"
+    ],
+    [
+        "id" => "INV-2025-002",
+        "date" => "2025-04-08",
+        "dueDate" => "2025-05-08",
+        "amount" => 18750,
+        "status" => "Pending",
+        "type" => "GST",
+        "gstNumber" => "29ABCDE1234F1Z5",
+        "customer" => "Modern Electricals"
+    ],
+    [
+        "id" => "INV-2025-003",
+        "date" => "2025-04-05",
+        "dueDate" => "2025-05-05",
+        "amount" => 32250,
+        "status" => "Paid",
+        "type" => "GST",
+        "gstNumber" => "29ABCDE1234F1Z5",
+        "customer" => "City Lights"
+    ],
+    [
+        "id" => "INV-2025-004",
+        "date" => "2025-03-28",
+        "dueDate" => "2025-04-28",
+        "amount" => 15800,
+        "status" => "Overdue",
+        "type" => "Non-GST",
+        "gstNumber" => "-",
+        "customer" => "Sharma Electronics"
+    ],
+    [
+        "id" => "INV-2025-005",
+        "date" => "2025-03-20",
+        "dueDate" => "2025-04-20",
+        "amount" => 22450,
+        "status" => "Paid",
+        "type" => "GST",
+        "gstNumber" => "29ABCDE1234F1Z5",
+        "customer" => "Premium Switches"
+    ],
+    [
+        "id" => "INV-2025-006",
+        "date" => "2025-03-15",
+        "dueDate" => "2025-04-15",
+        "amount" => 8700,
+        "status" => "Pending",
+        "type" => "Non-GST",
+        "gstNumber" => "-",
+        "customer" => "Electro Mart"
+    ]
+];
+
+$payment_methods = [
+    ["value" => "credit-card", "label" => "Credit Card"],
+    ["value" => "net-banking", "label" => "Net Banking"],
+    ["value" => "upi", "label" => "UPI"],
+    ["value" => "wallet", "label" => "Wallet"],
 ];
 
 $payments = [
-    ["id" => "PAY-0001", "invoice" => "INV-0001", "customer" => "Rajesh Electronics", "amount" => "₹24,500", "method" => "Bank Transfer", "date" => "11/04/2025"],
-    ["id" => "PAY-0002", "invoice" => "INV-0004", "customer" => "Patel Wire Co.", "amount" => "₹42,800", "method" => "Cheque", "date" => "01/04/2025"],
-    ["id" => "PAY-0003", "invoice" => "INV-0006", "customer" => "Kumar Electric", "amount" => "₹33,200", "method" => "UPI", "date" => "28/03/2025"],
+    [
+        "id" => "TXN-2025-001",
+        "date" => "2025-04-15",
+        "amount" => 12500,
+        "method" => "Credit Card",
+        "status" => "Completed",
+        "description" => "Payment for Order #ORD-2025-102",
+        "customer" => "Unnati Traders"
+    ],
+    [
+        "id" => "TXN-2025-002",
+        "date" => "2025-04-10",
+        "amount" => 8750,
+        "method" => "UPI",
+        "status" => "Pending",
+        "description" => "Payment for Invoice #INV-2025-005",
+        "customer" => "Modern Electricals"
+    ],
+    [
+        "id" => "TXN-2025-003",
+        "date" => "2025-04-05",
+        "amount" => 15200,
+        "method" => "Net Banking",
+        "status" => "Completed",
+        "description" => "Payment for Delivery #DEL-2025-008",
+        "customer" => "City Lights"
+    ],
+    [
+        "id" => "TXN-2025-004",
+        "date" => "2025-03-28",
+        "amount" => 5400,
+        "method" => "Wallet",
+        "status" => "Failed",
+        "description" => "Payment for Order #ORD-2025-098",
+        "customer" => "Sharma Electronics"
+    ],
+    [
+        "id" => "TXN-2025-005",
+        "date" => "2025-03-20",
+        "amount" => 9800,
+        "method" => "Credit Card",
+        "status" => "Completed",
+        "description" => "Payment for Invoice #INV-2025-003",
+        "customer" => "Premium Switches"
+    ],
+    [
+        "id" => "TXN-2025-006",
+        "date" => "2025-03-15",
+        "amount" => 6300,
+        "method" => "UPI",
+        "status" => "Completed",
+        "description" => "Payment for Delivery #DEL-2025-005",
+        "customer" => "Electro Mart"
+    ]
 ];
 
 $recent_bills = [
@@ -26,9 +139,9 @@ $recent_bills = [
 ];
 
 $outstanding_payments = [
-    ["id" => "INV-0002", "customer" => "Sharma Electrical", "amount" => "₹36,750", "due_date" => "25/04/2025", "days_overdue" => "-"],
-    ["id" => "INV-0003", "customer" => "Gupta Traders", "amount" => "₹18,300", "due_date" => "20/03/2025", "days_overdue" => "15 days"],
-    ["id" => "INV-0005", "customer" => "Singh Distributors", "amount" => "₹15,600", "due_date" => "15/04/2025", "days_overdue" => "-"],
+    ["id" => "INV-2025-002", "customer" => "Modern Electricals", "amount" => "₹18,750", "due_date" => "08/05/2025", "days_overdue" => "-"],
+    ["id" => "INV-2025-004", "customer" => "Sharma Electronics", "amount" => "₹15,800", "due_date" => "28/04/2025", "days_overdue" => "-"],
+    ["id" => "INV-2025-006", "customer" => "Electro Mart", "amount" => "₹8,700", "due_date" => "15/04/2025", "days_overdue" => "10 days"],
 ];
 
 $orders = [
@@ -114,9 +227,83 @@ $orders = [
     ]
 ];
 
+$factories = [
+    [
+        "id" => "FAC-001",
+        "name" => "Unnati Traders",
+        "contact" => "+91 98765 12345",
+        "address" => "Plot 45, Industrial Area, Gurgaon, Haryana - 122001"
+    ],
+    [
+        "id" => "FAC-002",
+        "name" => "Modern Electricals",
+        "contact" => "+91 87654 23456",
+        "address" => "Unit 12, Sector 18, Delhi - 110020"
+    ],
+    [
+        "id" => "FAC-003",
+        "name" => "City Lights",
+        "contact" => "+91 76543 34567",
+        "address" => "Block B, Noida Industrial Zone, Noida, UP - 201301"
+    ]
+];
+
 $deliveries = [
-    ["id" => "DEL-485", "order_id" => "ORD-2846", "customer" => "Modern Electricals", "date" => "14 Apr 2025", "status" => "Scheduled"],
-    ["id" => "DEL-484", "order_id" => "ORD-2840", "customer" => "City Lights", "date" => "13 Apr 2025", "status" => "In Transit"],
+    [
+        "id" => "DEL-2025-001",
+        "trackingId" => "TR124578965",
+        "orderId" => "ORD-2854",
+        "factoryName" => "Unnati Traders",
+        "date" => "2025-04-12",
+        "estimatedDelivery" => "2025-04-17",
+        "items" => 12,
+        "status" => "In Transit",
+        "lastUpdate" => "Package has left the Delhi warehouse"
+    ],
+    [
+        "id" => "DEL-2025-002",
+        "trackingId" => "TR124578966",
+        "orderId" => "ORD-2853",
+        "factoryName" => "Modern Electricals",
+        "date" => "2025-04-10",
+        "estimatedDelivery" => "2025-04-15",
+        "items" => 8,
+        "status" => "Out for Delivery",
+        "lastUpdate" => "Package is out for delivery in your area"
+    ],
+    [
+        "id" => "DEL-2025-003",
+        "trackingId" => "TR124578967",
+        "orderId" => "ORD-2852",
+        "factoryName" => "City Lights",
+        "date" => "2025-04-08",
+        "estimatedDelivery" => "2025-04-12",
+        "items" => 15,
+        "status" => "Delivered",
+        "lastUpdate" => "Package delivered"
+    ],
+    [
+        "id" => "DEL-2025-004",
+        "trackingId" => "TR124578968",
+        "orderId" => "ORD-2851",
+        "factoryName" => "Modern Electricals",
+        "date" => "2025-04-05",
+        "estimatedDelivery" => "2025-04-10",
+        "items" => 6,
+        "status" => "Delivered",
+        "lastUpdate" => "Package delivered"
+    ],
+    [
+        "id" => "DEL-2025-005",
+        "trackingId" => "TR124578969",
+        "orderId" => "ORD-2850",
+        "factoryName" => "Unnati Traders",
+        "date" => "2025-04-03",
+        "estimatedDelivery" => "2025-04-08",
+        "items" => 10,
+        "status" => "Processing",
+        "lastUpdate" => "Order is being prepared for shipment"
+    ]
 ];
 
 $products = [
@@ -255,11 +442,171 @@ $settings = [
     ]
 ];
 
-// Functions to retrieve mock data
+$reports_data = [
+    'sales' => [
+        'monthly' => [
+            'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            'data' => [150000, 165000, 180000, 145000, 160000, 175000],
+            'total' => 975000,
+            'growth' => 6.5
+        ],
+        'by_product' => [
+            'labels' => ['Copper Wire 1.5mm', 'Havells MCB 32A', 'LED Bulb 9W', 'Electric Cable 2.5mm'],
+            'data' => [280000, 225000, 185000, 285000],
+            'colors' => ['#0d6efd', '#198754', '#ffc107', '#dc3545']
+        ],
+        'recent_reports' => [
+            [
+                'name' => 'Monthly Sales Summary',
+                'type' => 'Sales',
+                'date' => '10 Apr, 2025',
+                'data' => [
+                    'total_sales' => 975000,
+                    'orders' => 145,
+                    'average_order' => 6724
+                ]
+            ],
+            [
+                'name' => 'Product Performance',
+                'type' => 'Sales',
+                'date' => '05 Apr, 2025',
+                'data' => [
+                    'top_product' => 'Copper Wire 1.5mm',
+                    'revenue' => 280000,
+                    'units_sold' => 224
+                ]
+            ]
+        ]
+    ],
+    'payments' => [
+        'summary' => [
+            'labels' => ['Received', 'Pending', 'Overdue'],
+            'data' => [750000, 175000, 50000],
+            'colors' => ['#198754', '#ffc107', '#dc3545']
+        ],
+        'recent_transactions' => [
+            [
+                'date' => '12 Apr, 2025',
+                'type' => 'Payment Received',
+                'amount' => 24500,
+                'customer' => 'Modern Electricals'
+            ],
+            [
+                'date' => '10 Apr, 2025',
+                'type' => 'Payment Pending',
+                'amount' => 36750,
+                'customer' => 'City Lights'
+            ]
+        ]
+    ],
+    'inventory' => [
+        'stock_value' => [
+            'total' => 520000,
+            'growth' => 4
+        ],
+        'low_stock' => [
+            'count' => 8,
+            'items' => [
+                'Electric Cable 2.5mm',
+                'Distribution Box 8 Way'
+            ]
+        ],
+        'stock_movement' => [
+            'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            'inbound' => [45000, 52000, 48000, 51000, 54000, 49000],
+            'outbound' => [42000, 48000, 45000, 47000, 50000, 46000]
+        ]
+    ]
+];
+
+// Functions to retrieve and save mock data
 function get_invoices() {
     global $invoices;
     // Future: Replace with database query, e.g., SELECT * FROM invoices
     return $invoices;
+}
+
+function save_invoice($data) {
+    global $invoices, $factories;
+
+    // Validate required fields
+    $required_fields = ['customer', 'amount', 'type', 'date', 'dueDate'];
+    foreach ($required_fields as $field) {
+        if (!isset($data[$field]) || empty($data[$field])) {
+            return ['success' => false, 'message' => "Missing required field: $field"];
+        }
+    }
+
+    // Validate customer
+    $factory_names = array_column($factories, 'name');
+    if (!in_array($data['customer'], $factory_names)) {
+        return ['success' => false, 'message' => "Invalid customer: {$data['customer']}"];
+    }
+
+    // Validate amount
+    if (!is_numeric($data['amount']) || $data['amount'] <= 0) {
+        return ['success' => false, 'message' => 'Amount must be a positive number'];
+    }
+
+    // Validate type
+    $valid_types = ['GST', 'Non-GST'];
+    if (!in_array($data['type'], $valid_types)) {
+        return ['success' => false, 'message' => 'Invalid invoice type'];
+    }
+
+    // Validate GST number for GST type
+    if ($data['type'] === 'GST') {
+        if (empty($data['gstNumber'])) {
+            return ['success' => false, 'message' => 'GST number is required for GST invoices'];
+        }
+        // Basic GST number format check (e.g., 15 characters)
+        if (!preg_match('/^[0-9A-Z]{15}$/', $data['gstNumber'])) {
+            return ['success' => false, 'message' => 'Invalid GST number format'];
+        }
+    } else {
+        $data['gstNumber'] = '-';
+    }
+
+    // Validate dates
+    $date = DateTime::createFromFormat('Y-m-d', $data['date']);
+    $dueDate = DateTime::createFromFormat('Y-m-d', $data['dueDate']);
+    if (!$date || !$dueDate) {
+        return ['success' => false, 'message' => 'Invalid date format'];
+    }
+    if ($dueDate < $date) {
+        return ['success' => false, 'message' => 'Due date cannot be before invoice date'];
+    }
+
+    // Generate new invoice ID
+    $existing_ids = array_column($invoices, 'id');
+    $last_id = max(array_map(function ($id) {
+        return (int) substr($id, 9);
+    }, $existing_ids));
+    $new_id = 'INV-2025-' . str_pad($last_id + 1, 3, '0', STR_PAD_LEFT);
+
+    // Create new invoice
+    $new_invoice = [
+        'id' => $new_id,
+        'date' => $data['date'],
+        'dueDate' => $data['dueDate'],
+        'amount' => (float) $data['amount'],
+        'status' => 'Pending', // Default status
+        'type' => $data['type'],
+        'gstNumber' => $data['gstNumber'],
+        'customer' => $data['customer']
+    ];
+
+    // Append to invoices array
+    $invoices[] = $new_invoice;
+
+    // Future: Replace with database insert, e.g., INSERT INTO invoices (...)
+    return ['success' => true, 'message' => "Invoice $new_id created successfully"];
+}
+
+function get_payment_methods() {
+    global $payment_methods;
+    // Future: Replace with database query, e.g., SELECT * FROM payment_methods
+    return $payment_methods;
 }
 
 function get_payments() {
@@ -286,10 +633,97 @@ function get_orders() {
     return $orders;
 }
 
+function get_factories() {
+    global $factories;
+    // Future: Replace with database query, e.g., SELECT * FROM factories
+    return $factories;
+}
+
+function save_order($data) {
+    global $orders, $factories;
+
+    // Validate required fields
+    $required_fields = ['customer', 'date', 'deliveryDate', 'amount', 'items', 'status', 'payment'];
+    foreach ($required_fields as $field) {
+        if (!isset($data[$field]) || empty($data[$field])) {
+            return ['success' => false, 'message' => "Missing required field: $field"];
+        }
+    }
+
+    // Validate factory/customer
+    $factory_names = array_column($factories, 'name');
+    if (!in_array($data['customer'], $factory_names)) {
+        return ['success' => false, 'message' => "Invalid factory: {$data['customer']}"];
+    }
+
+    // Validate dates
+    if (!DateTime::createFromFormat('Y-m-d', $data['date']) || !DateTime::createFromFormat('Y-m-d', $data['deliveryDate'])) {
+        return ['success' => false, 'message' => 'Invalid date format'];
+    }
+
+    // Validate amount and items
+    if (!is_numeric($data['amount']) || $data['amount'] < 0 || !is_numeric($data['items']) || $data['items'] <= 0) {
+        return ['success' => false, 'message' => 'Invalid amount or items'];
+    }
+
+    // Validate status and payment
+    $valid_statuses = ['New', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+    $valid_payments = ['Pending', 'Paid', 'Partial', 'Refunded'];
+    if (!in_array($data['status'], $valid_statuses) || !in_array($data['payment'], $valid_payments)) {
+        return ['success' => false, 'message' => 'Invalid status or payment status'];
+    }
+
+    // Generate new order ID
+    $existing_ids = array_column($orders, 'id');
+    $last_id = max(array_map(function ($id) {
+        return (int) substr($id, 4);
+    }, $existing_ids));
+    $new_id = 'ORD-' . str_pad($last_id + 1, 4, '0', STR_PAD_LEFT);
+
+    // Create new order
+    $new_order = [
+        'id' => $new_id,
+        'customer' => $data['customer'],
+        'date' => $data['date'],
+        'deliveryDate' => $data['deliveryDate'],
+        'amount' => (float) $data['amount'],
+        'items' => (int) $data['items'],
+        'status' => $data['status'],
+        'payment' => $data['payment']
+    ];
+
+    // Append to orders array
+    $orders[] = $new_order;
+
+    // Future: Replace with database insert, e.g., INSERT INTO orders (...)
+    return ['success' => true, 'message' => "Order $new_id created successfully"];
+}
+
 function get_deliveries() {
     global $deliveries;
     // Future: Replace with database query, e.g., SELECT * FROM deliveries
     return $deliveries;
+}
+
+function confirm_delivery($delivery_id) {
+    global $deliveries;
+
+    // Find the delivery
+    foreach ($deliveries as &$delivery) {
+        if ($delivery['id'] === $delivery_id) {
+            if ($delivery['status'] === 'Delivered') {
+                return ['success' => false, 'message' => "Delivery $delivery_id is already marked as Delivered"];
+            }
+            if ($delivery['status'] !== 'In Transit' && $delivery['status'] !== 'Out for Delivery') {
+                return ['success' => false, 'message' => "Delivery $delivery_id cannot be confirmed (status: {$delivery['status']})"];
+            }
+            $delivery['status'] = 'Delivered';
+            $delivery['lastUpdate'] = 'Package delivered';
+            // Future: Update database, e.g., UPDATE deliveries SET status = 'Delivered', lastUpdate = 'Package delivered' WHERE id = ?
+            return ['success' => true, 'message' => "Delivery $delivery_id marked as received"];
+        }
+    }
+    return ['success' => false, 'message' => "Delivery $delivery_id not found"];
 }
 
 function get_products() {
@@ -318,5 +752,15 @@ function get_notifications() {
 function get_settings() {
     global $settings;
     return $settings;
+}
+
+function get_reports_data($type = null, $period = 'last6months') {
+    global $reports_data;
+    
+    if ($type) {
+        return isset($reports_data[$type]) ? $reports_data[$type] : null;
+    }
+    
+    return $reports_data;
 }
 ?>

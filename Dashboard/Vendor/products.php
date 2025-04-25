@@ -24,7 +24,7 @@ usort($filtered_products, function($a, $b) use ($sort, $dir) {
     return 0;
 });
 
-// Functions for styling
+
 function get_status_class($status) {
     switch ($status) {
         case 'In Stock': return 'bg-success';
