@@ -127,7 +127,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     ?>
 
 <div class="main-content">
-        <h1>Accounting Dashboard</h1>
+        <h1>User Management</h1>
         <p>Monitor financial health and transactions</p>
         
        <!-- Search and Add User Row -->
@@ -200,99 +200,165 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
       </li>
     </ul>
 
-    <!-- Tab Content -->
-    <div class="tab-content" id="adminTabContent">
-      <!-- Users Tab -->
-      <div class="tab-pane fade show active" id="users" role="tabpanel">
-        <div class="d-flex justify-content-between mb-3">
-          <div>
-            <input type="text" class="form-control d-inline-block w-auto" placeholder="Search users...">
-            <select class="form-select d-inline-block w-auto ms-2">
-              <option>All Roles</option>
-            </select>
-            <select class="form-select d-inline-block w-auto ms-2">
-              <option>All Status</option>
-            </select>
-          </div>
-          <div>
-            <button class="btn btn-outline-secondary">Refresh</button>
-            <button class="btn btn-outline-secondary">Export</button>
-            <button class="btn btn-primary">+ Add User</button>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <span>7 users selected</span>
-          <button class="btn btn-danger btn-sm float-end">Delete Selected</button>
-        </div>
-
-        <div class="card">
-          <div class="card-body">
-            <h5 class="card-title mb-3">Users</h5>
-            <div class="table-responsive">
-              <table class="table align-middle">
-                <thead>
-                  <tr>
-                    <th><input type="checkbox" checked></th>
-                    <th>User</th>
-                    <th>ID</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Last Login</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="userTableBody">
-                  <!-- Dynamically populated -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+<!-- Tab Content -->
+<div class="tab-content" id="adminTabContent">
+  <!-- USERS TAB -->
+  <div class="tab-pane fade show active" id="users" role="tabpanel">
+    <div class="d-flex justify-content-between mb-3">
+      <div>
+        <input type="text" class="form-control d-inline-block w-auto" placeholder="Search users...">
+        <select class="form-select d-inline-block w-auto ms-2">
+          <option>All Roles</option>
+        </select>
+        <select class="form-select d-inline-block w-auto ms-2">
+          <option>All Status</option>
+        </select>
       </div>
-
-      <!-- Roles & Permissions Tab -->
-      <div class="tab-pane fade" id="roles" role="tabpanel">
-        <div class="text-center py-5">
-          <h4>Roles & Permissions</h4>
-          <p>Manage roles, create custom permission sets, and control access to different areas of the system.</p>
-          <button class="btn btn-outline-primary">Manage Roles</button>
-        </div>
+      <div>
+        <button class="btn btn-outline-secondary">Refresh</button>
+        <button class="btn btn-outline-secondary">Export</button>
+        <button class="btn btn-primary">+ Add User</button>
       </div>
+    </div>
 
-      <!-- User Activity Tab -->
-      <div class="tab-pane fade" id="activity" role="tabpanel">
-        <div class="text-center py-5">
-          <h4>Activity Tracking</h4>
-          <p>View detailed logs of user actions, login history, and system changes for audit purposes.</p>
-          <button class="btn btn-outline-primary">View Activity Logs</button>
-        </div>
-      </div>
+    <div class="mb-3">
+      <span>7 users selected</span>
+      <button class="btn btn-danger btn-sm float-end">Delete Selected</button>
+    </div>
 
-      <!-- Access Control Tab -->
-      <div class="tab-pane fade" id="access" role="tabpanel">
-        <div class="text-center py-5">
-          <h4>Security Settings</h4>
-          <p>Configure password policies, two-factor authentication, IP restrictions, and session timeouts.</p>
-          <button class="btn btn-outline-primary">Security Settings</button>
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Users</h5>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th><input type="checkbox" checked></th>
+                <th>User</th>
+                <th>ID</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+                <th>Permission</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <!-- User rows added dynamically -->
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </div>
 
-    <script>
+  <!-- ROLES TAB -->
+  <div class="tab-pane fade" id="roles" role="tabpanel">
+    <div class="text-center py-5">
+      <h4>Roles & Permissions</h4>
+      <p>Manage roles, create custom permission sets, and control access to different areas of the system.</p>
+      <button class="btn btn-outline-primary">Manage Roles</button>
+    </div>
+  </div>
 
-        function showsettingTab(id) {
-            const tabs = document.querySelectorAll('.settingTab');
-            const contents = document.querySelectorAll('.setting-tab-content');
+  <!-- ACTIVITY TAB -->
+  <div class="tab-pane fade" id="activity" role="tabpanel">
+    <div class="text-center py-5">
+      <h4>Activity Tracking</h4>
+      <p>View detailed logs of user actions, login history, and system changes for audit purposes.</p>
+      <button class="btn btn-outline-primary">View Activity Logs</button>
+    </div>
+  </div>
 
-            tabs.forEach(tab => tab.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
+  <!-- ACCESS TAB -->
+  <div class="tab-pane fade" id="access" role="tabpanel">
+    <div class="text-center py-5">
+      <h4>Security Settings</h4>
+      <p>Configure password policies, two-factor authentication, IP restrictions, and session timeouts.</p>
+      <button class="btn btn-outline-primary">Security Settings</button>
+    </div>
+  </div>
+</div>
 
-            document.querySelector(`#${id}`).classList.add('active');
-            document.querySelector(`[onclick="showsettingTab('${id}')"]`).classList.add('active');
-        }
-// addedd of user
+<!-- PERMISSION MODAL -->
+<!-- Permission Modal -->
+<div class="modal fade" id="permissionModal" tabindex="-1" aria-labelledby="permissionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="permissionModalLabel">Set Permissions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="permissionForm">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="maindashbord">
+            <label class="form-check-label" for="maindashbord">Main Dashboard</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="billingdesk">
+            <label class="form-check-label" for="billingdesk">Billing Desk</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="accounting">
+            <label class="form-check-label" for="accounting">Accounting</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="investory">
+            <label class="form-check-label" for="investory">Inventory</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="expenses">
+            <label class="form-check-label" for="expenses">Expenses</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="factorystock">
+            <label class="form-check-label" for="factorystock">Factory Stock</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="retailstore">
+            <label class="form-check-label" for="retailstore">Retail Store</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="aftersellservice">
+            <label class="form-check-label" for="aftersellservice">After-Sell Service</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="suppliers">
+            <label class="form-check-label" for="suppliers">Suppliers</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="reports">
+            <label class="form-check-label" for="reports">Reports</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="settings">
+            <label class="form-check-label" for="settings">Settings</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="savePermissionBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- JAVASCRIPT -->
+<script>
+function showsettingTab(id) {
+  const contents = document.querySelectorAll('.tab-pane');
+  const tabs = document.querySelectorAll('.settingTab');
+
+  tabs.forEach(tab => tab.classList.remove('active'));
+  contents.forEach(content => content.classList.remove('show', 'active'));
+
+  document.getElementById(id).classList.add('show', 'active');
+  document.querySelector(`[onclick="showsettingTab('${id}')"]`).classList.add('active');
+}
+
 const users = [
   { initials: "RK", name: "Rajesh Kumar", email: "rajesh@unnatitraders.com", id: "USR-001", role: "Admin", roleClass: "bg-light text-purple", status: "Active", statusClass: "bg-success text-white", login: "2023-04-10 09:45 AM" },
   { initials: "PS", name: "Priya Sharma", email: "priya@unnatitraders.com", id: "USR-002", role: "Manager", roleClass: "bg-primary text-white", status: "Active", statusClass: "bg-success text-white", login: "2023-04-10 11:30 AM" },
@@ -303,7 +369,7 @@ const users = [
 ];
 
 const tbody = document.getElementById('userTableBody');
-users.forEach(user => {
+users.forEach((user, index) => {
   tbody.innerHTML += `
     <tr>
       <td><input type="checkbox" checked></td>
@@ -321,12 +387,39 @@ users.forEach(user => {
       <td><span class="badge ${user.statusClass}">${user.status}</span></td>
       <td>${user.login}</td>
       <td><button class="btn btn-sm btn-light">⋮</button></td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary open-permission-btn" data-user-index="${index}" data-bs-toggle="modal" data-bs-target="#permissionModal">
+          Allow
+        </button>
+      </td>
     </tr>
   `;
 });
 
+let selectedUserIndex = null;
+document.addEventListener('click', function (e) {
+  if (e.target.classList.contains('open-permission-btn')) {
+    selectedUserIndex = e.target.getAttribute('data-user-index');
+    document.querySelectorAll('#permissionForm input[type="checkbox"]').forEach(cb => cb.checked = false);
+  }
+});
 
-    </script>
+document.getElementById('savePermissionBtn').addEventListener('click', function () {
+  const permissions = ['maindashbord', 'billingdesk', 'accounting', 'investory', 'expenses', 'factorystock', 'retailstore', 'aftersellservice', 'suppliers', 'reports', 'settings'];
+  const selected = {};
+  permissions.forEach(id => {
+    selected[id] = document.getElementById(id).checked;
+  });
+
+  const user = users[selectedUserIndex];
+  console.log(`Saved permissions for ${user.name}:`, selected);
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('permissionModal'));
+  modal.hide();
+});
+</script>
+
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>

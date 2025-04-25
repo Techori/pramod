@@ -148,8 +148,8 @@
         <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-warehouse"></i> Factory Stock</a>
         <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-store"></i> Retail Store</a>
         <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
-        <a href="#" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-truck-moving"></i> Suppliers</a>
-        <a href="./reports.php" class="<?= $currentPage === 'reports.php' ? 'active' : '' ?>"><i class="fas fa-chart-bar"></i> Reports</a>
+        <a href="./suppliers.php" class="<?= $currentPage === 'suppliers.php' ? 'active' : '' ?>"><i class="fas fa-truck-moving"></i> Suppliers</a>
+        <a href="./report.php" class="<?= $currentPage === './report.php' ? 'active' : '' ?>"><i class="fas fa-chart-bar"></i> Reports</a>
         <a href="./user_management.php" class="<?= $currentPage === 'user_management.php' ? 'active' : '' ?>"><i class="fas fa-users-gear"></i> User Management</a>
         <a href="./settings.php" class="<?= $currentPage === 'settings.php' ? 'active' : '' ?>"><i class="fas fa-gear"></i> Settings</a>
         </div>

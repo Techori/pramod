@@ -140,154 +140,142 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         </div>
 
         <div id="general" class="setting-tab-content active">
-            <div class="justify-contnt-start">
-                <h3>General Settings</h3>
-                <p>Configure application preferences and default behavior</p>
-            </div>
-            <h5>Settings</h5>
-            <div class="tabs"></div>
-            
-            <div class="mb-3 m-3">
-                <label for="language">Language</label>
-                <select class="form-select form-select-lg mb-3 m-3" aria-label="Language selection">
-                    <option selected>English (India)</option>
-                    <option value="1">Hindi</option>
-                    <option value="2">Gujarati</option>
-                    <option value="3">Marathi</option>
-                </select>
-            </div>
-            
-            <div class="mb-3 m-3">
-                <label for="timezone">Timezone</label>
-                <select class="form-select form-select-lg mb-3 m-3" aria-label="Timezone selection">
-                    <option selected>Asia/Kolkata (IST)</option>
-                    <option value="1">Asia/Dubai (GST)</option>
-                    <option value="2">Europe/London (GST)</option>
-                    <option value="3">America/New York (EST)</option>
-                </select>
-            </div>
-            
-            <div class="mb-3 m-3">
-                <label for="date_format">Date Format</label>
-                <select class="form-select form-select-lg mb-3 m-3" aria-label="Date format selection">
-                    <option selected>DD-MM-YYYY</option>
-                    <option value="1">MM-DD-YYYY</option>
-                    <option value="2">YYYY-MM-DD</option>
-                </select>
-            </div>
-            
-            <div class="mb-3 m-3">
-                <label for="theme">Theme</label>
-                <select class="form-select form-select-lg mb-3 m-3" aria-label="Theme selection">
-                    <option selected>Light</option>
-                    <option value="1">Dark</option>
-                    <option value="2">System</option>
-                </select>
-            </div>
-            
-            <div class="form-check form-switch mx-2">
-                <h5>Notifications</h5>
-                <input class="form-check-input mx-1" type="checkbox" id="flexSwitchCheckDefault">
-                <label class="form-check-label" for="flexSwitchCheckDefault">Enable system notifications</label>
-            </div>
-            
-            <div class="mt-4">
-                <h5>System Performance</h5>
-                <div class="tabs"></div>
-                <div class="form-check form-switch mx-2">
-                    <h5>Auto</h5>
-                    <input class="form-check-input mx-1" type="checkbox" id="flexSwitchCheckDefault1">
-                    <label class="form-check-label" for="flexSwitchCheckDefault1">Enable auto-save for forms</label>
-                </div>
+  <div class="justify-content-start">
+    <h3>General Settings</h3>
+    <p>Configure application preferences and default behavior</p>
+  </div>
 
-                <div class="form-check form-switch mx-2">
-                    <h5>Cache</h5>
-                    <input class="form-check-input mx-1" type="checkbox" id="flexSwitchCheckDefault2">
-                    <label class="form-check-label" for="flexSwitchCheckDefault2">Use browser cache for faster loading</label>
-                </div>
+  <h5>Settings</h5>
 
-                <div class="form-check form-switch mx-2">
-                    <h5>Analytics</h5>
-                    <input class="form-check-input mx-1" type="checkbox" id="flexSwitchCheckDefault3">
-                    <label class="form-check-label" for="flexSwitchCheckDefault3">Enable usage analytics</label>
-                </div>
+  <div class="mb-3 m-3">
+    <label for="language">Language</label>
+    <select class="form-select form-select-lg" id="language">
+      <option selected>English (India)</option>
+      <option value="1">Hindi</option>
+      <option value="2">Gujarati</option>
+      <option value="3">Marathi</option>
+    </select>
+  </div>
 
-                <div class="text-end">
-                    <button type="submit" class="btn btn-info text-white">
-                        <i class="bi bi-save"></i> Save Settings
-                    </button>
-                </div>
-            </div>
-        </div>
+  <div class="mb-3 m-3">
+    <label for="timezone">Timezone</label>
+    <select class="form-select form-select-lg" id="timezone">
+      <option selected>Asia/Kolkata (IST)</option>
+      <option value="1">Asia/Dubai (GST)</option>
+      <option value="2">Europe/London (GST)</option>
+      <option value="3">America/New York (EST)</option>
+    </select>
+  </div>
 
-    <div class="setting-tab-content" id="company">
-    <h3>Company Profile</h3>
-    <p>Update your company information and branding</p>
+  <div class="mb-3 m-3">
+    <label for="date_format">Date Format</label>
+    <select class="form-select form-select-lg" id="date_format">
+      <option selected>DD-MM-YYYY</option>
+      <option value="1">MM-DD-YYYY</option>
+      <option value="2">YYYY-MM-DD</option>
+    </select>
+  </div>
 
-    <div class="">
-        <h5>Business Details</h5>
-        <div class="tabs"></div>
-        
-        <div class="mb-3 m-3 col">
-            <label for="company-name">Company Name</label>
-            <input type="text" class="form-control" id="company-name" placeholder="Enter Cmpany name" aria-label="Shree Unnati Traders">
-        </div>
-        
-        <div class="mb-3 m-3 col">
-            <label for="company-address">Address</label>
-            <textarea class="form-control form-floating" id="company-address" placeholder="123 Main Street, Industrial Area, Mumbai, Maharashtra" style="height: 100px"></textarea>
-        </div>
+  <div class="mb-3 m-3">
+    <label for="theme">Theme</label>
+    <select class="form-select form-select-lg" id="theme">
+      <option selected>Light</option>
+      <option value="1">Dark</option>
+      <option value="2">System</option>
+    </select>
+  </div>
 
-        <div class="mb-3 m-3 col">
-            <label for="gst-number">Invoice-Start-Number</label>
-            <input type="text" class="form-control" id="gst-number" placeholder="27AABCU9603R1ZX">
-        </div>
-        
-        <div class="mb-3 m-3 col">
-            <label for="pan-number">PAN Number</label>
-            <input type="text" class="form-control" id="pan-number" placeholder="AABCU9603R">
-        </div>
+  <div class="form-check form-switch mx-2">
+    <h5>Notifications</h5>
+    <input class="form-check-input mx-1" type="checkbox" id="notifications">
+    <label class="form-check-label" for="notifications">Enable system notifications</label>
+  </div>
 
-        <div class="mb-3 m-3 col">
-            <label for="phone-number">Phone Number</label>
-            <input type="number" class="form-control" id="phone-number" placeholder="9876543210">
-        </div>
+  <div class="mt-4">
+    <h5>System Performance</h5>
 
-        <div class="mb-3 m-3 col">
-            <label for="website">Website</label>
-            <input type="text" class="form-control" id="website" placeholder="www.unnatitraders.com">
-        </div>
+    <div class="form-check form-switch mx-2">
+      <h5>Auto</h5>
+      <input class="form-check-input mx-1" type="checkbox" id="auto-save">
+      <label class="form-check-label" for="auto-save">Enable auto-save for forms</label>
     </div>
 
-        <div class="mb-3 m-3 col">
-            <label for="gst-number">GST Number</label>
-            <input type="text" class="form-control" id="gst-number" placeholder="27AABCU9603R1ZX">
-        </div>
-
-        <div class="mb-3 m-3 col">
-            <label for="pan-number">PAN Number</label>
-            <input type="text" class="form-control" id="pan-number" placeholder="AABCU9603R">
-        </div>
-
-        <div class="mb-3 m-3 col">
-            <label for="phone-number">Phone Number</label>
-            <input type="number" class="form-control" id="phone-number" placeholder="9876543210">
-        </div>
-
-        <div class="mb-3 m-3 col">
-            <label for="Email">Email</label>
-            <input type="text" class="form-control" id="Enter Your Email" placeholder="youremail@gmail.com">
-        </div>
-
-        <div class="mb-3 m-3 col">
-            <label for="website">Website</label>
-            <input type="text" class="form-control" id="website" placeholder="www.unnatitraders.com">
-        </div>
-        <div class="text-end">
-         <button type="submit" class="btn btn-info text-white">
-            <i class="bi bi-save"></i> Save Settings</button>
-        </div>
+    <div class="form-check form-switch mx-2">
+      <h5>Cache</h5>
+      <input class="form-check-input mx-1" type="checkbox" id="cache">
+      <label class="form-check-label" for="cache">Use browser cache for faster loading</label>
     </div>
+
+    <div class="form-check form-switch mx-2">
+      <h5>Analytics</h5>
+      <input class="form-check-input mx-1" type="checkbox" id="analytics">
+      <label class="form-check-label" for="analytics">Enable usage analytics</label>
+    </div>
+
+    <div class="text-end">
+      <button type="submit" class="btn btn-info text-white">
+        <i class="bi bi-save"></i> Save Settings
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="setting-tab-content" id="company">
+  <h3>Company Profile</h3>
+  <p>Update your company information and branding</p>
+
+  <div>
+    <h5>Business Details</h5>
+    <div class="tabs"></div>
+
+    <div class="mb-3 m-3 col">
+      <label for="company-name">Company Name</label>
+      <input type="text" class="form-control" id="company-name" placeholder="Enter Company name" aria-label="Shree Unnati Traders">
+    </div>
+
+    <div class="mb-3 m-3 col">
+      <label for="company-address">Address</label>
+      <textarea class="form-control form-floating" id="company-address" placeholder="123 Main Street, Industrial Area, Mumbai, Maharashtra" style="height: 100px"></textarea>
+    </div>
+
+    <div class="mb-3 m-3 col">
+      <label for="invoice-start-number">Invoice Start Number</label>
+      <input type="text" class="form-control" id="invoice-start-number" placeholder="1001">
+    </div>
+
+    <div class="mb-3 m-3 col">
+      <label for="gst-number-company">GST Number</label>
+      <input type="text" class="form-control" id="gst-number-company" placeholder="27AABCU9603R1ZX">
+    </div>
+
+    <div class="mb-3 m-3 col">
+      <label for="pan-number-company">PAN Number</label>
+      <input type="text" class="form-control" id="pan-number-company" placeholder="AABCU9603R">
+    </div>
+
+    <div class="mb-3 m-3 col">
+      <label for="phone-number-company">Phone Number</label>
+      <input type="number" class="form-control" id="phone-number-company" placeholder="9876543210">
+    </div>
+
+    <div class="mb-3 m-3 col">
+      <label for="email-address">Email</label>
+      <input type="email" class="form-control" id="email-address" placeholder="youremail@gmail.com">
+    </div>
+
+    <div class="mb-3 m-3 col">
+      <label for="website-company">Website</label>
+      <input type="text" class="form-control" id="website-company" placeholder="www.unnatitraders.com">
+    </div>
+  </div>
+
+  <div class="text-end">
+    <button type="submit" class="btn btn-info text-white">
+      <i class="bi bi-save"></i> Save Settings
+    </button>
+  </div>
+</div>
+
     <div class="setting-tab-content" id="document">
       <h3>Document Settings</h3>
       <p>Configure document templates, numbering, and print settings</p>
