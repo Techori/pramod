@@ -90,63 +90,6 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         .billing-tab-content.active {
             display: block;
         }
-        .inventoryTab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 16px;
-        }
-        .inventoryTab.active {
-            border-bottom: 3px solid #007bff;
-            font-weight: bold;
-            color: #007bff;
-        }
-        .inventory-tab-content {
-            display: none;
-            padding: 20px 0;
-        }
-        .inventory-tab-content.active {
-            display: block;
-        }
-        .factoryTab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 16px;
-        }
-        .factoryTab.active {
-            border-bottom: 3px solid #007bff;
-            font-weight: bold;
-            color: #007bff;
-        }
-        .factory-tab-content {
-            display: none;
-            padding: 20px 0;
-        }
-        .factory-tab-content.active {
-            display: block;
-        }
-        .retailTab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 16px;
-        }
-        .retailTab.active {
-            border-bottom: 3px solid #007bff;
-            font-weight: bold;
-            color: #007bff;
-        }
-        .retail-tab-content {
-            display: none;
-            padding: 20px 0;
-        }
-        .retail-tab-content.active {
-            display: block;
-        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -157,23 +100,27 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             border: 1px solid #ddd;
             text-align: left;
         }
-        .green-bg {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 10px;
-            border-radius: 10px;
+
+        .modal-content {
+            border-radius: 0.5rem;
         }
-        .orange-bg {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 4px 10px;
-            border-radius: 10px;
+
+        .gst-section {
+            display: block;
         }
-        .red-bg {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 10px;
-            border-radius: 10px;
+
+        #itemTable input {
+            width: 100px;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        textarea {
+            width: 100%;
+            height: 60px;
+            margin-top: 10px;
         }
 
     </style>
@@ -184,701 +131,881 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     ?>
 
     <div class="main-content">
-        <h1>Dashboard</h1>
-        <p>Welcome back to your business management dashboard</p>
+        <h1>Billing Dashboard</h1>
+        <p>Complete billing desk for invoices, bills, and payments</p>
         
+
+        <!-- Cards -->
         <div class="row">
             <div class="col-md-3 col-sm-6 mb-4">
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
                 <div class="card-body">
-                    <h6 class="text-muted">Total Sales</h6>
-                    <h3 class="fw-bold">₹4,35,600</h3>
-                    <p class="text-success">+12.5% vs last month</p>
+                    <h6 class="text-muted">Pending Invoices</h6>
+                    <h3 class="fw-bold">₹86,450</h3>
+                    <p>12 invoices pending</p>
                 </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-4">
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
                 <div class="card-body">
-                    <h6 class="text-muted">Inventory Value</h6>
-                    <h3 class="fw-bold">₹12,45,230</h3>
-                    <p class="text-success">+3.2% vs last month</p>
+                    <h6 class="text-muted">Month's Revenue</h6>
+                    <h3 class="fw-bold">₹2,47,850</h3>
+                    <p class="text-danger">12.5% vs last month</p>
                 </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-4">
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
                 <div class="card-body">
-                    <h6 class="text-muted">BNPL Outstanding</h6>
-                    <h3 class="fw-bold">₹85,450</h3>
-                    <p class="text-success">5.7% vs last month</p>
+                    <h6 class="text-muted">Purchase Orders</h6>
+                    <h3 class="fw-bold">₹1,35,250</h3>
+                    <p>8 orders this month</p>
                 </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6 mb-4">
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #6f42c1;">
                 <div class="card-body">
-                    <h6 class="text-muted">Active Suppliers</h6>
-                    <h3 class="fw-bold">34</h3>
+                    <h6 class="text-muted">Returns & Credit</h6>
+                    <h3 class="fw-bold">₹18,250</h3>
+                    <p>5 returns processed</p>
                 </div>
                 </div>
             </div>
         </div>
 
+        <!-- Buttons -->
+        <div class="row justify-content-center">
+            <div class="col-md-3 col-sm-6 mb-4">
+                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-file"></i> Create Invoice</button>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-file-export"></i> Issue Credit Note</button>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-pager"></i> Record Payment</button>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-clipboard-list"></i> Generate Report</button>
+            </div>
+        </div>
+
+        <!-- Charts -->
         <div class="chart-container">
             <div class="chart-box">
-                <h3>Monthly Revenue Trend</h3>
-                <canvas id="lineChart"></canvas>
+                <h3>Monthly Billing Count</h3>
+                <canvas id="barChart"></canvas>
             </div>
             <div class="chart-box">
-                <h3>Sales by Category</h3>
+                <h3>Payment Methods</h3>
                 <div style="position: relative; width: 100%; max-width: 300px; margin: 0 auto;">
                     <canvas id="pieChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm" style="background-color:rgb(251, 243, 215);">
-                    <div class="card-body">
-                        <h5 class="text-muted">Low Stock Alert</h5>
-                        <p>5 products are below minimum stock levels. Review inventory soon.</p>
-                        <a href="@" style="text-decoration: none;" class="text-dark">View Inventory →</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
-                    <div class="card-body">
-                        <h5 class="text-muted">Inventory Value</h5>
-                        <p>3 customer payments were received today totaling ₹28,450.</p>
-                        <a href="@" style="text-decoration: none;" class="text-dark">View Inventory →</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-12">
-            <div class="card p-3 shadow-sm">
-                <h5 class="mb-4">
-                <i class="bi bi-calendar-event text-primary me-2"></i>
-                <strong>Upcoming Events</strong>
-                </h5>
-
-                <div class="d-flex align-items-start border rounded mb-3 p-3" style="background-color:rgb(177, 202, 253);">
-                    <div class="text-center me-3">
-                        <div class="bg-primary text-white fw-bold rounded px-3 py-2">
-                            <div style="font-size: 0.75rem;">APR</div>
-                            <div style="font-size: 1.25rem;">15</div>
-                        </div>
-                    </div>
-                    <div>
-                        <h6 class="mb-1 fw-bold text-primary">Supplier Meeting</h6>
-                        <small class="text-muted">Review contracts with Havells India Ltd.</small>
-                    </div>
+        <!-- Popup form -->
+        <div id="invoiceModal" class="modal">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content p-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Invoice</h5>
+                    <button type="button" class="btn-close" onclick="closeInvoiceModal()"></button>
                 </div>
 
-                <div class="d-flex align-items-start rounded mb-2 p-3" style="background-color:rgb(233, 221, 251);">
-                    <div class="text-center me-3">
-                        <div class="fw-bold rounded px-3 py-2" style="background-color:rgb(190, 146, 248);">
-                            <div style="font-size: 0.75rem;">APR</div>
-                            <div style="font-size: 1.25rem;">18</div>
-                        </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                    <label class="form-label">Customer:</label>
+                    <select class="form-select">
+                        <option>Select customer</option>
+                        <option>Customer A</option>
+                        <option>Customer B</option>
+                        <option>Customer C</option>
+                    </select>
                     </div>
-                    <div>
-                        <h6 class="mb-1 fw-bold" style="color: #6f42c1;">Inventory Audit</h6>
-                        <small class="text-muted" style="color: #6f42c1;">Quarterly inventory check at main warehouse</small>
+
+                    <div class="mb-3">
+                    <label class="form-label d-block">Document Type:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withGST" checked onchange="toggleGST()">
+                        <label class="form-check-label">With GST</label>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-12  card p-3 shadow-sm my-4">
-            <h4><i class="bi bi-receipt-cutoff text-primary"></i> Billing & Invoice Management</h4>
-            <p>Create, track, and manage invoices and payments</p>
-
-            <div class="tabs">
-                <button class="billingTab active" onclick="showBillingTab('invoices')">Invoices</button>
-                <button class="billingTab" onclick="showBillingTab('payments')">Payments</button>
-                <button class="billingTab" onclick="showBillingTab('quickbill')">Quick Bill</button>
-                <button class="billingTab" onclick="showBillingTab('reports')">Reports</button>
-            </div>
-
-            <div id="invoices" class="billing-tab-content active">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                    <div class="d-flex justify-content-start">
-                    <div class="input-group w-100">
-                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withoutGST" onchange="toggleGST()">
+                        <label class="form-check-label">Without GST</label>
                     </div>
                     </div>
 
-                    <div class="d-flex justify-content-center gap-2">
-                        <button class="btn btn-outline-primary">All</button>
-                        <button class="btn btn-outline-primary"><i class="fa-regular fa-circle-check text-success"></i> Paid</button>
-                        <button class="btn btn-outline-primary"><i class="fa-regular fa-clock text-warning"></i> Pending</button>
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-circle-exclamation text-danger"></i> Overdue</button>
+                    <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Date:</label>
+                        <input type="date" id="invoiceDate" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Due Date:</label>
+                        <input type="date" id="dueDate" class="form-control">
+                    </div>
+                    <div class="col-md-4 gst-section">
+                        <label class="form-label">Tax Rate:</label>
+                        <select id="taxRate" class="form-select" onchange="updateTotals()">
+                        <option value="18">GST 5%</option>
+                        <option value="5">GST 12%</option>
+                        <option value="0">GST 18%</option>
+                        <option value="0">GST 28%</option>
+                        </select>
+                    </div>
                     </div>
 
-                    <div class="justify-contnt-end">
-                    <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> Create Invoice</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                    <thead>
+                    <div class="table-responsive mb-3">
+                    <table class="table table-bordered" id="itemTable">
+                        <thead class="table-light">
                         <tr>
-                            <th>Invoie #</th>
-                            <th>Custome</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>INV-0001</td>
-                            <td>Rajesh Electronics</td>
-                            <td>₹24,500</td>
-                            <td><span class="green-bg">Paid</span></td>
-                            <td>11/04/2025</td>
-                            <td><div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-
-                            </div></td>
-                        </tr>
-                    </tbody>
-                    <div id="pagination" class="mt-3 d-flex justify-content-center gap-2"></div>
-                </table>
-            </div>
-
-            <div id="payments" class="billing-tab-content">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                    <div class="d-flex justify-content-start">
-                        <div class="input-group w-100">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-center gap-2">
-                        <button class="btn btn-outline-primary">All Payments</button>
-                        <button class="btn btn-outline-primary">This Month</button>
-                        <button class="btn btn-outline-primary">Last Month</button>
-                    </div>
-
-                    <div class="justify-contnt-end">
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> Record Payment</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>Payment ID</th>
-                        <th>Invoice</th>
-                        <th>Customer</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>PAY-0001</td>
-                        <td>INV-0001</td>
-                        <td>Rajesh Electronics</td>
-                        <td>₹24,500</td>
-                        <td>Bank Transfer</td>
-                        <td>11/04/2025</td>
-                        <td><div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-
-                        </div></td>
-                    </tr>
-                </tbody>
-                </table>
-            </div>
-
-            <div id="quickbill" class="billing-tab-content">
-            <p>Quick Bill Form Content</p>
-            </div>
-
-            <div id="reports" class="billing-tab-content">
-            <p>Reports Content</p>
-            </div>
-        </div>
-
-        <div class="col-md-12 card p-3 shadow-sm my-4">
-            <h4><i class="fa-solid fa-box text-primary"></i> Inventory Management</h4>
-            <p>Track, monitor and manage your product inventory</p>
-
-            <div class="tabs">
-                <button class="inventoryTab active" onclick="showInventoryTab('products')">Products</button>
-                <button class="inventoryTab" onclick="showInventoryTab('stock')">Stock Movement</button>
-                <button class="inventoryTab" onclick="showInventoryTab('alerts')">Alerts</button>
-            </div>
-
-            <div id="products" class="inventory-tab-content active">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                
-                    <div class="d-flex justify-content-start">
-                        <div class="input-group w-100 me-2">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
-                        </div>
-                        <button class="btn btn-outline-primary">Filter</button>
-                    </div>
-
-
-                    <div class="justify-contnt-end">
-                    <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> Add Product</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Product ID</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Stock</th>
-                            <th>Unit</th>
-                            <th>Location</th>
-                            <th>Last Updated</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>PROD-0001</td>
-                            <td>Copper Wire (2.5mm)</td>
-                            <td>Wires</td>
-                            <td>1560</td>
-                            <td>meters</td>
-                            <td>Warehouse A</td>
-                            <td>10/04/2025</td>
-                            <td><div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-trash-can"></i></button>
-
-                            </div></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div id="stock" class="inventory-tab-content">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                    <div class="d-flex justify-content-start gap-2">
-                        <button class="btn btn-outline-primary">Stock In</button>
-                        <button class="btn btn-outline-primary">Stock Out</button>
-                        <button class="btn btn-outline-primary">All Movements</button>
-                    </div>
-
-                    <div class="justify-contnt-end">
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> Record Movement</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>Transaction ID</th>
-                        <th>Product</th>
-                        <th>Type</th>
-                        <th>Quantity</th>
-                        <th>Date</th>
-                        <th>Source</th>
-                        <th>Reference</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>TRX-0001</td>
-                        <td>Copper Wire (2.5mm)</td>
-                        <td>Stock In</td>
-                        <td>500</td>
-                        <td>10/04/2025</td>
-                        <td>Supplier Delivery</td>
-                        <td>PO-0023</td>
-                    </tr>
-                </tbody>
-                </table>
-            </div>
-
-            <div id="alerts" class="inventory-tab-content">
-                <table id="Table" class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Product ID</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Current Stock</th>
-                            <th>Min Stock</th>
-                            <th>Unit</th>
-                            <th>Location</th>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Price (₹)</th>
+                            <th>Total (₹)</th>
                             <th>Action</th>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>PROD-0006</td>
-                            <td>LED Bulb (9W)</td>
-                            <td>Lighting</td>
-                            <td>25</td>
-                            <td>50</td>
-                            <td>pieces</td>
-                            <td>Warehouse C</td>
-                            <td><button class="btn btn-outline-primary btn-sm">Order Now</button></td>
-                        </tr>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                    </div>
+
+                    <div class="mb-3">
+                    <label class="form-label">Notes:</label>
+                    <textarea class="form-control" placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                    </div>
+
+                    <div class="text-end">
+                    <p>Subtotal: ₹<span id="subtotal">0.00</span></p>
+                    <p class="gst-section">GST (<span id="gstPercent">18</span>%): ₹<span id="gstAmount">0.00</span></p>
+                    <h5>Total: ₹<span id="totalAmount">0.00</span></h5>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
+                    <button class="btn btn-primary">Create GST Invoice</button>
+                </div>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-12 card p-3 shadow-sm my-4">
-            <h4><i class="fa-solid fa-industry text-primary"></i> Factory Production Management</h4>
-            <p>Manage production orders, materials, and quality control</p>
+
+        <!-- Tabels -->
+        <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
 
             <div class="tabs">
-                <button class="factoryTab active" onclick="showFactoryTab('production')">Production</button>
-                <button class="factoryTab" onclick="showFactoryTab('raw')">Raw Materials</button>
-                <button class="factoryTab" onclick="showFactoryTab('quality')">Quality Control</button>
+                <button class="billingTab active" onclick="showbillingTab('invoice')">Invoice</button>
+                <button class="billingTab" onclick="showbillingTab('sales')">Sales Return</button>
+                <button class="billingTab" onclick="showbillingTab('credit')">Credit Note</button>
+                <button class="billingTab" onclick="showbillingTab('quotation')">Quotation</button>
+                <button class="billingTab" onclick="showbillingTab('delivery')">Delivery Challan</button>
+                <button class="billingTab" onclick="showbillingTab('proforma')">Proforma</button>
+                <button class="billingTab" onclick="showbillingTab('auto')">Auto Bill</button>
+                <button class="billingTab" onclick="showbillingTab('counter')">Counter Purchase</button>
+                <button class="billingTab" onclick="showbillingTab('payment')">Payment Out</button>
+                <button class="billingTab" onclick="showbillingTab('purchase')">Purchase Return</button>
+                <button class="billingTab" onclick="showbillingTab('debit')">Debit Note</button>
+                <button class="billingTab" onclick="showbillingTab('purchase_order')">Purchase Order</button>
             </div>
 
-            <div id="production" class="factory-tab-content active">
+            <!-- Invoice table -->
+            <div id="invoice" class="billing-tab-content active">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
+                    <div class="justify-contnt-start">
+                        <h1>Invoices</h1>
+                    </div>
                 
-                    <div class="d-flex gap-2 justify-content-start">
-                        <button class="btn btn-outline-primary"><i class="fa-regular fa-clock text-warning"></i> Pending</button>
-                        <button class="btn btn-outline-primary"><i class="fa-regular fa-circle-play"></i> In Progress</button>
-                        <button class="btn btn-outline-primary"><i class="fa-regular fa-circle-check text-success"></i> Complete</button>
-                    </div>
-
-
-                    <div class="justify-contnt-end">
-                    <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> New Production Order</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Product</th>
-                            <th>Quantity</th>
-                            <th>Status</th>
-                            <th>Progress</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>PROD-0001</td>
-                            <td>Copper Wire (2.5mm)</td>
-                            <td>5,000 meters</td>
-                            <td>In Progress</td>
-                            <td>65%</td>
-                            <td>08/04/2025</td>
-                            <td>14/04/2025</td>
-                            <td><div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pause"></i> Pause</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-
-                            </div></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div id="raw" class="factory-tab-content">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                    <div class="d-flex justify-content-start gap-2">
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-triangle-exclamation text-warning"></i> Low Stock</button>
-                        <button class="btn btn-outline-primary">All Materials</button>
-                    </div>
-
-                    <div class="d-flex gap-2 justify-contnt-end">
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-box"></i> Oreder Material</button>
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> Add Material</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Material</th>
-                        <th>Current Stock</th>
-                        <th>Unit</th>
-                        <th>Reorder Level</th>
-                        <th>Location</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>RM-0001</td>
-                        <td>Copper (99.9%)</td>
-                        <td>2,500</td>
-                        <td>kg</td>
-                        <td>500</td>
-                        <td>Storage A</td>
-                        <td><div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm">Update Stock</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen-to-square"></i></button>
-
-                            </div></td>
-                    </tr>
-                </tbody>
-                </table>
-            </div>
-
-            <div id="quality" class="factory-tab-content">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                    <div class="d-flex justify-content-start gap-2">
-                        <button class="btn btn-outline-primary"><i class="fa-regular fa-circle-check text-success"></i> Passed</button>
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-triangle-exclamation text-danger"></i> Failed</button>
-                        <button class="btn btn-outline-primary">All Tests</button>
-                    </div>
-
-                    <div class="justify-contnt-end">
-                        <button class="btn btn-outline-primary"><i class="fa-regular fa-clipboard"></i> New Quality Test</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Test ID</th>
-                            <th>Product</th>
-                            <th>Batch Number</th>
-                            <th>Status</th>
-                            <th>Tested By</th>
-                            <th>Date</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>QC-0001</td>
-                            <td>Copper Wire (2.5mm)</td>
-                            <td>B20250408A</td>
-                            <td>Passed</td>
-                            <td>Rajiv Kumar</td>
-                            <td>09/04/2025</td>
-                            <td><a href="#" style="text-decoration: none;">View Details</a></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="col-md-12 card p-3 shadow-sm my-4">
-            <h4><i class="fa-solid fa-store text-primary"></i> Retail Store Management</h4>
-            <p>Manage sales, inventory, and customers in your retail store</p>
-
-            <div class="tabs">
-                <button class="retailTab active" onclick="showRetailTab('sales')">Sales</button>
-                <button class="retailTab" onclick="showRetailTab('inventory')">Inventory</button>
-                <button class="retailTab" onclick="showRetailTab('customers')">Customers</button>
-            </div>
-
-            <div id="sales" class="retail-tab-content active">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                
-                    <div class="d-flex justify-content-start">
+                    <div class="d-flex justify-content-center">
                         <div class="input-group w-100 me-2">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                             <input type="text" class="form-control border-start-0" placeholder="Search..." />
                         </div>
-                        <button class="btn btn-outline-primary">Filter</button>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
                     </div>
-
 
                     <div class="justify-contnt-end">
-                    <button class="btn btn-outline-primary"><i class="fa-solid fa-cart-plus"></i> New Sales</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Sales ID</th>
-                            <th>Date</th>
-                            <th>Customer</th>
-                            <th>Items</th>
-                            <th>Amount</th>
-                            <th>Payment Method</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>SL-0001</td>
-                            <td>11/04/2025</td>
-                            <td>Priya Sharma</td>
-                            <td>3</td>
-                            <td>₹8,750</td>
-                            <td>Cash</td>
-                            <td>Completed</td>
-                            <td><div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-file-lines"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-
-                            </div></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div id="inventory" class="retail-tab-content">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                    <div class="d-flex justify-content-start">
-                        <div class="input-group w-100 me-2">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
-                        </div>
-                        <button class="btn btn-outline-primary"><i class="fa-solid fa-circle-exclamation text-warning"></i> Low Stock</button>
+                        <button class="btn btn-outline-primary" onclick="openInvoiceModal()">Create New Invoice</button>
                     </div>
 
-
-                    <div class="d-flex gap-2 justify-contnt-end">
-                    <button class="btn btn-outline-primary"><i class="fa-solid fa-box"></i> Request Stock</button>
-                    <button class="btn btn-outline-primary"><i class="fa-solid fa-cart-plus"></i> Add Product</button>
-                    </div>
-                </div>
-                <table id="Table" class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>Product ID</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>Stock</th>
-                        <th>Price</th>
-                        <th>Location</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>STR-001</td>
-                        <td>Copper Wire (2.5mm)</td>
-                        <td>Wires</td>
-                        <td>680</td>
-                        <td>₹85/m</td>
-                        <td>Shelf A1</td>
-                        <td><div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm">Update Stock</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-pen-to-square"></i></button>
-
-                            </div></td>
-                    </tr>
-                </tbody>
-                </table>
-            </div>
-
-            <div id="customers" class="retail-tab-content">
-                <div class="container-fluid d-flex justify-content-between align-items-center">
-
-                    <div class="d-flex justify-content-start">
-                        <div class="input-group w-100 me-2">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
-                        </div>
-                        <button class="btn btn-outline-primary me-2">All Customers</button>
-                        <button class="btn btn-outline-primary me-2">Retail</button>
-                        <button class="btn btn-outline-primary">Wholesale</button>
-                    </div>
-
-
-                    <div class="justify-contnt-end">
-                    <button class="btn btn-outline-primary"><i class="fa-regular fa-user"></i> Add Customer</button>
-                    </div>
                 </div>
                 <table id="Table" class="table table-bordered table-hover">
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Name</th>
-                            <th>Type</th>
-                            <th>Contact</th>
-                            <th>Purchases</th>
-                            <th>Total Spent</th>
-                            <th>Last Visit</th>
-                            <th>Action</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>CUST-001</td>
-                            <td>Priya Sharma</td>
-                            <td>Retail</td>
-                            <td>9876543210</td>
-                            <td>8</td>
-                            <td>₹23,450</td>
-                            <td>11/04/2025</td>
+                            <td>INV-2025-001</td>
+                            <td>Rajesh Electronics</td>
+                            <td>12 Apr, 2025</td>
+                            <td>12 items</td>
+                            <td>₹24,500</td>
+                            <td>Paid</td>
                             <td><div class="d-flex gap-2">
                                 <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
                                 <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-cart-plus"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
 
                                 </div></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
 
+            <!-- Sales table -->
+            <div id="sales" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Sales Returns</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Sales Return</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>SR-2025-001</td>
+                            <td>Rajesh Electronics</td>
+                            <td>12 Apr, 2025</td>
+                            <td>12 items</td>
+                            <td>₹24,500</td>
+                            <td>Completed</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Credit table -->
+            <div id="credit" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Credit Notes</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Credit Note</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>CN-2025-001</td>
+                            <td>Rajesh Electronics</td>
+                            <td>12 Apr, 2025</td>
+                            <td>Credit for INV-2025-001</td>
+                            <td>₹24,500</td>
+                            <td>Processed</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Quotation table -->
+            <div id="quotation" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Quotations / Estimates</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Quotation</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>QT-2025-001</td>
+                            <td>Rajesh Electronics</td>
+                            <td>12 Apr, 2025</td>
+                            <td>12 items</td>
+                            <td>₹24,500</td>
+                            <td>Sent</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Delivery table -->
+            <div id="delivery" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Delivery Challans</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Delivery Challan</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>DC-2025-001</td>
+                            <td>Rajesh Electronics</td>
+                            <td>12 Apr, 2025</td>
+                            <td>12 items</td>
+                            <td>₹24,500</td>
+                            <td>Delivered</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Proforma table -->
+            <div id="proforma" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Proforma Invoices</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Proforma Invoice</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PI-2025-001</td>
+                            <td>Rajesh Electronics</td>
+                            <td>12 Apr, 2025</td>
+                            <td>12 items</td>
+                            <td>₹24,500</td>
+                            <td>Pending</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Auto table -->
+            <div id="auto" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Automated Bills</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Automated Bills</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Description</th>
+                            <th>Generation Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AB-2025-001</td>
+                            <td>Monthly Subscription</td>
+                            <td>12 Apr, 2025</td>
+                            <td>Electricity Subscription</td>
+                            <td>₹24,500</td>
+                            <td>Generated</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- counter -->
+            <div id="counter" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Counter Purchases</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Counter Purchases</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>CP-2025-001</td>
+                            <td>Rajesh Electronics</td>
+                            <td>12 Apr, 2025</td>
+                            <td>12 items</td>
+                            <td>₹24,500</td>
+                            <td>Completed</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Payment table -->
+            <div id="payment" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Payments Out</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Payments Out</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vendor</th>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PO-2025-001</td>
+                            <td>Havells India Ltd.</td>
+                            <td>12 Apr, 2025</td>
+                            <td>Against Invoice HVL-458</td>
+                            <td>₹24,500</td>
+                            <td>Processed</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Purchase table -->
+            <div id="purchase" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Purchase Returns</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Purchase Returns</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vendor</th>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PR-2025-001</td>
+                            <td>Havells India Ltd.</td>
+                            <td>12 Apr, 2025</td>
+                            <td>Damaged LED Panels</td>
+                            <td>₹24,500</td>
+                            <td>Processed</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Debit table -->
+            <div id="debit" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Debit Notes</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Debit Notes</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vendor</th>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>DN-2025-001</td>
+                            <td>Havells India Ltd.</td>
+                            <td>12 Apr, 2025</td>
+                            <td>For PR-2025-001</td>
+                            <td>₹24,500</td>
+                            <td>Processed</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Purchase order table-->
+            <div id="purchase_order" class="billing-tab-content">
+                <div class="container-fluid d-flex justify-content-between align-items-center">
+
+                    <div class="justify-contnt-start">
+                        <h1>Purchase Orders</h1>
+                    </div>
+                
+                    <div class="d-flex justify-content-center">
+                        <div class="input-group w-100 me-2">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                        </div>
+                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                        <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                    </div>
+
+                    <div class="justify-contnt-end">
+                        <button class="btn btn-outline-primary">Create Purchase Orders</button>
+                    </div>
+
+                </div>
+                <table id="Table" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PO-2025-001</td>
+                            <td>Havells India Ltd.</td>
+                            <td>12 Apr, 2025</td>
+                            <td>Copper Wires</td>
+                            <td>₹24,500</td>
+                            <td>Received</td>
+                            <td><div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-pen-to-square"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+
+                                </div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
     </div>
 
     <script>
-        // Line Chart
-        const lineCtx = document.getElementById('lineChart').getContext('2d');
-        new Chart(lineCtx, {
-            type: 'line',
+
+        // Bar Chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
             data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'Revenue',
-                data: [430000, 460000, 475000, 440000, 450000, 470000],
-                fill: false,
-                borderColor: '#0d6efd',
-                backgroundColor: '#0d6efd',
-                tension: 0.3,
-                pointRadius: 5,
-                pointHoverRadius: 6
-            }]
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [15, 18, 25, 22, 28, 32],
+                    backgroundColor: '#0d6efd',
+                    borderColor: '#0d6efd',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barThickness: 40
+                }]
             },
             options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 150000
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 8
+                        }
+                    }
                 }
-                }
-            }
             }
         });
 
@@ -887,15 +1014,14 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         new Chart(pieCtx, {
             type: 'pie',
             data: {
-            labels: ['Electrical', 'Lighting', 'Wiring', 'Switches', 'Others'],
+            labels: ['Cash', 'UPI', 'Card', 'BNPL'],
             datasets: [{
-                data: [35, 23, 18, 16, 8],
+                data: [45, 30, 15, 10],
                 backgroundColor: [
-                '#0d6efd',  // Blue (Electrical)
-                '#20c997',  // Green (Lighting)
-                '#ffc107',  // Orange (Wiring)
-                '#fd7e14',  // Orange-dark (Switches)
-                '#6f42c1'   // Violet (Others)
+                '#0d6efd',  // Blue (Cash)
+                '#20c997',  // Green (UPI)
+                '#ffc107',  // Orange (Card)
+                '#fd7e14',  // Orange-dark (BNPL)
                 ]
             }]
             },
@@ -913,7 +1039,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             }
         });
 
-        function showBillingTab(id) {
+        function showbillingTab(id) {
             const tabs = document.querySelectorAll('.billingTab');
             const contents = document.querySelectorAll('.billing-tab-content');
 
@@ -921,41 +1047,100 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             contents.forEach(content => content.classList.remove('active'));
 
             document.querySelector(`#${id}`).classList.add('active');
-            document.querySelector(`[onclick="showBillingTab('${id}')"]`).classList.add('active');
+            document.querySelector(`[onclick="showbillingTab('${id}')"]`).classList.add('active');
         }
 
-        function showInventoryTab(id) {
-            const tabs = document.querySelectorAll('.inventoryTab');
-            const contents = document.querySelectorAll('.inventory-tab-content');
+        // Popup form 
 
-            tabs.forEach(tab => tab.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
+        let itemIndex = 0;
 
-            document.querySelector(`#${id}`).classList.add('active');
-            document.querySelector(`[onclick="showInventoryTab('${id}')"]`).classList.add('active');
+        // To open form
+        function openInvoiceModal() {
+            const modal = document.getElementById('invoiceModal');
+            modal.style.display = 'block';
+            modal.classList.add('show');
+
+            if (document.querySelectorAll("#itemTable tbody tr").length === 0) {
+                addItem();
+            }
         }
 
-        function showFactoryTab(id) {
-            const tabs = document.querySelectorAll('.factoryTab');
-            const contents = document.querySelectorAll('.factory-tab-content');
+        // To close form
+        function closeInvoiceModal() {
+            const modal = document.getElementById('invoiceModal');
+            modal.style.display = 'none';
+            modal.classList.remove('show');
 
-            tabs.forEach(tab => tab.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
-
-            document.querySelector(`#${id}`).classList.add('active');
-            document.querySelector(`[onclick="showFactoryTab('${id}')"]`).classList.add('active');
+            document.querySelector('#itemTable tbody').innerHTML = '';
+            updateTotals();
         }
 
-        function showRetailTab(id) {
-            const tabs = document.querySelectorAll('.retailTab');
-            const contents = document.querySelectorAll('.retail-tab-content');
-
-            tabs.forEach(tab => tab.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
-
-            document.querySelector(`#${id}`).classList.add('active');
-            document.querySelector(`[onclick="showRetailTab('${id}')"]`).classList.add('active');
+        // For add item row
+        function addItem() {
+            const tbody = document.querySelector("#itemTable tbody");
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>
+                    <select onchange="updateTotals()">
+                        <option value="">Select Product</option>
+                        <option value="Product A">Product A</option>
+                        <option value="Product B">Product B</option>
+                        <option value="Product C">Product C</option>
+                    </select>
+                </td>
+                <td><input placeholder="Description" /></td>
+                <td><input type="number" value="1" min="1" oninput="updateTotals()" /></td>
+                <td><input type="number" value="0" step="0.01" oninput="updateTotals()" /></td>
+                <td class="itemTotal">₹0.00</td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="removeItem(this)">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+            updateTotals();
         }
+
+        // To remove item row
+        function removeItem(btn) {
+            btn.closest("tr").remove();
+            updateTotals();
+        }
+
+        // For GST 
+        function toggleGST() {
+            const withGST = document.querySelector('input[name="docType"]:checked').value === 'withGST';
+            document.querySelectorAll(".gst-section").forEach(el => {
+                el.style.display = withGST ? 'block' : 'none';
+            });
+            updateTotals();
+        }
+
+        // For calculate total amount
+        function updateTotals() {
+            let subtotal = 0;
+            document.querySelectorAll("#itemTable tbody tr").forEach(row => {
+                const qty = parseFloat(row.children[2].querySelector('input').value || 0);
+                const price = parseFloat(row.children[3].querySelector('input').value || 0);
+                const total = qty * price;
+                subtotal += total;
+                row.children[4].innerText = "₹" + total.toFixed(2);
+            });
+
+            const taxRate = parseFloat(document.getElementById('taxRate')?.value || 0);
+            const gstEnabled = document.querySelector('input[name="docType"]:checked').value === 'withGST';
+            const gstAmount = gstEnabled ? (subtotal * taxRate / 100) : 0;
+
+            document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+            document.getElementById('gstPercent').innerText = taxRate;
+            document.getElementById('gstAmount').innerText = gstAmount.toFixed(2);
+            document.getElementById('totalAmount').innerText = (subtotal + gstAmount).toFixed(2);
+        }
+
+        // Close form when clicking outside of it
+        window.onclick = function (event) {
+            const modal = document.getElementById('invoiceModal');
+            if (event.target === modal) {
+                closeInvoiceModal();
+            }
+        };
     </script>
 
 </body>

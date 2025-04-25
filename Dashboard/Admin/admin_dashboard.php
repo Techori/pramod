@@ -157,24 +157,6 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             border: 1px solid #ddd;
             text-align: left;
         }
-        .green-bg {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-        .orange-bg {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-        .red-bg {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
 
     </style>
 </head>
@@ -187,6 +169,8 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         <h1>Dashboard</h1>
         <p>Welcome back to your business management dashboard</p>
         
+
+        <!-- Cards -->
         <div class="row">
             <div class="col-md-3 col-sm-6 mb-4">
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
@@ -225,6 +209,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
 
+        <!-- Charts -->
         <div class="chart-container">
             <div class="chart-box">
                 <h3>Monthly Revenue Trend</h3>
@@ -238,6 +223,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
 
+        <!-- Alerts -->
         <div class="row">
             <div class="col-md-6 col-sm-12 my-4">
                 <div class="card stat-card cards shadow-sm" style="background-color:rgb(251, 243, 215);">
@@ -259,6 +245,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
 
+        <!-- Events -->
         <div class="col-md-12">
             <div class="card p-3 shadow-sm">
                 <h5 class="mb-4">
@@ -294,7 +281,8 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
 
-        <div class="col-md-12  card p-3 shadow-sm my-4">
+        <!-- Billing table -->
+        <div class="col-md-12  card p-3 shadow-sm my-4 table-responsive">
             <h4><i class="bi bi-receipt-cutoff text-primary"></i> Billing & Invoice Management</h4>
             <p>Create, track, and manage invoices and payments</p>
 
@@ -305,6 +293,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <button class="billingTab" onclick="showBillingTab('reports')">Reports</button>
             </div>
 
+            <!-- Invoice table -->
             <div id="invoices" class="billing-tab-content active">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -342,7 +331,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                             <td>INV-0001</td>
                             <td>Rajesh Electronics</td>
                             <td>₹24,500</td>
-                            <td><span class="green-bg">Paid</span></td>
+                            <td>Paid</td>
                             <td>11/04/2025</td>
                             <td><div class="d-flex gap-2">
                                 <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
@@ -357,6 +346,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
+            <!-- Payments table -->
             <div id="payments" class="billing-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -408,16 +398,19 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
+            <!-- Quick bills -->
             <div id="quickbill" class="billing-tab-content">
             <p>Quick Bill Form Content</p>
             </div>
 
+            <!-- Reports -->
             <div id="reports" class="billing-tab-content">
             <p>Reports Content</p>
             </div>
         </div>
 
-        <div class="col-md-12 card p-3 shadow-sm my-4">
+        <!-- Inventory management -->
+        <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
             <h4><i class="fa-solid fa-box text-primary"></i> Inventory Management</h4>
             <p>Track, monitor and manage your product inventory</p>
 
@@ -427,6 +420,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <button class="inventoryTab" onclick="showInventoryTab('alerts')">Alerts</button>
             </div>
 
+            <!-- Product  -->
             <div id="products" class="inventory-tab-content active">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -476,6 +470,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
+            <!-- Stock -->
             <div id="stock" class="inventory-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -515,6 +510,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
+            <!-- Alerts -->
             <div id="alerts" class="inventory-tab-content">
                 <table id="Table" class="table table-bordered table-hover">
                     <thead>
@@ -545,16 +541,18 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
 
-        <div class="col-md-12 card p-3 shadow-sm my-4">
+        <!-- Factory management -->
+        <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
             <h4><i class="fa-solid fa-industry text-primary"></i> Factory Production Management</h4>
             <p>Manage production orders, materials, and quality control</p>
 
             <div class="tabs">
                 <button class="factoryTab active" onclick="showFactoryTab('production')">Production</button>
-                <button class="factoryTab" onclick="showFactoryTab('raw')">Raw Materials</button>
+                <button class="factoryTab" onclick="showFactoryTab('material')">Raw Materials</button>
                 <button class="factoryTab" onclick="showFactoryTab('quality')">Quality Control</button>
             </div>
 
+            <!-- Production -->
             <div id="production" class="factory-tab-content active">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -603,7 +601,8 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
-            <div id="raw" class="factory-tab-content">
+            <!-- Raw material -->
+            <div id="material" class="factory-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
                     <div class="d-flex justify-content-start gap-2">
@@ -646,6 +645,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
+            <!-- Quality -->
             <div id="quality" class="factory-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -686,7 +686,8 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
 
-        <div class="col-md-12 card p-3 shadow-sm my-4">
+        <!-- Retail stor management -->
+        <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
             <h4><i class="fa-solid fa-store text-primary"></i> Retail Store Management</h4>
             <p>Manage sales, inventory, and customers in your retail store</p>
 
@@ -696,6 +697,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <button class="retailTab" onclick="showRetailTab('customers')">Customers</button>
             </div>
 
+            <!-- Sales -->
             <div id="sales" class="retail-tab-content active">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -746,6 +748,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
+            <!-- Inventory -->
             <div id="inventory" class="retail-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -793,6 +796,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </table>
             </div>
 
+            <!-- Customer -->
             <div id="customers" class="retail-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -913,6 +917,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             }
         });
 
+        // For billing section
         function showBillingTab(id) {
             const tabs = document.querySelectorAll('.billingTab');
             const contents = document.querySelectorAll('.billing-tab-content');
@@ -924,6 +929,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             document.querySelector(`[onclick="showBillingTab('${id}')"]`).classList.add('active');
         }
 
+        // For inventory section
         function showInventoryTab(id) {
             const tabs = document.querySelectorAll('.inventoryTab');
             const contents = document.querySelectorAll('.inventory-tab-content');
@@ -935,6 +941,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             document.querySelector(`[onclick="showInventoryTab('${id}')"]`).classList.add('active');
         }
 
+        // For factory section
         function showFactoryTab(id) {
             const tabs = document.querySelectorAll('.factoryTab');
             const contents = document.querySelectorAll('.factory-tab-content');
@@ -946,6 +953,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             document.querySelector(`[onclick="showFactoryTab('${id}')"]`).classList.add('active');
         }
 
+        // For retail store section
         function showRetailTab(id) {
             const tabs = document.querySelectorAll('.retailTab');
             const contents = document.querySelectorAll('.retail-tab-content');

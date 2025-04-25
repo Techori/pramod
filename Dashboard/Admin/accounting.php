@@ -100,24 +100,6 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             border: 1px solid #ddd;
             text-align: left;
         }
-        .green-bg {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-        .orange-bg {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-        .red-bg {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
 
     </style>
 </head>
@@ -130,13 +112,14 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         <h1>Accounting Dashboard</h1>
         <p>Monitor financial health and transactions</p>
         
+        <!-- Cards -->
         <div class="row">
             <div class="col-md-3 col-sm-6 mb-4">
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
                 <div class="card-body">
                     <h6 class="text-muted">Monthly Revenue</h6>
-                    <h3 class="fw-bold">₹4,80,000</h3>
-                    <p class="text-success">+6.5% vs last month</p>
+                    <h3 class="fw-bold">₹4,80,000</h3> <!-- Dynamic data -->
+                    <p class="text-success">+6.5% vs last month</p> <!-- Dynamic data -->
                 </div>
                 </div>
             </div>
@@ -144,8 +127,8 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
                 <div class="card-body">
                     <h6 class="text-muted">Monthly Expenses</h6>
-                    <h3 class="fw-bold">₹4,25,000</h3>
-                    <p class="text-danger">3.2% vs last month</p>
+                    <h3 class="fw-bold">₹4,25,000</h3> <!-- Dynamic data -->
+                    <p class="text-danger">3.2% vs last month</p> <!-- Dynamic data --> <!-- Dynamic data -->
                 </div>
                 </div>
             </div>
@@ -153,8 +136,8 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
                 <div class="card-body">
                     <h6 class="text-muted">Net Profit</h6>
-                    <h3 class="fw-bold">₹55,000</h3>
-                    <p class="text-success">+12.8% vs last month</p>
+                    <h3 class="fw-bold">₹55,000</h3> <!-- Dynamic data --> <!-- Dynamic data -->
+                    <p class="text-success">+12.8% vs last month</p> <!-- Dynamic data --> <!-- Dynamic data -->
                 </div>
                 </div>
             </div>
@@ -162,29 +145,30 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #6f42c1;">
                 <div class="card-body">
                     <h6 class="text-muted">Profit Margin</h6>
-                    <h3 class="fw-bold">11.5%</h3>
-                    <p class="text-danger">0.7% vs last month</p>
+                    <h3 class="fw-bold">11.5%</h3> <!-- Dynamic data -->
+                    <p class="text-danger">0.7% vs last month</p> <!-- Dynamic data -->
                 </div>
                 </div>
             </div>
         </div>
 
+        <!-- Buttons -->
         <div class="row justify-content-center">
             <div class="col-md-3 col-sm-6 mb-4">
-                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-regular fa-file-lines"></i> Financial Reports</button>
+                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-clipboard"></i> Financial Reports</button>
             </div>
             <div class="col-md-3 col-sm-6 mb-4">
                 <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-circle-dollar-to-slot"></i> Record Transaction</button>
             </div>
             <div class="col-md-3 col-sm-6 mb-4">
-                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-circle-dollar-to-slot"></i> Manage Accounts</button>
+                <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-wallet"></i> Manage Accounts</button>
             </div>
             <div class="col-md-3 col-sm-6 mb-4">
                 <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-download"></i> Export Data</button>
             </div>
         </div>
 
-
+        <!-- Charts -->
         <div class="chart-container">
             <div class="chart-box">
                 <h3>Revenue vs Expenses</h3>
@@ -195,7 +179,8 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
 
-        <div class="col-md-12 card p-3 shadow-sm my-4">
+        <!-- Tabels -->
+        <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive table-responsive">
 
             <div class="tabs">
                 <button class="accountingTab active" onclick="showaccountingTab('transaction')">Transaction</button>
@@ -203,6 +188,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 <button class="accountingTab" onclick="showaccountingTab('tax')">Tax Information</button>
             </div>
 
+            <!-- Transaction -->
             <div id="transaction" class="accounting-tab-content active">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -233,17 +219,18 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                     </thead>
                     <tbody>
                         <tr>
-                            <td>TRX-001</td>
-                            <td>12 Apr, 2025</td>
-                            <td>Supplier Payment - Havells</td>
-                            <td>Expense</td>
-                            <td>₹45,600</td>
-                            <td>Completed</td>
+                            <td>TRX-001</td> <!-- Dynamic data -->
+                            <td>12 Apr, 2025</td> <!-- Dynamic data -->
+                            <td>Supplier Payment - Havells</td> <!-- Dynamic data -->
+                            <td>Expense</td> <!-- Dynamic data -->
+                            <td>₹45,600</td> <!-- Dynamic data -->
+                            <td>Completed</td> <!-- Dynamic data -->
                         </tr>
                     </tbody>
                 </table>
             </div>
 
+            <!-- Accounts -->
             <div id="accounts" class="accounting-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -256,7 +243,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                         <div class="card stat-card cards shadow-sm" style="background-color:rgb(147, 212, 250);">
                             <div class="card-body">
                                 <h5 class="text-muted">Main Business Account</h5>
-                                <h4>₹3,24,560</h4>
+                                <h4>₹3,24,560</h4> <!-- Dynamic data -->
                             </div>
                         </div>
                     </div>
@@ -264,13 +251,14 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                         <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
                             <div class="card-body">
                                 <h5 class="text-muted">Savings Account</h5>
-                                <h4>₹1,85,200</h4>
+                                <h4>₹1,85,200</h4> <!-- Dynamic data -->
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Tax -->
             <div id="tax" class="accounting-tab-content">
                 <div class="container-fluid d-flex justify-content-between align-items-center">
 
@@ -279,11 +267,20 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                     </div>
                 </div>
                 <div class="col-md-12">
-                <div class="d-flex align-items-start border rounded mb-3 p-3" style="background-color:rgb(177, 202, 253);">
+                    <div class="d-flex align-items-start border rounded mb-3 p-3" style="background-color:rgb(177, 202, 253);">
                             
-                            <div>
+                             <div>
                                 <h6 class="mb-1 fw-bold text-primary">GST Information</h6>
-                                <small class="text-muted">Review contracts with Havells India Ltd.</small>
+                                <div class="d-flex" style="gap: 80px;">
+                                    <div style="flex: 1;">
+                                        <h6>GSTIN</h6>
+                                        <p>27AABCU9603R1ZX</p>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <h6>Next Filing Due</h6>
+                                        <p>20 Apr, 2025</p> <!-- Dynamic data -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -291,12 +288,21 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                             
                             <div>
                                 <h6 class="mb-1 fw-bold" style="color: #6f42c1;">TDS Information</h6>
-                                <small class="text-muted" style="color: #6f42c1;">Quarterly inventory check at main warehouse</small>
+                                <div class="d-flex" style="gap: 80px;">
+                                    <div style="flex: 1;">
+                                        <h6>PAN</h6>
+                                        <p>AABCU9603R</p>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <h6>TDS Deducted YTD</h6>
+                                        <p>₹18,450</p> <!-- Dynamic data -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-        </div>
+            </div>
 
     </div>
 
