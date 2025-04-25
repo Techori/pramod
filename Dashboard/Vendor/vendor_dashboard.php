@@ -2,38 +2,31 @@
 session_start();
 
 if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION["session_id"]))) {
-
     header("location:../../login.php");
-
     exit;
-
 } else {
-
     if (in_array($_SESSION["user_type"], ['Factory', 'Store', 'Admin'])) {
         header("location:../index.php");
         exit;
     } else if (!($_SESSION["user_type"] == 'Vendor')) {
-
         header("location:../../login.php");
-
         exit;
-
     }
-
 }
 $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 
+// Include the mock database and can be replaced with actual database connection
+// and queries in the future in the databse.php file.
+require_once 'database.php';
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vendor Dashboard - Shree Unnati Wires & Traders</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet"
-        crossorigin="unnati">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -46,7 +39,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             background-color: #f8f9fa;
             overflow-x: hidden;
         }
-
         .sidebar {
             width: 200px;
             height: 100vh;
@@ -62,20 +54,17 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), 0 2px 6px rgba(0, 0, 0, 0.05);
             animation: glowingEffect 2.5s infinite;
         }
-
         .sidebar-header {
             text-align: center;
             padding: 20px;
             background-color: #f8f9fa;
             border-bottom: 1px solid #ddd;
         }
-
         .sidebar-header img {
             width: 50px;
             height: auto;
             margin-bottom: 10px;
         }
-
         .sidebar nav a {
             display: flex;
             align-items: center;
@@ -84,19 +73,15 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             text-decoration: none;
             font-size: 0.95rem;
         }
-
         .sidebar nav a i {
             width: 24px;
             margin-right: 10px;
         }
-
-        .sidebar nav a:hover,
-        .sidebar nav a.active {
+        .sidebar nav a:hover, .sidebar nav a.active {
             background-color: #e9ecef;
             color: #0d6efd;
             font-weight: bold;
         }
-
         .sidebar .footer {
             position: absolute;
             bottom: 0;
@@ -107,13 +92,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             color: #6c757d;
             border-top: 1px solid #ddd;
         }
-
         main {
             margin-left: 200px;
             padding: 20px;
             transition: margin-left 0.3s ease-in-out;
         }
-
         header.header {
             margin-left: 200px;
             background: #fff;
@@ -125,32 +108,27 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             transition: margin-left 0.3s ease-in-out;
         }
-
         .cards {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
             height: 100%;
         }
-
         .cards:hover {
             transform: translateY(-5px) scale(1.02);
             box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1);
         }
-
         .card-border {
             border-radius: 0.5rem;
             border-top: none;
             border-right: none;
             border-bottom: none;
         }
-
         .chart-container {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             justify-content: center;
         }
-
         .chart-box {
             background: white;
             padding: 20px;
@@ -160,48 +138,52 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             max-width: 600px;
             flex: 1 1 300px;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
-
-        th,
-        td {
+        th, td {
             padding: 10px;
             border: 1px solid #ddd;
             text-align: left;
             font-size: 0.9rem;
         }
-
         .green-bg {
             background-color: #d4edda;
             color: #155724;
             padding: 4px 10px;
             border-radius: 10px;
         }
-
         .orange-bg {
             background-color: #fff3cd;
             color: #856404;
             padding: 4px 10px;
             border-radius: 10px;
         }
-
         .red-bg {
             background-color: #f8d7da;
             color: #721c24;
             padding: 4px 10px;
             border-radius: 10px;
         }
-
+        .blue-bg {
+            background-color: #d1e7ff;
+            color: #004085;
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+        .purple-bg {
+            background-color: #e2d9f3;
+            color: #4c2889;
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
         .alert {
             border-radius: 0.5rem;
             padding: 15px;
             font-size: 0.9rem;
         }
-
         .hamburger {
             display: none;
             font-size: 1.5rem;
@@ -210,7 +192,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             color: #0d6efd;
             cursor: pointer;
         }
-
         .overlay {
             display: none;
             position: fixed;
@@ -221,66 +202,68 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
         }
-
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
             }
-
             .sidebar.open {
                 transform: translateX(0);
                 box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), 0 0 25px rgba(0, 0, 0, 0.95);
                 animation: glowingEffect 2.5s infinite;
             }
-
-            main,
-            header.header {
+            main, header.header {
                 margin-left: 0;
             }
-
             .hamburger {
                 display: block;
             }
-
             .overlay.show {
                 display: block;
             }
-
             .container-fluid {
                 padding-left: 10px;
                 padding-right: 10px;
             }
-
             .chart-box {
                 flex: 1 1 100%;
             }
-
-            th,
-            td {
+            th, td {
                 font-size: 0.85rem;
                 padding: 8px;
             }
-
             .table-responsive {
                 overflow-x: auto;
             }
-
             .card-body {
                 padding: 15px;
             }
-
             .alert {
                 font-size: 0.85rem;
             }
-
             .btn-sm {
                 font-size: 0.8rem;
                 padding: 5px 10px;
             }
         }
+        .notification-dropdown {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .notification-item {
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .notification-item:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
-
 <body>
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
@@ -288,7 +271,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             <img src="../../public/unnati_logo.png" alt="Logo" class="img-fluid" style="width: auto; height: auto;">
             <h6 class="mb-0">Unnati Vendor Portal</h6>
             <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
-
         </div>
         <nav class="nav flex-column mt-2">
             <a href="?page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>">
@@ -331,17 +313,65 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
         <form class="d-flex" role="search" method="GET" action="search.php">
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                <input class="form-control border-start-0" type="search"
-                    placeholder="Search orders, products, or invoices..." aria-label="Search">
+                <input class="form-control border-start-0" type="search" placeholder="Search orders, products, or invoices..." aria-label="Search">
             </div>
         </form>
         <div class="d-flex align-items-center">
-            <button class="btn btn-outline-primary btn-sm me-2"><i class="fas fa-bell"></i></button>
+            <div class="dropdown me-2">
+                <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown">
+                    <i class="fas fa-bell"></i>
+                    <?php
+                    $notifications = get_notifications();
+                    $unread = array_filter($notifications, function($n) { return !$n['read']; });
+                    if (count($unread) > 0):
+                    ?>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        <?php echo count($unread); ?>
+                        <span class="visually-hidden">unread notifications</span>
+                    </span>
+                    <?php endif; ?>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                    <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Notifications</h6>
+                        <?php if (count($unread) > 0): ?>
+                        <button class="btn btn-link btn-sm text-decoration-none">Mark all read</button>
+                        <?php endif; ?>
+                    </div>
+                    <div class="notifications-list">
+                        <?php foreach ($notifications as $notification): ?>
+                        <div class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <span class="fa-stack fa-sm">
+                                        <i class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
+                                        <i class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?></h6>
+                                    <p class="mb-0 small"><?php echo htmlspecialchars($notification['message']); ?></p>
+                                    <small class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
+                                </div>
+                                <?php if (!$notification['read']): ?>
+                                <div class="flex-shrink-0 ms-2">
+                                    <span class="badge bg-primary rounded-pill">New</span>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="p-2 border-top text-center">
+                        <a href="#" class="text-decoration-none small">View all notifications</a>
+                    </div>
+                </div>
+            </div>
             <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i
-                        class="fas fa-user-circle"></i></button>
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-user-circle"></i></button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#">Update Profile</a></li>
+                    <small class="text-muted text-center d-block" style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>
+                    <li><a class="dropdown-item" href="?page=settings">Update Profile</a></li>
                     <li>
                         <form action="../../logout.php" method="POST" class="d-inline">
                             <input type="hidden" name="logout_btn" value="logout">
@@ -424,8 +454,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                             <div class="card-body">
                                 <h5 class="text-muted">Low Stock Alert</h5>
                                 <p>2 products are below minimum stock levels. Review inventory soon.</p>
-                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products
-                                    →</a>
+                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products →</a>
                             </div>
                         </div>
                     </div>
@@ -434,8 +463,253 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                             <div class="card-body">
                                 <h5 class="text-muted">Recent Payments</h5>
                                 <p>3 payments received today totaling ₹28,450.</p>
-                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments
-                                    →</a>
+                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments →</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card shadow-sm cards card-border" style="border-left: 5px solid #0d6efd;">
+                    <div class="card-body">
+                        <h5 class="card-title d-flex align-items-center">
+                            <i class="fas fa-file-text me-2 text-primary"></i> Billing & Invoice Management
+                        </h5>
+                        <p class="card-text text-muted">Create, track, and manage invoices and payments</p>
+                        <ul class="nav nav-tabs mb-4">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-bs-toggle="tab" href="#invoices">Invoices</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#payments">Payments</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#quickbill">Quick Bill</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#reports">Reports</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="invoices">
+                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                                    <div class="input-group w-auto flex-grow-1" style="max-width: 300px;">
+                                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control border-start-0" placeholder="Search invoices..." />
+                                    </div>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button class="btn btn-outline-primary btn-sm">All</button>
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-check-circle text-success me-1"></i> Paid</button>
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-clock text-warning me-1"></i> Pending</button>
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fas fa-exclamation-circle text-danger me-1"></i> Overdue</button>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Create Invoice</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Invoice #</th>
+                                                <th>Customer</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach (get_invoices() as $invoice): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($invoice['id']); ?></td>
+                                                    <td><?php echo htmlspecialchars($invoice['customer']); ?></td>
+                                                    <td><?php echo htmlspecialchars($invoice['amount']); ?></td>
+                                                    <td>
+                                                        <span class="<?php
+                                                            echo $invoice['status'] === 'Paid' ? 'green-bg' :
+                                                                 ($invoice['status'] === 'Pending' ? 'orange-bg' : 'red-bg');
+                                                        ?>">
+                                                            <?php echo htmlspecialchars($invoice['status']); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td><?php echo htmlspecialchars($invoice['date']); ?></td>
+                                                    <td>
+                                                        <div class="d-flex gap-2">
+                                                            <button class="btn btn-outline-primary btn-sm" title="View"><i class="fas fa-eye"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Edit"><i class="fas fa-pen-to-square"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Download" onclick="alert('Downloading Document: <?php echo htmlspecialchars($invoice['id']); ?>')"><i class="fas fa-download"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Print" onclick="alert('Printing Document: <?php echo htmlspecialchars($invoice['id']); ?>')"><i class="fas fa-print"></i></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="text-center mt-4">
+                                    <a href="#" class="btn btn-outline-primary btn-sm">View All Invoices <i class="fas fa-arrow-right ms-1"></i></a>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="payments">
+                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                                    <div class="input-group w-auto flex-grow-1" style="max-width: 300px;">
+                                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control border-start-0" placeholder="Search payments..." />
+                                    </div>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button class="btn btn-outline-primary btn-sm">All Payments</button>
+                                        <button class="btn btn-outline-primary btn-sm">This Month</button>
+                                        <button class="btn btn-outline-primary btn-sm">Last Month</button>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Record Payment</button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Payment ID</th>
+                                                <th>Invoice</th>
+                                                <th>Customer</th>
+                                                <th>Amount</th>
+                                                <th>Method</th>
+                                                <th>Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach (get_payments() as $payment): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($payment['id']); ?></td>
+                                                    <td><?php echo htmlspecialchars($payment['invoice']); ?></td>
+                                                    <td><?php echo htmlspecialchars($payment['customer']); ?></td>
+                                                    <td><?php echo htmlspecialchars($payment['amount']); ?></td>
+                                                    <td><?php echo htmlspecialchars($payment['method']); ?></td>
+                                                    <td><?php echo htmlspecialchars($payment['date']); ?></td>
+                                                    <td>
+                                                        <div class="d-flex gap-2">
+                                                            <button class="btn btn-outline-primary btn-sm" title="View"><i class="fas fa-eye"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Download" onclick="alert('Downloading Document: <?php echo htmlspecialchars($payment['id']); ?>')"><i class="fas fa-download"></i></button>
+                                                            <button class="btn btn-outline-primary btn-sm" title="Print" onclick="alert('Printing Document: <?php echo htmlspecialchars($payment['id']); ?>')"><i class="fas fa-print"></i></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="text-center mt-4">
+                                    <a href="#" class="btn btn-outline-primary btn-sm">View Payment History <i class="fas fa-arrow-right ms-1"></i></a>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="quickbill">
+                                <div class="row">
+                                    <div class="col-md-8 mb-4">
+                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #198754;">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Quick Bill</h5>
+                                                <form id="quickBillForm" onsubmit="handleQuickBillSubmit(event)">
+                                                    <div class="mb-3">
+                                                        <label for="billTotal" class="form-label">Total Amount</label>
+                                                        <input type="text" class="form-control" id="billTotal" placeholder="Enter total amount" required>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-receipt me-1"></i> Generate Bill</button>
+                                                </form>
+                                                <script>
+                                                    function handleQuickBillSubmit(event) {
+                                                        event.preventDefault();
+                                                        const total = document.getElementById('billTotal').value;
+                                                        alert(`Quick Bill Generated: Bill for ₹${total} created successfully.`);
+                                                        document.getElementById('quickBillForm').reset();
+                                                    }
+                                                </script>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #ffc107;">
+                                            <div class="card-body">
+                                                <h5 class="card-title d-flex align-items-center">
+                                                    <i class="fas fa-receipt me-2 text-warning"></i> Recent Quick Bills
+                                                </h5>
+                                                <div class="mt-3" style="max-height: 400px; overflow-y: auto;">
+                                                    <?php foreach (get_recent_bills() as $bill): ?>
+                                                        <div class="border rounded p-3 mb-2 hover-bg-light">
+                                                            <div class="d-flex justify-content-between">
+                                                                <div>
+                                                                    <p class="fw-medium mb-1"><?php echo htmlspecialchars($bill['id']); ?></p>
+                                                                    <p class="text-muted small"><?php echo htmlspecialchars($bill['customer']); ?></p>
+                                                                </div>
+                                                                <span class="text-success fw-semibold"><?php echo htmlspecialchars($bill['amount']); ?></span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between text-muted small">
+                                                                <span><?php echo htmlspecialchars($bill['date']); ?></span>
+                                                                <span><?php echo htmlspecialchars($bill['items']); ?> items • <?php echo htmlspecialchars($bill['method']); ?></span>
+                                                            </div>
+                                                            <div class="d-flex gap-2 mt-2">
+                                                                <button class="btn btn-outline-primary btn-sm" onclick="alert('Printing Document: <?php echo htmlspecialchars($bill['id']); ?>')"><i class="fas fa-print me-1"></i> Print</button>
+                                                                <button class="btn btn-outline-primary btn-sm" onclick="alert('Downloading Document: <?php echo htmlspecialchars($bill['id']); ?>')"><i class="fas fa-download me-1"></i> Download</button>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="reports">
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #0d6efd;">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Monthly Revenue</h5>
+                                                <div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 192px;">
+                                                    <p class="text-muted">Revenue Chart Placeholder</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #6f42c1;">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Payment Methods</h5>
+                                                <div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 192px;">
+                                                    <p class="text-muted">Payment Methods Chart Placeholder</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="card shadow-sm cards card-border" style="border-left: 5px solid #dc3545;">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Outstanding Payments</h5>
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Invoice #</th>
+                                                                <th>Customer</th>
+                                                                <th>Amount</th>
+                                                                <th>Due Date</th>
+                                                                <th>Days Overdue</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php foreach (get_outstanding_payments() as $payment): ?>
+                                                                <tr>
+                                                                    <td><?php echo htmlspecialchars($payment['id']); ?></td>
+                                                                    <td><?php echo htmlspecialchars($payment['customer']); ?></td>
+                                                                    <td><?php echo htmlspecialchars($payment['amount']); ?></td>
+                                                                    <td><?php echo htmlspecialchars($payment['due_date']); ?></td>
+                                                                    <td class="<?php echo $payment['days_overdue'] !== '-' ? 'text-danger' : ''; ?>">
+                                                                        <?php echo htmlspecialchars($payment['days_overdue']); ?>
+                                                                    </td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -446,102 +720,20 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                     <div class="col-md-12 col-sm-12 mb-4">
                         <div class="card stat-card cards shadow-sm" style="background-color: #f8d7da;">
                             <div class="card-body">
-                                <d class="d-flex gap-2 flex-wrap">
-                                    <a href="?page=orders"> <button class="btn btn-outline-primary btn-sm"><i
-                                                class="fas fa-plus"></i> Add New Order</button></a>
-
-                                    <a href="?page=deliveries" <button class="btn btn-outline-primary btn-sm"><i
-                                            class="fas fa-truck"></i> Schedule Delivery</button></a>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-invoice"></i>
-                                        Generate Invoice</button>
-                                    <button class="btn btn-outline-primary btn-sm"><i
-                                            class="fas fa-bell"></i>Payments</button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-line"></i> View
-                                        Reports</button>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="?page=orders"><button class="btn btn-outline-primary btn-sm"><i class="fas fa-plus"></i> Add New Order</button></a>
+                                    <a href="?page=deliveries"><button class="btn btn-outline-primary btn-sm"><i class="fas fa-truck"></i> Schedule Delivery</button></a>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-invoice"></i> Generate Invoice</button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i> Payments</button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-line"></i> View Reports</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         <?php elseif ($page === 'orders'): ?>
-            <div class="container-fluid">
-                <h4><i class="fas fa-shopping-cart text-primary"></i> Order Management</h4>
-                <p>Track and manage vendor orders efficiently.</p>
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="text-muted">Recent Orders</h5>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-plus"></i> Add New
-                                    Order</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-list"></i> View All
-                                    Orders</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Order ID</th>
-                                        <th>Customer Name</th>
-                                        <th>Order Date</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>ORD-2854</td>
-                                        <td>Unnati Traders</td>
-                                        <td>12 Apr 2025</td>
-                                        <td>₹24,500</td>
-                                        <td><span class="green-bg">New</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>ORD-2853</td>
-                                        <td>Modern Electricals</td>
-                                        <td>10 Apr 2025</td>
-                                        <td>₹8,750</td>
-                                        <td><span class="orange-bg">Processing</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>ORD-2852</td>
-                                        <td>City Lights</td>
-                                        <td>08 Apr 2025</td>
-                                        <td>₹12,300</td>
-                                        <td><span class="green-bg">Shipped</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <?php include 'orders.php'; ?>
         <?php elseif ($page === 'deliveries'): ?>
             <div class="container-fluid">
                 <h4><i class="fas fa-truck text-primary"></i> Delivery Management</h4>
@@ -551,20 +743,14 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="text-muted">Upcoming Deliveries</h5>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                                    data-bs-target="#scheduleDeliveryModal"><i class="fas fa-truck"></i> Schedule
-                                    Delivery</button>
-
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleDeliveryModal"><i class="fas fa-truck"></i> Schedule Delivery</button>
                                 <!-- Schedule Delivery Modal -->
-                                <div class="modal fade" id="scheduleDeliveryModal" tabindex="-1"
-                                    aria-labelledby="scheduleDeliveryModalLabel" aria-hidden="true">
+                                <div class="modal fade" id="scheduleDeliveryModal" tabindex="-1" aria-labelledby="scheduleDeliveryModalLabel" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="scheduleDeliveryModalLabel">Schedule New
-                                                    Delivery</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                    aria-label="Close"></button>
+                                                <h5 class="modal-title" id="scheduleDeliveryModalLabel">Schedule New Delivery</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <form id="deliveryForm">
@@ -591,48 +777,34 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                                     </div>
                                                     <div class="mb-3">
                                                         <label for="deliveryNotes" class="form-label">Delivery Notes</label>
-                                                        <textarea class="form-control" id="deliveryNotes" rows="3"
-                                                            placeholder="Enter any special instructions..."></textarea>
+                                                        <textarea class="form-control" id="deliveryNotes" rows="3" placeholder="Enter any special instructions..."></textarea>
                                                     </div>
                                                 </form>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary"
-                                                    data-bs-dismiss="modal">Close</button>
-                                                <button type="button" class="btn btn-primary"
-                                                    onclick="scheduleDelivery()">Schedule Delivery</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-primary" onclick="scheduleDelivery()">Schedule Delivery</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
                                 <script>
                                     function scheduleDelivery() {
-                                        // Get form values
                                         const order = document.getElementById('orderSelect').value;
                                         const date = document.getElementById('deliveryDate').value;
                                         const timeSlot = document.getElementById('timeSlot').value;
                                         const notes = document.getElementById('deliveryNotes').value;
-
                                         if (!order || !date || !timeSlot) {
                                             alert('Please fill in all required fields');
                                             return;
                                         }
-
-                                        // Here you would typically make an AJAX call to your backend
                                         alert('Delivery scheduled successfully!\nOrder: ' + order + '\nDate: ' + date + '\nTime Slot: ' + timeSlot);
-
-                                        // Close the modal
                                         const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleDeliveryModal'));
                                         modal.hide();
-
-                                        // Reset form
                                         document.getElementById('deliveryForm').reset();
                                     }
                                 </script>
-
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i> View Delivery
-                                    Status</button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i> View Delivery Status</button>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -648,36 +820,23 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>DEL-485</td>
-                                        <td>ORD-2846</td>
-                                        <td>Modern Electricals</td>
-                                        <td>14 Apr 2025</td>
-                                        <td><span class="green-bg">Scheduled</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>DEL-484</td>
-                                        <td>ORD-2840</td>
-                                        <td>City Lights</td>
-                                        <td>13 Apr 2025</td>
-                                        <td><span class="orange-bg">In Transit</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <?php foreach (get_deliveries() as $delivery): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($delivery['id']); ?></td>
+                                            <td><?php echo htmlspecialchars($delivery['order_id']); ?></td>
+                                            <td><?php echo htmlspecialchars($delivery['customer']); ?></td>
+                                            <td><?php echo htmlspecialchars($delivery['date']); ?></td>
+                                            <td><span class="<?php echo $delivery['status'] === 'Scheduled' ? 'green-bg' : 'orange-bg'; ?>">
+                                                <?php echo htmlspecialchars($delivery['status']); ?>
+                                            </span></td>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -685,77 +844,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 </div>
             </div>
         <?php elseif ($page === 'products'): ?>
-            <div class="container-fluid">
-                <h4><i class="fas fa-box text-primary"></i> Product Management</h4>
-                <p>Manage your product inventory and stock levels.</p>
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <div class="d-flex gap-2 flex-grow-1">
-                                <div class="input-group w-auto flex-grow-1">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control border-start-0"
-                                        placeholder="Search products..." />
-                                </div>
-                                <button class="btn btn-outline-primary btn-sm">Filter</button>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-plus"></i> Add New
-                                    Product</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-alt"></i> Generate
-                                    Stock Report</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Product ID</th>
-                                        <th>Name</th>
-                                        <th>Category</th>
-                                        <th>Stock</th>
-                                        <th>Price</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>PROD-001</td>
-                                        <td>1.5mm Wire</td>
-                                        <td>Wires</td>
-                                        <td>500 m</td>
-                                        <td>₹50/m</td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-trash-can"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>PROD-002</td>
-                                        <td>LED Bulb</td>
-                                        <td>Lights</td>
-                                        <td>200 units</td>
-                                        <td>₹150/unit</td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-trash-can"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <?php include 'products.php'; ?>
+
         <?php elseif ($page === 'payments'): ?>
             <div class="container-fluid">
                 <h4><i class="fas fa-wallet text-primary"></i> Payment Management</h4>
@@ -765,20 +855,15 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                             <div class="d-flex gap-2 flex-grow-1">
                                 <div class="input-group w-auto flex-grow-1">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control border-start-0"
-                                        placeholder="Search payments..." />
+                                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control border-start-0" placeholder="Search payments..." />
                                 </div>
                                 <button class="btn btn-outline-primary btn-sm">Filter</button>
                             </div>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-user"></i> View
-                                    Vendors</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-cog"></i> Set Credit
-                                    Limit</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i> Send Payment
-                                    Reminder</button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-user"></i> View Vendors</button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-cog"></i> Set Credit Limit</button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-bell"></i> Send Payment Reminder</button>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -794,36 +879,23 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>TRX-001</td>
-                                        <td>Modern Electricals</td>
-                                        <td>₹36,500</td>
-                                        <td>10 Apr 2025</td>
-                                        <td><span class="green-bg">Paid</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-download"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>TRX-002</td>
-                                        <td>City Lights</td>
-                                        <td>₹43,250</td>
-                                        <td>08 Apr 2025</td>
-                                        <td><span class="red-bg">Overdue</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-download"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <?php foreach (get_transactions() as $transaction): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($transaction['id']); ?></td>
+                                            <td><?php echo htmlspecialchars($transaction['vendor']); ?></td>
+                                            <td><?php echo htmlspecialchars($transaction['amount']); ?></td>
+                                            <td><?php echo htmlspecialchars($transaction['date']); ?></td>
+                                            <td><span class="<?php echo $transaction['status'] === 'Paid' ? 'green-bg' : 'red-bg'; ?>">
+                                                <?php echo htmlspecialchars($transaction['status']); ?>
+                                            </span></td>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -843,28 +915,21 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                             <div class="d-flex gap-2 flex-grow-1">
                                 <div class="input-group w-auto flex-grow-1">
-                                    <span class="input-group-text bg-light border-end-0"><i
-                                            class="fas fa-search"></i></span>
-                                    <input type="text" class="form-control border-start-0"
-                                        placeholder="Search invoices..." />
+                                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control border-start-0" placeholder="Search invoices..." />
                                 </div>
                                 <button class="btn btn-outline-primary btn-sm">Filter</button>
                             </div>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-plus"></i> Generate
-                                    Invoice</button>
-                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i> Download
-                                    Invoice</button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-plus"></i> Generate Invoice</button>
+                                <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i> Download Invoice</button>
                             </div>
                         </div>
                         <div class="d-flex justify-content-start gap-2 mb-3 flex-wrap">
                             <button class="btn btn-outline-primary btn-sm">All</button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-check-circle text-success"></i>
-                                Paid</button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-clock text-warning"></i>
-                                Pending</button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fas fa-exclamation-circle text-danger"></i> Overdue</button>
+                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-check-circle text-success"></i> Paid</button>
+                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-clock text-warning"></i> Pending</button>
+                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-exclamation-circle text-danger"></i> Overdue</button>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover">
@@ -879,44 +944,25 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>INV-3845</td>
-                                        <td>Unnati Traders</td>
-                                        <td>₹36,500</td>
-                                        <td>12 Apr 2025</td>
-                                        <td><span class="green-bg">Paid</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-download"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-print"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>INV-3844</td>
-                                        <td>City Lights</td>
-                                        <td>₹24,500</td>
-                                        <td>10 Apr 2025</td>
-                                        <td><span class="orange-bg">Pending</span></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-pen-to-square"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-download"></i></button>
-                                                <button class="btn btn-outline-primary btn-sm"><i
-                                                        class="fas fa-print"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <?php foreach (get_invoices_page() as $invoice): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($invoice['id']); ?></td>
+                                            <td><?php echo htmlspecialchars($invoice['customer']); ?></td>
+                                            <td><?php echo htmlspecialchars($invoice['amount']); ?></td>
+                                            <td><?php echo htmlspecialchars($invoice['date']); ?></td>
+                                            <td><span class="<?php echo $invoice['status'] === 'Paid' ? 'green-bg' : 'orange-bg'; ?>">
+                                                <?php echo htmlspecialchars($invoice['status']); ?>
+                                            </span></td>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></button>
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-pen-to-square"></i></button>
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-download"></i></button>
+                                                    <button class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -936,43 +982,14 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                         <h3>BNPL Recovery</h3>
                         <p>Outstanding: ₹2,85,450 | Recovered: ₹1,50,000</p>
                         <div class="d-flex gap-2 mt-3 flex-wrap">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-bar"></i> Generate Sales
-                                Report</button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-alt"></i> View Profit &
-                                Loss</button>
+                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-chart-bar"></i> Generate Sales Report</button>
+                            <button class="btn btn-outline-primary btn-sm"><i class="fas fa-file-alt"></i> View Profit & Loss</button>
                         </div>
                     </div>
                 </div>
             </div>
         <?php elseif ($page === 'settings'): ?>
-            <div class="container-fluid">
-                <h4><i class="fas fa-cog text-primary"></i> Settings</h4>
-                <p>Configure vendor profile and system preferences.</p>
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="text-muted">Vendor Profile</h5>
-                        <form>
-                            <div class="mb-3">
-                                <label class="form-label">Business Name</label>
-                                <input type="text" class="form-control" value="Shree Unnati Wires & Traders">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Credit Limit (BNPL)</label>
-                                <input type="number" class="form-control" value="500000">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Notification Preferences</label>
-                                <select class="form-select">
-                                    <option>Email & WhatsApp</option>
-                                    <option>Email Only</option>
-                                    <option>WhatsApp Only</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-sm">Update Settings</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+            <?php include 'settings.php'; ?>
         <?php else: ?>
             <div class="container-fluid">
                 <h1>Dashboard</h1>
@@ -1042,8 +1059,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                             <div class="card-body">
                                 <h5 class="text-muted">Low Stock Alert</h5>
                                 <p>2 products are below minimum stock levels. Review inventory soon.</p>
-                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products
-                                    →</a>
+                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products →</a>
                             </div>
                         </div>
                     </div>
@@ -1052,8 +1068,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                             <div class="card-body">
                                 <h5 class="text-muted">Recent Payments</h5>
                                 <p>3 payments received today totaling ₹28,450.</p>
-                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments
-                                    →</a>
+                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments →</a>
                             </div>
                         </div>
                     </div>
@@ -1105,7 +1120,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                     }]
                 },
                 options: {
-
                     maintainAspectRatio: true,
                     plugins: {
                         legend: { display: false }
@@ -1144,5 +1158,4 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
         <?php endif; ?>
     </script>
 </body>
-
 </html>
