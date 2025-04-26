@@ -137,18 +137,16 @@
         ?>
         <!-- Menu -->
         <div class="sidebar-menu">
-        <a href="./admin_dashboard.php" class="<?= $currentPage === 'admin_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
-        <a href="./billing_desk.php" class="<?= $currentPage === 'billing_desk.php' ? 'active' : '' ?>"><i class="fas fa-file-invoice"></i> Billing Desk</a>
-        <a href="./accounting.php" class="<?= $currentPage === 'accounting.php' ? 'active' : '' ?>"><i class="fas fa-dollar-sign"></i> Accounting</a>
-        <a href="./inventory.php" class="<?= $currentPage === 'inventory.php' ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Inventory</a>
-        <a href="./expenses_dashboard.php" class="<?= $currentPage === 'expenses_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-chart-line"></i> Expenses</a>
-        <a href="./factory_stock.php" class="<?= $currentPage === 'factory_stock.php' ? 'active' : '' ?>"><i class="fas fa-warehouse"></i> Factory Stock</a>
-        <a href="./retail_store.php" class="<?= $currentPage === 'retail_store.php' ? 'active' : '' ?>"><i class="fas fa-store"></i> Retail Store</a>
-        <a href="./After_sales_service.php" class="<?= $currentPage === 'After_sales_service.php' ? 'active' : '' ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
-        <a href="./suppliers.php" class="<?= $currentPage === 'suppliers.php' ? 'active' : '' ?>"><i class="fas fa-truck-moving"></i> Suppliers</a>
-        <a href="./reports.php" class="<?= $currentPage === './reports.php' ? 'active' : '' ?>"><i class="fas fa-chart-bar"></i> Reports</a>
-        <a href="./user_management.php" class="<?= $currentPage === 'user_management.php' ? 'active' : '' ?>"><i class="fas fa-users-gear"></i> User Management</a>
-        <a href="./settings.php" class="<?= $currentPage === 'settings.php' ? 'active' : '' ?>"><i class="fas fa-gear"></i> Settings</a>
+        <a href="./store_dashboard.php" class="<?= $currentPage === 'store_dashboard.php' ? 'active' : '' ?>"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fas fa-file-invoice"></i> Billing System</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fa-solid fa-truck-fast"></i> Supply Management </a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Inventory</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fa-regular fa-user"></i> Customers</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fa-solid fa-bag-shopping"></i> Order Management</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fa-solid fa-credit-card"></i> Payments</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fa-solid fa-chart-column"></i> Reports</a>
+        <a href="#" class="<?= $currentPage === '#' ? 'active' : '' ?>"><i class="fas fa-gear"></i> Settings</a>
         </div>
 
         <!-- Footer -->
@@ -184,10 +182,10 @@
                 <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
             </div>
             <div class="d-none d-md-block text-end">
-                <div><strong>Admin User</strong></div>
-                <small class="text-muted">Admin</small>
+                <div><strong>Store User</strong></div>
+                <small class="text-muted">Store</small>
             </div>
-            <div class="user-icon">A</div>
+            <div class="user-icon">S</div>
                 <form action="../../logout.php" method="POST">
                     <button name="logout_btn" class="btn btn-outline-dark nav-right-btn fw-bold" type="submit" value="true">Logout</button>
                 </form>

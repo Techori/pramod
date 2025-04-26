@@ -6,6 +6,8 @@
   <title>Admin Panel UI</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     .tab-nav {
       background-color: #f8f9fa;
@@ -48,7 +50,6 @@
 <div class="main-content">
 <h2 class="mb-1">Suppliers Dashboard</h2>
         <p class="text-muted">Manage supplier relationships and orders</p>
-
         <div class="row g-3">
             <div class="col-md-3">
                 <div class="card p-3">
@@ -129,13 +130,7 @@
             </div>
         </div>
     </div>
-
-   
-    </script>
 <div class="main-content">
-        <h1>Accounting Dashboard</h1>
-        <p>Monitor financial health and transactions</p>
-        
        <!-- Search and Add User Row -->
   <div class="tab-nav">
     <div>
@@ -233,6 +228,54 @@
       }
     }
   });
+  // Spending by Supplier (Pie Chart)
+  const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+  const spendingChart = new Chart(spendingCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Supplier A', 'Supplier B', 'Supplier C'],
+      datasets: [{
+        label: 'Spending',
+        data: [3000, 2000, 5000],
+        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+
+  // Purchase Orders Trend (Line Chart)
+  const ordersCtx = document.getElementById('ordersTrend').getContext('2d');
+  const ordersTrend = new Chart(ordersCtx, {
+    type: 'line',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+      datasets: [{
+        label: 'Purchase Orders',
+        data: [12, 19, 3, 5, 9],
+        fill: false,
+        borderColor: '#4BC0C0',
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+        
 </script>
 
 </body>

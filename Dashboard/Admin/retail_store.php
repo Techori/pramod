@@ -294,7 +294,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </div>
                 <div class="progress bg-light">
                     <div class="progress-bar bg-primary" style="width: 70%"></div> <!-- Dynamic data -->
-                    <div class="progress-bar bg-warning" style="width: 30%"></div> <!-- Dynamic data --> <!-- Dynamic data -->
+                    <div class="progress-bar bg-warning" style="width: 30%"></div> <!-- Dynamic data -->
                 </div>
                 </div>
             </div>

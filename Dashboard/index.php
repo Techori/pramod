@@ -15,11 +15,11 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             break;
 
         case 'Store':
-            header("Location: ./Store/Store_dashboard.php");
+            header("Location: ./Retail_Store/store_dashboard.php");
             break;
 
         case 'Vendor':
-            header("Location: ./Vendor/Vendor_dashboard.php");
+            header("Location: ./Vendor/vendor_dashboard.php");
             break;
 
         default:

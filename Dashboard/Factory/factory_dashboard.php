@@ -14,8 +14,6 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     }
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -88,7 +86,29 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     </header>
 
     <main id="mainContent">
-        <div class="container-fluid">
+               <!-- Search and Add User Row -->
+<div class="container-fluid d-flex justify-content-between align-items-center mb-3">
+        <!-- search bar -->
+           <div class="d-flex w-75">
+            <div class="input-group w-100 me-2">
+              <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+               <input type="text" class="form-control border-start-0" placeholder="Search..." />
+             </div>
+          </div>
+
+             <!-- Add User Button -->
+    <div>
+        <button class="btn btn-outline-primary">
+            <i class="fa-solid fa-user-plus"></i> schedule production
+        </button>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary">
+            <i class="fa-solid fa-user-plus"></i> request materials
+        </button>
+    </div>
+</div>
+        <div class="container-fluid mt-3">
             <!-- Metrics Row -->
             <div class="row g-3 mb-4">
                 <div class="col-sm-6 col-lg-3">
@@ -206,6 +226,27 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                 </div>
             </div>
 
+            <div class="btn-group" role="group" aria-label="Default button group">
+             <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                 Production Scheduling
+           </button>
+           <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                 Raw Materials
+           </button>
+           <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                 Workers
+           </button>
+           <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                 Maintenace
+           </button>
+           <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                 Reports
+           </button>
+           <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                 Quality
+           </button>
+         </div>
+         
             <!-- Raw Material Usage & Status -->
             <div class="row mb-4">
                 <div class="col-lg-6">

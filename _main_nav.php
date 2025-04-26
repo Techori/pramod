@@ -51,11 +51,11 @@
                         </li>
                         <?php if (!$logreg) {?>
                             <li class="nav-item">
-                                <a class="nav-link" href="#"><span class="text-dark">Dashboard</span></a>
+                                <a class="nav-link" href="./Dashboard/index.php"><span class="text-dark">Dashboard</span></a>
                             </li>
                         <?php } ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="#"><span class="text-dark">About Us</span></a>
+                            <a class="nav-link" href="./about_us.html"><span class="text-dark">About Us</span></a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="./product.php"><span class="text-dark">Products</span></a>
