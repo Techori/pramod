@@ -86,10 +86,6 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
 
 <!-- Header with Generate Invoice Button -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h5 class="mb-0">Invoice Management</h5>
-        <p class="text-muted">Generate, download, and manage invoices for your transactions.</p>
-    </div>
     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#generateInvoiceModal">
         <i class="fas fa-plus me-1"></i> Generate Invoice
     </button>
@@ -438,6 +434,7 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
 }
 </style>
 
+<script src="invoice.js"></script>
 <script>
 // Enable/disable GST number input based on invoice type
 document.addEventListener('DOMContentLoaded', function () {
