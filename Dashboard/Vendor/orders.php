@@ -74,59 +74,8 @@ usort($filtered_orders, function ($a, $b) use ($sort_field, $sort_direction) {
 // Statuses and payment statuses
 $statuses = ['All Statuses', 'New', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
-
 ?>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Management</title>
-<link rel="stylesheet" href="../../public/css/styles.css">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
-<style>
 
-.bg-purple {
-
-    background-color: #6f42c1;
-
-}
-
-.text-purple {
-
-    color: #6f42c1;
-
-}
-
-.btn-outline-purple {
-
-    border-color: #6f42c1;
-
-    color: #6f42c1;
-
-}
-
-.btn-outline-purple:hover {
-
-    background-color: #6f42c1;
-
-    color: #fff;
-
-}
-
-.badge {
-
-    font-size: 0.85rem;
-
-    padding: 4px 8px;
-
-}
-
-</style>
-
-</head>
-<body>
-    <?php include '_vendor_nav.php'; ?>
-    <main>
 <h4><i class="fas fa-shopping-cart text-primary"></i> Order Management (<?php echo count($filtered_orders); ?>)</h4>
 <p>Manage and process orders from factories.</p>
 
@@ -428,6 +377,24 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
         </div>
     </div>
 </div>
-</main>
-</body>
-</html>
+
+<style>
+.bg-purple {
+    background-color: #6f42c1;
+}
+.text-purple {
+    color: #6f42c1;
+}
+.btn-outline-purple {
+    border-color: #6f42c1;
+    color: #6f42c1;
+}
+.btn-outline-purple:hover {
+    background-color: #6f42c1;
+    color: #fff;
+}
+.badge {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+}
+</style>

@@ -13,6 +13,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         exit;
     }
 }
+$page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 
 // Include the mock database and can be replaced with actual database connection
 // and queries in the future in the databse.php file.
@@ -38,6 +39,7 @@ require_once 'database.php';
     <?php include '_vendor_nav.php'; ?>
     <!-- Main Content -->
     <main>
+        <?php if ($page === 'dashboard'): ?>
             <div class="container-fluid">
                 <h1>Dashboard</h1>
                 <p>Welcome back to your vendor management dashboard</p>
@@ -440,7 +442,115 @@ require_once 'database.php';
                         </div>
                     </div>
                 </div>
-            </div>    </main>
+            </div>
+        <?php elseif ($page === 'orders'): ?>
+            <?php include 'orders.php'; ?>
+
+        <?php elseif ($page === 'deliveries'): ?>
+            <?php include 'deliveries.php'; ?>
+
+        <?php elseif ($page === 'products'): ?>
+            <?php include 'products.php'; ?>
+
+        <?php elseif ($page === 'payments'): ?>
+            <?php include 'payments.php'; ?>
+
+        <?php elseif ($page === 'invoices'): ?>
+            <?php include 'invoices.php'; ?>
+
+        <?php elseif ($page === 'reports'): ?>
+            <?php include 'reports.php'; ?>
+
+        <?php elseif ($page === 'settings'): ?>
+            <?php include 'settings.php'; ?>
+        <?php else: ?>
+            <div class="container-fluid">
+                <h1>Dashboard</h1>
+                <p>Welcome back to your vendor management dashboard</p>
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
+                            <div class="card-body">
+                                <h6 class="text-muted">Active Orders</h6>
+                                <h3 class="fw-bold">16 orders</h3>
+                                <p class="text-success">+3 vs last month</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
+                            <div class="card-body">
+                                <h6 class="text-muted">Pending Deliveries</h6>
+                                <h3 class="fw-bold">8 deliveries</h3>
+                                <p class="text-warning">+2 vs last month</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
+                            <div class="card-body">
+                                <h6 class="text-muted">Pending Payments</h6>
+                                <h3 class="fw-bold">₹2,85,450</h3>
+                                <p class="text-danger">+12.5% vs last month</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-4">
+                        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #6f42c1;">
+                            <div class="card-body">
+                                <h6 class="text-muted">This Month Revenue</h6>
+                                <h3 class="fw-bold">₹4,35,250</h3>
+                                <p class="text-success">+8.7% vs last month</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-box">
+                        <h3>Order Trends (Last 6 Months)</h3>
+                        <canvas id="orderTrendsChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3>Recent Activity</h3>
+                        <div class="alert alert-primary">
+                            <i class="fas fa-bell"></i> New Order #ORD-2854 received
+                            <a href="#" class="alert-link">View Details</a>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Payment overdue for #INV-3845
+                            <a href="#" class="alert-link">Send Reminder</a>
+                        </div>
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> Delivery #DEL-482 completed
+                            <a href="#" class="alert-link">View Status</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 col-sm-12 mb-4">
+                        <div class="card stat-card cards shadow-sm" style="background-color: #fbf3d7;">
+                            <div class="card-body">
+                                <h5 class="text-muted">Low Stock Alert</h5>
+                                <p>2 products are below minimum stock levels. Review inventory soon.</p>
+                                <a href="?page=products" style="text-decoration: none;" class="text-dark">View Products
+                                    →</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-sm-12 mb-4">
+                        <div class="card stat-card cards shadow-sm" style="background-color: #d4ffe9;">
+                            <div class="card-body">
+                                <h5 class="text-muted">Recent Payments</h5>
+                                <p>3 payments received today totaling ₹28,450.</p>
+                                <a href="?page=payments" style="text-decoration: none;" class="text-dark">View Payments
+                                    →</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+    </main>
 
     <!-- Generate Invoice Modal -->
     <div class="modal fade" id="generateInvoiceModal" tabindex="-1">
@@ -539,6 +649,7 @@ require_once 'database.php';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Chart.js Scripts
+        <?php if ($page === 'dashboard'): ?>
             const orderTrendsCtx = document.getElementById('orderTrendsChart').getContext('2d');
             new Chart(orderTrendsCtx, {
                 type: 'bar',
@@ -559,8 +670,9 @@ require_once 'database.php';
                     },
                 }
             });
+        <?php endif; ?>
 
-
+        <?php if ($page === 'reports'): ?>
             const salesCtx = document.getElementById('salesChart').getContext('2d');
             new Chart(salesCtx, {
                 type: 'line',
@@ -588,7 +700,7 @@ require_once 'database.php';
                     }
                 }
             });
-
+        <?php endif; ?>
     </script>
     <script>
         // Sidebar Toggle
