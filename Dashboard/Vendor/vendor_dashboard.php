@@ -31,155 +31,8 @@ require_once 'database.php';
         crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        .cards {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            height: 100%;
-        }
-
-
-
-        .cards:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1);
-        }
-
-
-
-        .card-border {
-            border-radius: 0.5rem;
-            border-top: none;
-            border-right: none;
-            border-bottom: none;
-        }
-
-
-
-        .chart-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-
-        }
-
-
-
-        .chart-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 600px;
-            flex: 1 1 300px;
-        }
-
-
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-
-
-        th,
-        td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-            font-size: 0.9rem;
-
-        }
-
-
-
-        .green-bg {
-
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .orange-bg {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .red-bg {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .blue-bg {
-            background-color: #d1e7ff;
-            color: #004085;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .purple-bg {
-            background-color: #e2d9f3;
-            color: #4c2889;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .alert {
-            border-radius: 0.5rem;
-            padding: 15px;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            main {
-                margin-left: 0;
-            }
-
-            .container-fluid {
-                padding-left: 10px;
-                padding-right: 10px;
-            }
-
-            .chart-box {
-                flex: 1 1 100%;
-            }
-        }
-
-        th,
-        td {
-            font-size: 0.85rem;
-            padding: 8px;
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-        }
-
-        .card-body {
-            padding: 15px;
-        }
-
-        .alert {
-            font-size: 0.85rem;
-        }
-
-        .btn-sm {
-            font-size: 0.8rem;
-            padding: 5px 10px;
-
-        }
-    </style>
-
+    <link rel="stylesheet" href="../../public/css/styles.css">
+    <style>    </style>
 </head>
 
 <body>
@@ -850,9 +703,30 @@ require_once 'database.php';
         <?php endif; ?>
     </script>
     <script>
+        // Sidebar Toggle
+        const hamburger = document.getElementById('hamburger');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
 
+        hamburger.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        });
 
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        });
 
+        // Close sidebar when clicking a nav link on mobile
+        document.querySelectorAll('.sidebar nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                }
+            });
+        });
 
     </script>
 </body>
