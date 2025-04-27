@@ -13,6 +13,9 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         exit;
     }
 }
+
+$page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
