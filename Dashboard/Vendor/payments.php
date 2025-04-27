@@ -73,10 +73,6 @@ $date_ranges = ['All Time', 'Last 30 Days', 'Last 3 Months', 'This Year'];
 
 <!-- Header with New Payment Button -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h5 class="mb-0">Payment Management</h5>
-        <p class="text-muted">Monitor and manage all payment transactions.</p>
-    </div>
     <form method="POST" action="?page=payments&tab=<?php echo urlencode($active_tab); ?>">
         <input type="hidden" name="action" value="new_payment">
         <button type="submit" class="btn btn-primary btn-sm">

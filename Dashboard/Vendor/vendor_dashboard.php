@@ -31,412 +31,12 @@ require_once 'database.php';
         crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            color: #333;
-            background-color: #f8f9fa;
-            overflow-x: hidden;
-        }
-
-        .sidebar {
-            width: 200px;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background-color: #ffffff;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-            padding-top: 20px;
-            overflow-y: auto;
-            transition: transform 0.3s ease-in-out;
-            z-index: 1000;
-            box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), 0 2px 6px rgba(0, 0, 0, 0.05);
-            animation: glowingEffect 2.5s infinite;
-        }
-
-        .sidebar-header {
-            text-align: center;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .sidebar-header img {
-            width: 50px;
-            height: auto;
-            margin-bottom: 10px;
-        }
-
-        .sidebar nav a {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: #333;
-            text-decoration: none;
-            font-size: 0.95rem;
-        }
-
-        .sidebar nav a i {
-            width: 24px;
-            margin-right: 10px;
-        }
-
-        .sidebar nav a:hover,
-        .sidebar nav a.active {
-            background-color: #e9ecef;
-            color: #0d6efd;
-            font-weight: bold;
-        }
-
-        .sidebar .footer {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            padding: 10px;
-            font-size: 0.8rem;
-            text-align: center;
-            color: #6c757d;
-            border-top: 1px solid #ddd;
-        }
-
-        main {
-            margin-left: 200px;
-            padding: 20px;
-            transition: margin-left 0.3s ease-in-out;
-        }
-
-        header.header {
-            margin-left: 200px;
-            background: #fff;
-            border-bottom: 1px solid #ddd;
-            padding: 10px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: margin-left 0.3s ease-in-out;
-        }
-
-        .cards {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            height: 100%;
-        }
-
-        .cards:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.1);
-        }
-
-        .card-border {
-            border-radius: 0.5rem;
-            border-top: none;
-            border-right: none;
-            border-bottom: none;
-        }
-
-        .chart-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-
-        .chart-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 600px;
-            flex: 1 1 300px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th,
-        td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-            font-size: 0.9rem;
-        }
-
-        .green-bg {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .orange-bg {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .red-bg {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .blue-bg {
-            background-color: #d1e7ff;
-            color: #004085;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .purple-bg {
-            background-color: #e2d9f3;
-            color: #4c2889;
-            padding: 4px 10px;
-            border-radius: 10px;
-        }
-
-        .alert {
-            border-radius: 0.5rem;
-            padding: 15px;
-            font-size: 0.9rem;
-        }
-
-        .hamburger {
-            display: none;
-            font-size: 1.5rem;
-            background: none;
-            border: none;
-            color: #0d6efd;
-            cursor: pointer;
-        }
-
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-                box-shadow: -5px 0 15px rgba(233, 111, 3, 0.78), 0 0 25px rgba(0, 0, 0, 0.95);
-                animation: glowingEffect 2.5s infinite;
-            }
-
-            main,
-            header.header {
-                margin-left: 0;
-            }
-
-            .hamburger {
-                display: block;
-            }
-
-            .overlay.show {
-                display: block;
-            }
-
-            .container-fluid {
-                padding-left: 10px;
-                padding-right: 10px;
-            }
-
-            .chart-box {
-                flex: 1 1 100%;
-            }
-
-            th,
-            td {
-                font-size: 0.85rem;
-                padding: 8px;
-            }
-
-            .table-responsive {
-                overflow-x: auto;
-            }
-
-            .card-body {
-                padding: 15px;
-            }
-
-            .alert {
-                font-size: 0.85rem;
-            }
-
-            .btn-sm {
-                font-size: 0.8rem;
-                padding: 5px 10px;
-            }
-        }
-
-        .notification-dropdown {
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .notification-item {
-            transition: background-color 0.2s ease;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .notification-item:hover {
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-
-        .notification-item:last-child {
-            border-bottom: none;
-        }
-    </style>
+    <link rel="stylesheet" href="../../public/css/styles.css">
+    <style>    </style>
 </head>
 
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <img src="../../public/unnati_logo.png" alt="Logo" class="img-fluid" style="width: auto; height: auto;">
-            <h6 class="mb-0">Unnati Vendor Portal</h6>
-            <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
-        </div>
-        <nav class="nav flex-column mt-2">
-            <a href="?page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>">
-                <i class="fas fa-tachometer-alt"></i> Dashboard
-            </a>
-            <a href="?page=orders" class="nav-link <?php echo $page === 'orders' ? 'active' : ''; ?>">
-                <i class="fas fa-shopping-cart"></i> Orders
-            </a>
-            <a href="?page=deliveries" class="nav-link <?php echo $page === 'deliveries' ? 'active' : ''; ?>">
-                <i class="fas fa-truck"></i> Deliveries
-            </a>
-            <a href="?page=products" class="nav-link <?php echo $page === 'products' ? 'active' : ''; ?>">
-                <i class="fas fa-box"></i> Products
-            </a>
-            <a href="?page=payments" class="nav-link <?php echo $page === 'payments' ? 'active' : ''; ?>">
-                <i class="fas fa-wallet"></i> Payments
-            </a>
-            <a href="?page=invoices" class="nav-link <?php echo $page === 'invoices' ? 'active' : ''; ?>">
-                <i class="fas fa-file-invoice"></i> Invoices
-            </a>
-            <a href="?page=reports" class="nav-link <?php echo $page === 'reports' ? 'active' : ''; ?>">
-                <i class="fas fa-chart-bar"></i> Reports
-            </a>
-            <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : ''; ?>">
-                <i class="fas fa-cog"></i> Settings
-            </a>
-        </nav>
-        <div class="footer">© 2025 Unnati Traders</div>
-    </div>
-
-    <!-- Overlay for Mobile -->
-    <div class="overlay" id="overlay"></div>
-
-    <!-- Header -->
-    <header class="header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-            <button class="hamburger me-3" id="hamburger"><i class="fas fa-bars"></i></button>
-            <h5 class="mb-0 fw-bold">Hey! <?php echo isset($_SESSION['user']) ? $_SESSION['user'] : 'Vendor'; ?></h5>
-        </div>
-        <form class="d-flex" role="search" method="GET" action="search.php">
-            <div class="input-group">
-                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                <input class="form-control border-start-0" type="search"
-                    placeholder="Search orders, products, or invoices..." aria-label="Search">
-            </div>
-        </form>
-        <div class="d-flex align-items-center">
-            <div class="dropdown me-2">
-                <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown">
-                    <i class="fas fa-bell"></i>
-                    <?php
-                    $notifications = get_notifications();
-                    $unread = array_filter($notifications, function ($n) {
-                        return !$n['read']; });
-                    if (count($unread) > 0):
-                        ?>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            <?php echo count($unread); ?>
-                            <span class="visually-hidden">unread notifications</span>
-                        </span>
-                    <?php endif; ?>
-                </button>
-                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0"
-                    style="width: 320px; max-height: 400px; overflow-y: auto;">
-                    <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Notifications</h6>
-                        <?php if (count($unread) > 0): ?>
-                            <button class="btn btn-link btn-sm text-decoration-none">Mark all read</button>
-                        <?php endif; ?>
-                    </div>
-                    <div class="notifications-list">
-                        <?php foreach ($notifications as $notification): ?>
-                            <div
-                                class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <span class="fa-stack fa-sm">
-                                            <i
-                                                class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
-                                            <i
-                                                class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
-                                        </span>
-                                    </div>
-                                    <div class="flex-grow-1 ms-2">
-                                        <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?>
-                                        </h6>
-                                        <p class="mb-0 small"><?php echo htmlspecialchars($notification['message']); ?></p>
-                                        <small
-                                            class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
-                                    </div>
-                                    <?php if (!$notification['read']): ?>
-                                        <div class="flex-shrink-0 ms-2">
-                                            <span class="badge bg-primary rounded-pill">New</span>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="p-2 border-top text-center">
-                        <a href="#" class="text-decoration-none small">View all notifications</a>
-                    </div>
-                </div>
-            </div>
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i
-                        class="fas fa-user-circle"></i></button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <!--May be a need to change the username or user_email variable to be dynamic in the future. -->
-                    <small class="text-muted text-center d-block"
-                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>
-                    <li><a class="dropdown-item" href="?page=settings">Update Profile</a></li>
-                    <form action="../../logout.php" method="POST" class="d-inline">
-                        <input type="hidden" name="logout_btn" value="logout">
-                        <button type="submit" class="dropdown-item">Logout</button>
-                    </form>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </header>
-
+    <?php include '_vendor_nav.php'; ?>
     <!-- Main Content -->
     <main>
         <?php if ($page === 'dashboard'): ?>
@@ -722,9 +322,11 @@ require_once 'database.php';
                                                             <div class="d-flex justify-content-between">
                                                                 <div>
                                                                     <p class="fw-medium mb-1">
-                                                                        <?php echo htmlspecialchars($bill['id']); ?></p>
+                                                                        <?php echo htmlspecialchars($bill['id']); ?>
+                                                                    </p>
                                                                     <p class="text-muted small">
-                                                                        <?php echo htmlspecialchars($bill['customer']); ?></p>
+                                                                        <?php echo htmlspecialchars($bill['customer']); ?>
+                                                                    </p>
                                                                 </div>
                                                                 <span
                                                                     class="text-success fw-semibold"><?php echo htmlspecialchars($bill['amount']); ?></span>
@@ -843,7 +445,7 @@ require_once 'database.php';
             </div>
         <?php elseif ($page === 'orders'): ?>
             <?php include 'orders.php'; ?>
-            
+
         <?php elseif ($page === 'deliveries'): ?>
             <?php include 'deliveries.php'; ?>
 
@@ -1046,195 +648,6 @@ require_once 'database.php';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function addInvoiceItem() {
-            const newRow = `
-        <div class="item-row row mb-2">
-            <div class="col-md-4">
-                <input type="text" class="form-control" placeholder="Item Name" required>
-            </div>
-            <div class="col-md-2">
-                <input type="number" class="form-control quantity" placeholder="Qty" required>
-            </div>
-            <div class="col-md-2">
-                <input type="number" class="form-control price" placeholder="Price" required>
-            </div>
-            <div class="col-md-2">
-                <input type="number" class="form-control gst-rate" placeholder="GST %" required>
-            </div>
-            <div class="col-md-2">
-                <span class="item-total">₹0.00</span>
-                <button type="button" class="btn btn-link text-danger btn-sm" onclick="removeItem(this)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    `;
-            document.getElementById('invoiceItems').insertAdjacentHTML('beforeend', newRow);
-        }
-
-        function removeItem(button) {
-            button.closest('.item-row').remove();
-            calculateTotals();
-        }
-
-        function calculateTotals() {
-            let subtotal = 0;
-            let totalGst = 0;
-
-            document.querySelectorAll('.item-row').forEach(row => {
-                const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
-                const price = parseFloat(row.querySelector('.price').value) || 0;
-                const gstRate = parseFloat(row.querySelector('.gst-rate').value) || 0;
-
-                const itemTotal = quantity * price;
-                const itemGst = itemTotal * (gstRate / 100);
-
-                subtotal += itemTotal;
-                totalGst += itemGst;
-
-                row.querySelector('.item-total').textContent = `₹${itemTotal.toFixed(2)}`;
-            });
-
-            const grandTotal = subtotal + totalGst;
-
-            document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
-            document.getElementById('totalGst').textContent = `₹${totalGst.toFixed(2)}`;
-            document.getElementById('grandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
-        }
-
-        function generateInvoice() {
-            const invoiceData = {
-                type: document.querySelector('input[name="invoiceType"]:checked').value,
-                date: document.getElementById('invoiceDate').value,
-                customer: {
-                    name: document.getElementById('customerName').value,
-                    gstin: document.getElementById('customerGstin').value
-                },
-                items: [],
-                totals: {
-                    subtotal: document.getElementById('subtotal').textContent,
-                    gst: document.getElementById('totalGst').textContent,
-                    total: document.getElementById('grandTotal').textContent
-                }
-            };
-
-            // Collect items
-            document.querySelectorAll('.item-row').forEach(row => {
-                invoiceData.items.push({
-                    name: row.querySelector('input[placeholder="Item Name"]').value,
-                    quantity: row.querySelector('.quantity').value,
-                    price: row.querySelector('.price').value,
-                    gst: row.querySelector('.gst-rate').value,
-                    total: row.querySelector('.item-total').textContent
-                });
-            });
-
-            // Mock invoice generation
-            const invoiceNumber = 'INV-' + Math.floor(Math.random() * 10000);
-
-            // Show success message
-            const modal = bootstrap.Modal.getInstance(document.getElementById('generateInvoiceModal'));
-            modal.hide();
-
-            // Show download options
-            showDownloadOptions(invoiceNumber, invoiceData);
-        }
-
-        function showDownloadOptions(invoiceNumber, invoiceData) {
-            const downloadModal = `
-        <div class="modal fade" id="downloadModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Invoice Generated Successfully</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Invoice ${invoiceNumber} has been generated successfully!</p>
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary" onclick="downloadInvoice('pdf', '${invoiceNumber}')">
-                                <i class="fas fa-file-pdf"></i> Download as PDF
-                            </button>
-                            <button class="btn btn-secondary" onclick="downloadInvoice('excel', '${invoiceNumber}')">
-                                <i class="fas fa-file-excel"></i> Download as Excel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-            document.body.insertAdjacentHTML('beforeend', downloadModal);
-            const modal = new bootstrap.Modal(document.getElementById('downloadModal'));
-            modal.show();
-
-            // Remove modal from DOM after it's hidden
-            document.getElementById('downloadModal').addEventListener('hidden.bs.modal', function () {
-                this.remove();
-            });
-        }
-
-        function downloadInvoice(format, invoiceNumber) {
-            // Mock download process
-            const message = `Downloading invoice ${invoiceNumber} in ${format.toUpperCase()} format...`;
-            alert(message);
-        }
-
-        // Add event listeners for real-time calculation
-        document.addEventListener('input', function (e) {
-            if (e.target.matches('.quantity, .price, .gst-rate')) {
-                calculateTotals();
-            }
-        }
-
-document.querySelectorAll('input[name="invoiceType"]').forEach(radio => {
-            radio.addEventListener('change', function () {
-                const gstInputs = document.querySelectorAll('.gst-rate');
-                const gstinInput = document.getElementById('customerGstin');
-
-                if (this.value === 'non-gst') {
-                    gstInputs.forEach(input => {
-                        input.value = '0';
-                        input.disabled = true;
-                    });
-                    gstinInput.disabled = true;
-                    gstinInput.value = '';
-                } else {
-                    gstInputs.forEach(input => {
-                        input.disabled = false;
-                    });
-                    gstinInput.disabled = false;
-                }
-                calculateTotals();
-            });
-        });
-);
-        // Sidebar Toggle
-        const hamburger = document.getElementById('hamburger');
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
-
-        hamburger.addEventListener('click', () => {
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('show');
-        });
-
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('show');
-        });
-
-        // Close sidebar when clicking a nav link on mobile
-        document.querySelectorAll('.sidebar nav a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('open');
-                    overlay.classList.remove('show');
-                }
-            });
-        });
-
         // Chart.js Scripts
         <?php if ($page === 'dashboard'): ?>
             const orderTrendsCtx = document.getElementById('orderTrendsChart').getContext('2d');
@@ -1258,6 +671,7 @@ document.querySelectorAll('input[name="invoiceType"]').forEach(radio => {
                 }
             });
         <?php endif; ?>
+
         <?php if ($page === 'reports'): ?>
             const salesCtx = document.getElementById('salesChart').getContext('2d');
             new Chart(salesCtx, {
@@ -1287,6 +701,33 @@ document.querySelectorAll('input[name="invoiceType"]').forEach(radio => {
                 }
             });
         <?php endif; ?>
+    </script>
+    <script>
+        // Sidebar Toggle
+        const hamburger = document.getElementById('hamburger');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        hamburger.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        });
+
+        // Close sidebar when clicking a nav link on mobile
+        document.querySelectorAll('.sidebar nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('show');
+                }
+            });
+        });
+
     </script>
 </body>
 
