@@ -37,9 +37,6 @@
 </style>
 
 
-<?php
-include('./_factory_nav.php');
-?>
 <div class="container py-4">
 
     <!-- Top Section -->
