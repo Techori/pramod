@@ -26,6 +26,13 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="../../public/css/styles.css">
     <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            color: #333;
+        }
     </style>
 </head>
 
