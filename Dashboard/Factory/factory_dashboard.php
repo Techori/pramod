@@ -39,7 +39,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
     </style>
 </head>
 
-<body>
+<body class="bg-secondary bg-opacity-10">
     <?php
     include '_factory_nav.php';
     ?>
@@ -102,8 +102,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 <!-- Production Lines Status -->
                 <div class="card mb-4">
                     <div class="card-body">
-                        <h5>Production Lines Status <small class="text-muted">Real-time status of production
-                                lines</small></h5>
+                        <h5>Production Lines Status</h5>
+                        <small class="text-muted">Real-time status of production lines</small>
                         <div class="row g-3 mt-3">
                             <div class="col-md-4">
                                 <div class="p-3 border rounded">
@@ -331,9 +331,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
         <?php elseif ($page === 'workers'): ?>
             <?php include 'workers.php'; ?>
 
-        <?php elseif ($page === 'maintenance'): ?>
-            <?php include 'maintenance.php'; ?>
-
         <?php elseif ($page === 'expenses'): ?>
             <?php include 'expenses.php'; ?>
 
@@ -349,7 +346,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
         <?php endif; ?>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Sidebar toggle on mobile
         document.getElementById('toggleSidebar').addEventListener('click', () => {

@@ -1,33 +1,3 @@
-<?php
-session_start();
-if (!isset($_SESSION["uid"], $_SESSION["user_type"], $_SESSION["session_id"])) {
-  header("location:../../login.php");
-  exit;
-}
-if (in_array($_SESSION["user_type"], ['Factory', 'Store', 'Vendor'])) {
-  header("location:../index.php");
-  exit;
-}
-if ($_SESSION["user_type"] !== 'Admin') {
-  header("location:../../login.php");
-  exit;
-}
-?>
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Shree Unnati Wires & Traders - Premium Wire Manufacturing</title>
-
-  <!-- Only latest Bootstrap included -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 
   <style>
     .card-metric {
@@ -114,14 +84,7 @@ if ($_SESSION["user_type"] !== 'Admin') {
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
   </style>
-</head>
 
-<body class="bg-secondary bg-opacity-10">
-  <?php
-  include('./_admin_nav.php');
-  ?>
-
-  <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h2 class="fw-semibold">Reports Dashboard</h2>
@@ -909,7 +872,6 @@ if ($_SESSION["user_type"] !== 'Admin') {
           </div>
         </div>
       </div>
-    </div>
     <script>
       const tabs = document.querySelectorAll('.tab-btn');
       const contents = document.querySelectorAll('.tab-content');
