@@ -20,8 +20,8 @@
             <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
         </div>
         <nav class="nav flex-column mt-2">
-            <a href="?page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="?page=orders" class="nav-link <?php echo $page === 'orders' ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Orders</a>
+            <a href="./vendor_dashboard.php" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="./orders.php" class="nav-link <?php echo $page === 'orders' ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Orders</a>
             <a href="?page=deliveries" class="nav-link <?php echo $page === 'deliveries' ? 'active' : ''; ?>"><i class="fas fa-truck"></i> Deliveries</a>
             <a href="?page=products" class="nav-link <?php echo $page === 'products' ? 'active' : ''; ?>"><i class="fas fa-box"></i> Products</a>
             <a href="?page=payments" class="nav-link <?php echo $page === 'payments' ? 'active' : ''; ?>"><i class="fas fa-wallet"></i> Payments</a>
