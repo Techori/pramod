@@ -4,7 +4,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     header("location:../../login.php");
     exit;
 } else {
-    if (in_array($_SESSION["user_type"] ,  ['Admin','Store','Vendor'])) {
+    if (in_array($_SESSION["user_type"] ,  ['Faculty','Store','Vendor'])) {
         header("location:../index.php");
         exit;
 
@@ -24,67 +24,13 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body { font-family: sans-serif; margin: 0; padding: 0; box-sizing: border-box; color: #333; }
-        .sidebar { width: 200px; height: 100vh; position: fixed; top: 0; left: 0; background-color: #2c2f3e; color: #fff; padding-top: 20px; overflow: hidden; }
-        .sidebar .logo { font-size: 1.2rem; font-weight: bold; text-align: center; padding: 10px; background: #1a1d2a; }
-        .sidebar nav a { display: flex; align-items: center; padding: 10px; color: #ccc; text-decoration: none; }
-        .sidebar nav a i { width: 24px; }
-        .sidebar nav a span { margin-left: 10px; }
-        .sidebar nav a.active, .sidebar nav a:hover { background-color: #b0e0e6; color: #000; }
-        .sidebar .footer { position: absolute; bottom: 0; width: 100%; padding: 10px; font-size: .8rem; background: #1a1d2a; text-align: center; }
-        main { margin-left: 200px; padding: 20px; }
-        header.header { margin-left: 200px; background: #fff; border-bottom: 1px solid #ddd; padding: 10px 20px; position: sticky; top: 0; z-index: 100; }
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-200px); }
-            .sidebar.open { transform: translateX(0); }
-            main, header.header { margin-left: 0; }
-        }
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="logo">Unnati Factory</div>
-        <nav class="nav flex-column mt-2">
-            <a href="#" class="nav-link active"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-gear"></i><span>Production</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-box-seam"></i><span>Inventory</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-truck"></i><span>Supply Management</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-boxes"></i><span>Raw Materials</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-clipboard-check"></i><span>Quality Control</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-receipt"></i><span>Billing System</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-cash-coin"></i><span>Expenses</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-people"></i><span>Workers</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-wrench"></i><span>Maintenance</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-bar-chart-line"></i><span>Reports</span></a>
-            <a href="#" class="nav-link"><i class="bi bi-gear-fill"></i><span>Settings</span></a>
-        </nav>
-        <div class="footer">© 2025 Unnati Traders</div>
-    </div>
-
-    <!-- Header -->
-    <header class="header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center">
-            <button class="btn btn-sm btn-outline-secondary d-md-none me-2" id="toggleSidebar"><i class="bi bi-list"></i></button>
-            <h5 class="mb-0">Factory Dashboard</h5>
-        </div>
-        <form class="d-flex" role="search">
-            <input class="form-control form-control-sm me-2" type="search" placeholder="Search..." aria-label="Search">
-            <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
-        </form>
-        <div class="d-flex align-items-center">
-            <button class="btn btn-sm btn-outline-primary me-2"><i class="bi bi-bell"></i></button>
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i></button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#">Profile</a></li>
-                    <li><form action="../../logout.php" method="POST">
-                            <button name="logout_btn" class="btn" type="submit" value="true">Logout</button>
-                        </form></li>
-                </ul>
-            </div>
-        </div>
-    </header>
-
+<?php
+        include('./_factory_nav.php');
+    ?>
+  <div class="main-content">
     <main id="mainContent">
                <!-- Search and Add User Row -->
 <div class="container-fluid d-flex justify-content-between align-items-center mb-3">
@@ -317,7 +263,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             </div>
         </div>
     </main>
-
+</div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -326,19 +272,46 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
             document.getElementById('sidebar').classList.toggle('open');
         });
         // Production Output Chart
-        new Chart(document.getElementById('outputChart'), {
-            type: 'line', data: {
-                labels: ['Jan','Feb','Mar','Apr','May','Jun'],
-                datasets: [{ label:'Units', data:[4300,3200,4700,4500,6000,5800], borderColor:'#007bff', tension:0.3 }]
-            }, options:{ scales:{ y:{ beginAtZero:true } } }
-        });
-        // Raw Material Usage Chart
-        new Chart(document.getElementById('usageChart'), {
-            type: 'bar', data: {
-                labels:['Copper','PVC','Aluminum','Rubber'],
-                datasets:[{ label:'Usage (tons)', data:[32,45,15,8], backgroundColor:'#007bff' }]
-            }, options:{ scales:{ y:{ beginAtZero:true } } }
-        });
+    new Chart(document.getElementById('outputChart'), {
+        type: 'line',
+        data: {
+            labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+            datasets: [{
+                label: 'Units',
+                data: [4300, 3200, 4700, 4500, 6000, 5800],
+                borderColor: '#007bff',
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Raw Material Usage Chart
+    new Chart(document.getElementById('usageChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Copper', 'PVC', 'Aluminum', 'Rubber'],
+            datasets: [{
+                label: 'Usage (tons)',
+                data: [32, 45, 15, 8],
+                backgroundColor: '#007bff'
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
     </script>
 </body>
 </html>
