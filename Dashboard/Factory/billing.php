@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Factory Billing System</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 250px;
+      background-color: #1f2937;
+      color: white;
+      padding: 20px;
+    }
+
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .sidebar nav a {
+      display: block;
+      color: #cbd5e0;
+      text-decoration: none;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .sidebar nav a:hover,
+    .sidebar nav .active {
+      color: #3b82f6;
+      font-weight: bold;
+    }
+
+    .main-content {
+      flex: 1;
+      background-color: #f9fafb;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header .user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logout {
+      padding: 8px 12px;
+      background-color: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .user-avatar {
+      width: 35px;
+      height: 35px;
+      background-color: #3b82f6;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .actions {
+      margin-top: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .actions input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 5px;
+    }
+
+    .actions button {
+      padding: 8px 12px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .table-section {
+      margin-top: 30px;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      overflow-x: auto;
+      flex: 1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+
+    .status-paid {
+      color: green;
+      font-weight: bold;
+    }
+
+    .status-pending {
+      color: orange;
+      font-weight: bold;
+    }
+
+    .status-overdue {
+      color: red;
+      font-weight: bold;
+    }
+
+    td button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    /* Footer Cards */
+    .footer-cards {
+      display: flex;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .card {
+      flex: 1;
+      border-radius: 10px;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-warning {
+      background-color: #fff7ed;
+      border: 1px solid #fbbf24;
+      color: #b45309;
+    }
+
+    .card-info {
+      background-color: #eff6ff;
+      border: 1px solid #3b82f6;
+      color: #1d4ed8;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .card p {
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .card button {
+      align-self: flex-start;
+      padding: 8px 12px;
+      border: 1px solid;
+      border-radius: 5px;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .card-warning button {
+      border-color: #b45309;
+      color: #b45309;
+    }
+
+    .card-info button {
+      border-color: #1d4ed8;
+      color: #1d4ed8;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Unnati Factory</h2>
+      <nav>
+        <a href="#">Factory Dashboard</a>
+        <a href="#">Production</a>
+        <a class="active" href="#">Billing System</a>
+        <a href="#">Supply Management</a>
+        <a href="#">Raw Materials</a>
+        <a href="#">Inventory</a>
+        <a href="#">Workers</a>
+        <a href="#">Maintenance</a>
+        <a href="#">Expenses</a>
+        <a href="#">Quality Control</a>
+        <a href="#">Reports</a>
+        <a href="#">Settings</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="header">
+        <h1>Factory Billing System</h1>
+        <div class="user">
+          <button class="logout">Logout</button>
+          <div class="user-avatar">F</div>
+        </div>
+      </header>
+
+      <!-- Actions -->
+      <section class="actions">
+        <input type="text" placeholder="Search invoices by ID, customer, or amount..." id="searchInput">
+        <button>Create Invoice</button>
+        <button>Generate Receipt</button>
+        <button>Export Records</button>
+        <button>Reconcile Payments</button>
+      </section>
+
+      <!-- Invoices Table -->
+      <section class="table-section">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice ID</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceTable">
+            <!-- Dynamic rows from JS -->
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Footer Cards Section -->
+      <section class="footer-cards">
+        <div class="card card-warning">
+          <h3>⚠️ Payment Reminders</h3>
+          <p>2 factory invoices are overdue and require immediate attention</p>
+          <button>Send Reminders</button>
+        </div>
+
+        <div class="card card-info">
+          <h3>✔️ This Month's Production Billing</h3>
+          <p>₹18,42,850 billed this month for production services</p>
+          <button>View Details</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const invoices = [
+      { id: "FB-2025-001", customer: "Metro Electric Corp", date: "08 Apr, 2025", amount: "₹1,24,500", type: "Production", status: "Paid" },
+      { id: "FB-2025-002", customer: "Power Electrical Solutions", date: "07 Apr, 2025", amount: "₹89,750", type: "Raw Materials", status: "Pending" },
+      { id: "FB-2025-003", customer: "Bajaj Electricals", date: "06 Apr, 2025", amount: "₹2,35,200", type: "Production", status: "Paid" },
+      { id: "FB-2025-004", customer: "Capital Electrical", date: "05 Apr, 2025", amount: "₹1,12,400", type: "Maintenance", status: "Overdue" },
+    ];
+
+    const invoiceTable = document.getElementById("invoiceTable");
+
+    function renderTable(data) {
+      invoiceTable.innerHTML = "";
+      data.forEach(invoice => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${invoice.id}</td>
+          <td>${invoice.customer}</td>
+          <td>${invoice.date}</td>
+          <td>${invoice.amount}</td>
+          <td>${invoice.type}</td>
+          <td><span class="${getStatusClass(invoice.status)}">${invoice.status}</span></td>
+          <td><button title="Print">🖨️</button></td>
+        `;
+        invoiceTable.appendChild(row);
+      });
+    }
+
+    function getStatusClass(status) {
+      if (status === "Paid") return "status-paid";
+      if (status === "Pending") return "status-pending";
+      if (status === "Overdue") return "status-overdue";
+      return "";
+    }
+
+    document.getElementById("searchInput").addEventListener("input", function() {
+      const keyword = this.value.toLowerCase();
+      const filtered = invoices.filter(invoice => 
+        invoice.id.toLowerCase().includes(keyword) ||
+        invoice.customer.toLowerCase().includes(keyword) ||
+        invoice.amount.toLowerCase().includes(keyword)
+      );
+      renderTable(filtered);
+    });
+
+    renderTable(invoices);
+  </script>
+</body>
+</html>

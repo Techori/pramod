@@ -185,6 +185,28 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
             border: 1px solid #ddd;
             text-align: left;
         }
+
+        .modal-content {
+            border-radius: 0.5rem;
+        }
+
+        .gst-section {
+            display: block;
+        }
+
+        #itemTable input {
+            width: 100px;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        textarea {
+            width: 100%;
+            height: 60px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 
@@ -256,7 +278,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
             <!-- Alerts -->
             <div class="row">
                 <div class="col-md-6 col-sm-12 my-4">
-                    <div class="card stat-card cards shadow-sm" style="background-color:rgb(251, 243, 215);">
+                    <div class="card stat-card cards shadow-sm" style="background-color:rgb(253, 247, 226);">
                         <div class="card-body">
                             <h5 class="text-muted">Low Stock Alert</h5>
                             <p>5 products are below minimum stock levels. Review inventory soon.</p>
@@ -265,7 +287,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                     </div>
                 </div>
                 <div class="col-md-6 col-sm-12 my-4">
-                    <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
+                    <div class="card stat-card cards shadow-sm" style="background-color: #e7f3ff;">
                         <div class="card-body">
                             <h5 class="text-muted">Inventory Value</h5>
                             <p>3 customer payments were received today totaling ₹28,450.</p>
@@ -313,6 +335,95 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 </div>
             </div>
 
+             <!-- Create Invoice form -->
+        <div id="invoiceModal" class="modal">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content p-3">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Invoice</h5>
+                    <button type="button" class="btn-close" onclick="closeInvoiceModal()"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                    <label class="form-label">Customer:</label>
+                    <select class="form-select">
+                        <option>Select customer</option>
+                        <option>Customer A</option>
+                        <option>Customer B</option>
+                        <option>Customer C</option>
+                    </select>
+                    </div>
+
+                    <div class="mb-3">
+                    <label class="form-label d-block">Document Type:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withGST" checked onchange="toggleGST()">
+                        <label class="form-check-label">With GST</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withoutGST" onchange="toggleGST()">
+                        <label class="form-check-label">Without GST</label>
+                    </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Date:</label>
+                        <input type="date" id="invoiceDate" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Due Date:</label>
+                        <input type="date" id="dueDate" class="form-control">
+                    </div>
+                    <div class="col-md-4 gst-section">
+                        <label class="form-label">Tax Rate:</label>
+                        <select id="taxRate" class="form-select" onchange="updateTotals()">
+                        <option value="5">GST 5%</option>
+                        <option value="12">GST 12%</option>
+                        <option value="18">GST 18%</option>
+                        <option value="28">GST 28%</option>
+                        </select>
+                    </div>
+                    </div>
+
+                    <div class="table-responsive mb-3">
+                    <table class="table table-bordered" id="itemTable">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Price (₹)</th>
+                            <th>Total (₹)</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                    </div>
+
+                    <div class="mb-3">
+                    <label class="form-label">Notes:</label>
+                    <textarea class="form-control" placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                    </div>
+
+                    <div class="text-end">
+                    <p>Subtotal: ₹<span id="subtotal">0.00</span></p>
+                    <p class="gst-section">GST (<span id="gstPercent">18</span>%): ₹<span id="gstAmount">0.00</span></p>
+                    <h5>Total: ₹<span id="totalAmount">0.00</span></h5>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
+                    <button class="btn btn-primary">Create Invoice</button>
+                </div>
+                </div>
+            </div>
+        </div>
+
             <!-- Billing table -->
             <div class="col-md-12  card p-3 shadow-sm my-4 table-responsive">
                 <h4><i class="bi bi-receipt-cutoff text-primary"></i> Billing & Invoice Management</h4>
@@ -347,7 +458,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                         </div>
 
                         <div class="justify-contnt-end">
-                            <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> Create Invoice</button>
+                            <button class="btn btn-outline-primary" onclick="openInvoiceModal()"><i class="fa-solid fa-plus"></i> Create Invoice</button>
                         </div>
                     </div>
                     <table id="Table" class="table table-bordered table-hover">
@@ -1080,6 +1191,98 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 document.querySelector(`#${id}`).classList.add('active');
                 document.querySelector(`[onclick="showRetailTab('${id}')"]`).classList.add('active');
             }
+
+            // Create invoice form 
+
+        let itemIndex = 0;
+
+// To open form
+function openInvoiceModal() {
+    const modal = document.getElementById('invoiceModal');
+    modal.style.display = 'block';
+    modal.classList.add('show');
+
+    if (document.querySelectorAll("#itemTable tbody tr").length === 0) {
+        addItem();
+    }
+}
+
+// To close form
+function closeInvoiceModal() {
+    const modal = document.getElementById('invoiceModal');
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+
+    document.querySelector('#itemTable tbody').innerHTML = '';
+    updateTotals();
+}
+
+// For add item row
+function addItem() {
+    const tbody = document.querySelector("#itemTable tbody");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+        <td>
+            <select onchange="updateTotals()">
+                <option value="">Select Product</option>
+                <option value="Product A">Product A</option> // Dynamic data from database
+                <option value="Product B">Product B</option> // Dynamic data from database
+                <option value="Product C">Product C</option> // Dynamic data from database
+            </select>
+        </td>
+        <td><input placeholder="Description" /></td>
+        <td><input type="number" value="1" min="1" oninput="updateTotals()" /></td>
+        <td><input type="number" value="0" step="0.01" oninput="updateTotals()" /></td>
+        <td class="itemTotal">₹0.00</td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="removeItem(this)">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+    updateTotals();
+}
+
+// To remove item row
+function removeItem(btn) {
+    btn.closest("tr").remove();
+    updateTotals();
+}
+
+// For GST 
+function toggleGST() {
+    const withGST = document.querySelector('input[name="docType"]:checked').value === 'withGST';
+    document.querySelectorAll(".gst-section").forEach(el => {
+        el.style.display = withGST ? 'block' : 'none';
+    });
+    updateTotals();
+}
+
+// For calculate total amount
+function updateTotals() {
+    let subtotal = 0;
+    document.querySelectorAll("#itemTable tbody tr").forEach(row => {
+        const qty = parseFloat(row.children[2].querySelector('input').value || 0);
+        const price = parseFloat(row.children[3].querySelector('input').value || 0);
+        const total = qty * price;
+        subtotal += total;
+        row.children[4].innerText = "₹" + total.toFixed(2);
+    });
+
+    const taxRate = parseFloat(document.getElementById('taxRate')?.value || 0);
+    const gstEnabled = document.querySelector('input[name="docType"]:checked').value === 'withGST';
+    const gstAmount = gstEnabled ? (subtotal * taxRate / 100) : 0;
+
+    document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+    document.getElementById('gstPercent').innerText = taxRate;
+    document.getElementById('gstAmount').innerText = gstAmount.toFixed(2);
+    document.getElementById('totalAmount').innerText = (subtotal + gstAmount).toFixed(2);
+}
+
+// Close form when clicking outside of it
+window.onclick = function (event) {
+    const modal = document.getElementById('invoiceModal');
+    if (event.target === modal) {
+        closeInvoiceModal();
+    }
+};
         </script>
 
 </body>

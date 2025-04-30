@@ -123,7 +123,7 @@
 
         </div>
         <div class="d-flex justify-content-between align-items-center border rounded mb-3 p-3"
-            style="background-color:#e7f3ff;">
+            style="background-color: #e7f3ff;">
             <div class="me-3 gustify-content-start align-items-start d-flex gap-2">
                 <div class="text-primary fs-4 px-3 py-2">
                     <i class="fa-regular fa-clock"></i>

@@ -565,7 +565,7 @@
                 document.querySelectorAll('.setting-tab-content').forEach(content => content.classList.remove('active'));
 
                 // Add active class to clicked tab
-                document.querySelector(.settingTab[onclick="showsettingTab('${tabId}')"]).classList.add('active');
+                document.querySelector(`.settingTab[onclick="showsettingTab('${tabId}')"]`).classList.add('active');
                 document.getElementById(tabId).classList.add('active');
             }
 
