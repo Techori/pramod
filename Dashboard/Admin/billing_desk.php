@@ -114,8 +114,9 @@
         width: 100%;
         height: 100%;
         overflow: auto;
-        background-color: rgba(0,0,0,0.5);
+        background-color: rgba(0, 0, 0, 0.5);
     }
+
     .bill-modal-dialog {
         margin: 5% auto;
         max-width: 800px;
@@ -169,7 +170,8 @@
 <!-- Buttons -->
 <div class="row justify-content-center">
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-file"></i> Create
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openInvoiceModal(event)"
+            id="newInvoice"><i class="fa-solid fa-file"></i> Create
             Invoice</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
@@ -177,12 +179,69 @@
             Credit Note</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-pager"></i> Record
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal"
+            data-bs-target="#recordMovement"><i class="fa-solid fa-pager"></i> Record
             Payment</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
         <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-clipboard-list"></i>
             Generate Report</button>
+    </div>
+</div>
+
+<!-- Record Movement Form -->
+<div class="modal fade" id="recordMovement" tabindex="-1" aria-labelledby="recordMovementLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="recordMovementLabel">Record Movement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="transactionId" class="form-label">Transaction ID</label>
+                        <input type="text" class="form-control" id="transactionId">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="product" class="form-label">Product</label>
+                        <input type="text" class="form-control" id="product">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <input type="text" class="form-control" id="type">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="quantity">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="source" class="form-label">Source</label>
+                        <input type="text" class="form-control" id="source">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="refrence" class="form-label">Reference</label>
+                        <input type="text" class="form-control" id="refrence">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Movement</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -205,7 +264,6 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content p-3">
             <div class="modal-header">
-                <h5 class="modal-title">Create New Invoice</h5>
                 <button type="button" class="btn-close" onclick="closeInvoiceModal()"></button>
             </div>
 
@@ -291,26 +349,80 @@
     </div>
 </div>
 
+<!-- Sales Invoice Form -->
+<div class="modal" id="salesModal" style="display: none;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <button type="button" class="btn-close"
+                    onclick="document.getElementById('salesModal').style.display='none'"></button>
+            </div>
 
-<!-- Bill Modal -->
-<div id="billModal" class="bill-modal" tabindex="-1" style="display:none;">
-  <div class="bill-modal-dialog modal-lg">
-    <div class="modal-content p-4">
-      <div class="modal-header">
-        <h5 class="modal-title">Invoice Bill</h5>
-        <button type="button" class="btn-close" onclick="closeBillModal()"></button>
-      </div>
-      <div class="modal-body" id="billContent">
-        <!-- Filled dynamically -->
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeBillModal()">Close</button>
-        <button class="btn btn-primary" onclick="printBill()">Print</button>
-        <button class="btn btn-success" onclick="downloadBill()">Download</button>
-      </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Customer:</label>
+                    <select class="form-select">
+                        <option>Select customer</option>
+                        <option>Customer A</option>
+                        <option>Customer B</option>
+                        <option>Customer C</option>
+                    </select>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Date:</label>
+                        <input type="date" id="invoiceDate" class="form-control">
+                    </div>
+                    <div class="col-md-4 gst-section">
+                        <label class="form-label">Tax Rate:</label>
+                        <select id="gsttaxRate" class="form-select" onchange="calculateSalesTotals()">
+                            <option value="5">GST 5%</option>
+                            <option value="12">GST 12%</option>
+                            <option value="18">GST 18%</option>
+                            <option value="28">GST 28%</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered" id="salesItemTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Qty</th>
+                                <th>Price (₹)</th>
+                                <th>Total (₹)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <button class="btn btn-sm btn-outline-primary" onclick="addSalesItem()">+ Add Item</button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes:</label>
+                    <textarea class="form-control" placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                </div>
+
+                <div class="text-end">
+                    <p>Subtotal: ₹<span id="subTotal">0.00</span></p>
+                    <p class="gst-section">GST (<span id="taxLabel">18%</span>): ₹<span id="gstTax">0.00</span></p>
+                    <h5>Total: ₹<span id="grandTotal">0.00</span></h5>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary"
+                    onclick="document.getElementById('salesModal').style.display='none'">Cancel</button>
+                <button class="btn btn-primary">Create Invoice</button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
+
 
 <!-- Tabels -->
 <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
@@ -331,7 +443,7 @@
     </div>
 
     <!-- Invoice table -->
-    <div id="invoice" class="billing-tab-content active invoice-section">
+    <div id="invoice" class="billing-tab-content active">
         <div class="container-fluid d-flex justify-content-between align-items-center">
 
             <div class="justify-contnt-start">
@@ -348,7 +460,8 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openInvoiceModal()">Create New Invoice</button>
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="newInvoice">Create New
+                    Invoice</button>
             </div>
 
         </div>
@@ -406,7 +519,8 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Sales Return</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="salesReturn">Create Sales
+                    Return</button>
             </div>
 
         </div>
@@ -464,7 +578,7 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Credit Note</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="creditNote">Create Credit Note</button>
             </div>
 
         </div>
@@ -522,7 +636,8 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Quotation</button>
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="quotation">Create
+                    Quotation</button>
             </div>
 
         </div>
@@ -580,7 +695,7 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Delivery Challan</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="deliveryChallan">Create Delivery Challan</button>
             </div>
 
         </div>
@@ -638,7 +753,8 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Proforma Invoice</button>
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="proformaInvoice">Create
+                    Proforma Invoice</button>
             </div>
 
         </div>
@@ -696,7 +812,7 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Automated Bills</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="automatedBill">Create Automated Bills</button>
             </div>
 
         </div>
@@ -754,7 +870,7 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Counter Purchases</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="counterPurchase">Create Counter Purchases</button>
             </div>
 
         </div>
@@ -812,7 +928,7 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Payments Out</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="paymentOut">Create Payments Out</button>
             </div>
 
         </div>
@@ -870,7 +986,7 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Purchase Returns</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="purchaseReturn">Create Purchase Returns</button>
             </div>
 
         </div>
@@ -928,7 +1044,7 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Debit Notes</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="debitNote">Create Debit Notes</button>
             </div>
 
         </div>
@@ -986,7 +1102,8 @@
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary">Create Purchase Orders</button>
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="purchaseOrder">Create
+                    Purchase Orders</button>
             </div>
 
         </div>
@@ -1103,10 +1220,12 @@
 
         // Create invoice form 
 
-        let itemIndex = 0;
+        // let itemIndex = 0;
 
         // To open form
-        function openInvoiceModal() {
+        function openInvoiceModal(event) {
+            const clickedInvoiceButtonId = event.target.id; // To store clicked button ID
+
             const modal = document.getElementById('invoiceModal');
             modal.style.display = 'block';
             modal.classList.add('show');
@@ -1139,7 +1258,7 @@
                         <option value="Product C">Product C</option> // Dynamic data from database
                     </select>
                 </td>
-                <td><input placeholder="Description" /></td>
+                <td><input placeholder="Description"/></td>
                 <td><input type="number" value="1" min="1" oninput="updateTotals()" /></td>
                 <td><input type="number" value="0" step="0.01" oninput="updateTotals()" /></td>
                 <td class="itemTotal">₹0.00</td>
@@ -1193,80 +1312,65 @@
             }
         };
 
-        document.querySelectorAll('.invoice-section').forEach(section => {
-    const searchInput = section.querySelector('.search-input');
-    const rows = section.querySelectorAll('tbody tr');
-    const viewButtons = section.querySelectorAll('.view-btn');
-    const printButtons = section.querySelectorAll('.print-btn');
-    const downloadButtons = section.querySelectorAll('.download-btn');
+        // To open sales form
+        function openSalesModal(event) {
+            const clickedSalesButtonId = event.target.id; // To store clicked button ID
 
-    // Live Search
-    searchInput.addEventListener('input', function () {
-        const query = this.value.toLowerCase();
-        rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            row.style.display = text.includes(query) ? '' : 'none';
-        });
-    });
+            document.getElementById('salesModal').style.display = 'block';
 
-    // View Button
-    viewButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const row = this.closest('tr').children;
-            const billHTML = `
-                <h4>Invoice: ${row[0].innerText}</h4>
-                <p><strong>Customer:</strong> ${row[1].innerText}</p>
-                <p><strong>Date:</strong> ${row[2].innerText}</p>
-                <p><strong>Items:</strong> ${row[3].innerText}</p>
-                <p><strong>Amount:</strong> ${row[4].innerText}</p>
-                <p><strong>Status:</strong> ${row[5].innerText}</p>
+            const tbody = document.querySelector('#salesItemTable tbody');
+            if (tbody.children.length === 0) {
+                addSalesItem();
+            }
+        }
+
+        function addSalesItem() {
+            const tbody = document.querySelector('#salesItemTable tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+            <td>
+                <select onchange="calculateSalesTotals()">
+                    <option value="">Select Product</option>
+                    <option value="Product A">Product A</option> // Dynamic data from database
+                    <option value="Product B">Product B</option> // Dynamic data from database
+                    <option value="Product C">Product C</option> // Dynamic data from database
+                </select>
+            </td>
+            <td><input type="text" placeholder="Description"></td>
+            <td><input type="number" class="qty" value="1" min="1" oninput="calculateSalesTotals()"></td>
+            <td><input type="number" class="price" value="0" min="0" oninput="calculateSalesTotals()"></td>
+            <td class="itemTotal">₹0.00</td>
+            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteSalesRow(this)">Delete</button></td>
             `;
-            document.getElementById('billContent').innerHTML = billHTML;
-            document.getElementById('billModal').classList.add('show');
-        });
-    });
+            tbody.appendChild(row);
+            calculateSalesTotals();
+        }
 
-    // Print Button
-    printButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const row = this.closest('tr').children;
-            const content = `
-                <h4>Invoice: ${row[0].innerText}</h4>
-                <p><strong>Customer:</strong> ${row[1].innerText}</p>
-                <p><strong>Date:</strong> ${row[2].innerText}</p>
-                <p><strong>Items:</strong> ${row[3].innerText}</p>
-                <p><strong>Amount:</strong> ${row[4].innerText}</p>
-                <p><strong>Status:</strong> ${row[5].innerText}</p>
-            `;
-            const win = window.open('', '', 'width=800,height=600');
-            win.document.write(`<html><head><title>Invoice Print</title></head><body>${content}</body></html>`);
-            win.document.close();
-            win.print();
-        });
-    });
+        function deleteSalesRow(btn) {
+            btn.closest('tr').remove();
+            calculateSalesTotals();
+        }
 
-    // Download Button
-    downloadButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const row = this.closest('tr').children;
-            const content = `
-Invoice: ${row[0].innerText}
-Customer: ${row[1].innerText}
-Date: ${row[2].innerText}
-Items: ${row[3].innerText}
-Amount: ${row[4].innerText}
-Status: ${row[5].innerText}
-            `;
-            const file = new Blob([content], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(file);
-            link.download = `${row[0].innerText}.txt`;
-            link.click();
-        });
-    });
-});
+        function calculateSalesTotals() {
+            let subTotal = 0;
+            const rows = document.querySelectorAll('#salesItemTable tbody tr');
+
+            rows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.qty')?.value || 0);
+                const price = parseFloat(row.querySelector('.price')?.value || 0);
+                const total = qty * price;
+                row.querySelector('.itemTotal').textContent = `₹${total.toFixed(2)}`;
+                subTotal += total;
+            });
+
+            const gsttaxRate = parseFloat(document.getElementById('gsttaxRate').value || 0);
+            const gst = subTotal * (gsttaxRate / 100);
+            const totalWithTax = subTotal + gst;
+
+            document.getElementById('subTotal').textContent = subTotal.toFixed(2);
+            document.getElementById('gstTax').textContent = gst.toFixed(2);
+            document.getElementById('grandTotal').textContent = totalWithTax.toFixed(2);
+            document.getElementById('taxLabel').textContent = `${gsttaxRate}%`;
+        }
+
     </script>
-
-    </body>
-
-    </html>
