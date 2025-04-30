@@ -14,15 +14,97 @@
     <!-- Button -->
     <div class="d-flex gap-2">
         <button class="btn btn-outline-primary"><i class="fa-solid fa-filter"></i></button>
-        <button class="btn btn-outline-primary"> Data Range</button>
-        <button class="btn btn-outline-primary">Create Invoice</button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#dataRange"> Data Range</button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#invoice">Create Invoice</button>
+    </div>
+</div>
+
+<!-- Invoice Form -->
+<div class="modal fade" id="invoice" tabindex="-1" aria-labelledby="invoiceLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="invoiceLabel">Create Invoice</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="invoiceId" class="form-label">InvoiceID</label>
+                        <input type="text" class="form-control" id="invoiceId">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="customer" class="form-label">Customer</label>
+                        <input type="text" class="form-control" id="customer">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="text" class="form-control" id="amount">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <input type="text" class="form-control" id="type">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <input type="text" class="form-control" id="status">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Customer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Data Range Form -->
+<div class="modal fade" id="dataRange" tabindex="-1" aria-labelledby="dataRangeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataRangeLabel">Range</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="from" class="form-label">From</label>
+                        <input type="date" class="form-control" id="from">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="to" class="form-label">TO</label>
+                        <input type="date" class="form-control" id="to">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
 <!-- Buttons -->
 <div class="row justify-content-center">
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-file"></i> Create
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal" data-bs-target="#invoice"><i class="fa-solid fa-file"></i> Create
             Factory Invoice</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
@@ -30,7 +112,7 @@
             Generate Receipt</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-download"></i> Wxport
+        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-download"></i> Export
             Records</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
@@ -101,7 +183,7 @@
             <div class="card-body">
                 <h5 class="text-primary"><i class="fa-regular fa-circle-check"></i> This Month's Production Billing</h5>
                 <p>₹18,42,850 billed this month for production services</p>
-                <button type="button" class="btn btn-outline-primary">View Details</button>
+                <a href="?page=production" class="btn btn-outline-primary">View Details</a>
             </div>
         </div>
     </div>

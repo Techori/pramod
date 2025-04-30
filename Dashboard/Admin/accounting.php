@@ -131,12 +131,11 @@
 <!-- Buttons -->
 <div class="row justify-content-center">
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-clipboard"></i>
-            Financial Reports</button>
+        <a href="?page=reports" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-clipboard"></i>
+            Financial Reports</a>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i
-                class="fa-solid fa-circle-dollar-to-slot"></i> Record Transaction</button>
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal" data-bs-target="#recordTransaction"><i class="fa-solid fa-circle-dollar-to-slot"></i> Record Transaction</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
         <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-wallet"></i> Manage
@@ -147,6 +146,59 @@
             Data</button>
     </div>
 </div>
+
+<!-- Record Transaction Form -->
+<div class="modal fade" id="recordTransaction" tabindex="-1" aria-labelledby="recordTransactionLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="recordTransactionLabel">Record Transaction</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id" class="form-label">Id</label>
+                        <input type="text" class="form-control" id="id">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type</label>
+                        <input type="text" class="form-control" id="type">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="text" class="form-control" id="amount">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <input type="text" class="form-control" id="status">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 <!-- Charts -->
 <div class="chart-container">

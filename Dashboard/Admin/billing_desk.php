@@ -175,7 +175,7 @@
             Invoice</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-file-export"></i> Issue
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openSalesModal(event)" id="creditNote"><i class="fa-solid fa-file-export"></i> Issue
             Credit Note</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
@@ -184,8 +184,8 @@
             Payment</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-clipboard-list"></i>
-            Generate Report</button>
+        <a href="?page=reports" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-clipboard-list"></i>
+            Generate Report</a>
     </div>
 </div>
 
