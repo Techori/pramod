@@ -61,28 +61,28 @@
     <div class="row mb-5 g-3">
         <div class="col-md-3">
             <div class="card text-center p-3">
-                <div class="fs-1 mb-2">📦</div>
+                <div class="fs-1 mb-2"><i class="fa-regular fa-hourglass-half"></i></div>
                 <h5 class="mb-0">Pending Orders</h5>
                 <h3 class="fw-bold">12</h3>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card text-center p-3">
-                <div class="fs-1 mb-2">🚚</div>
+                <div class="fs-1 mb-2"><i class="fa-solid fa-truck-arrow-right"></i></div>
                 <h5 class="mb-0">In Transit</h5>
                 <h3 class="fw-bold">8</h3>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card text-center p-3">
-                <div class="fs-1 mb-2">✅</div>
+                <div class="fs-1 mb-2"><i class="fa-solid fa-check"></i></div>
                 <h5 class="mb-0">Delivered This Month</h5>
                 <h3 class="fw-bold">34</h3>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card text-center p-3">
-                <div class="fs-1 mb-2">📝</div>
+                <div class="fs-1 mb-2"><i class="fa-brands fa-creative-commons-by"></i></div>
                 <h5 class="mb-0">Active Suppliers</h5>
                 <h3 class="fw-bold">16</h3>
             </div>
