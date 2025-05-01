@@ -305,7 +305,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                         <div class="card-body">
                             <h5 class="text-muted">Low Stock Alert</h5>
                             <p>5 products are below minimum stock levels. Review inventory soon.</p>
-                            <a href="@" style="text-decoration: none;" class="text-dark">View Inventory →</a>
+                            <a href="?page=inventory" style="text-decoration: none;" class="text-dark">View Inventory →</a>
                         </div>
                     </div>
                 </div>
@@ -314,7 +314,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                         <div class="card-body">
                             <h5 class="text-muted">Inventory Value</h5>
                             <p>3 customer payments were received today totaling ₹28,450.</p>
-                            <a href="@" style="text-decoration: none;" class="text-dark">View Inventory →</a>
+                            <a href="?page=inventory" style="text-decoration: none;" class="text-dark">View Inventory →</a>
                         </div>
                     </div>
                 </div>
@@ -1618,7 +1618,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
             </div>
 
              <!-- Add Product Form -->
-             <div class="modal fade" id="addProductAtStore" tabindex="-1" aria-labelledby="addProductAtStoreLabel" aria-hidden="true">
+            <div class="modal fade" id="addProductAtStore" tabindex="-1" aria-labelledby="addProductAtStoreLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>

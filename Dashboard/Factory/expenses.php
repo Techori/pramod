@@ -14,8 +14,102 @@
     <!-- Button -->
     <div class="d-flex gap-2">
         <button class="btn btn-outline-primary"><i class="fa-solid fa-filter"></i></button>
-        <button class="btn btn-outline-primary">Data Range</button>
-        <button class="btn btn-outline-primary">New Expenses</button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#dataRange">Data Range</button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newExpenses">New
+            Expenses</button>
+    </div>
+</div>
+
+<!-- Data Range Form -->
+<div class="modal fade" id="dataRange" tabindex="-1" aria-labelledby="dataRangeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dataRangeLabel">Range</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="from" class="form-label">From</label>
+                        <input type="date" class="form-control" id="from">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="to" class="form-label">TO</label>
+                        <input type="date" class="form-control" id="to">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Expenses Form -->
+<div class="modal fade" id="newExpenses" tabindex="-1" aria-labelledby="newExpensesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newExpensesLabel">Add Expenses</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="Id" class="form-label">ID</label>
+                        <input type="text" class="form-control" id="Id">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="category">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="text" class="form-control" id="amount">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="method" class="form-label">Method</label>
+                        <select class="form-select" id="method">
+                            <option>Bank Transfer</option>
+                            <option>Cash</option>
+                            <option>UPI</option>
+                            <option>Cheque</option>
+                            <option>Card</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <input type="text" class="form-control" id="status">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Customer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -66,10 +160,10 @@
             <div class="justify-content-start">
                 <h5 class="mb-0">Expense Distribution</h5>
             </div>
-            <div class="justify-content-end">
+            <!-- <div class="justify-content-end">
                 <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-chart-column"></i> Detailed
                     Report</button>
-            </div>
+            </div> -->
         </div>
         <small class="text-muted">Breakdown of expenses by category</small>
         <!-- Expense progress bars -->
@@ -237,4 +331,3 @@
         </table>
     </div>
 </div>
-
