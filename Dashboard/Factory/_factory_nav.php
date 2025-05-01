@@ -17,21 +17,20 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <img src="../../public/unnati_logo.png" alt="Logo" class="img-fluid" style="width: auto; height: auto;">
-            <h6 class="mb-0">Unnati Vendor Portal</h6>
+            <h6 class="mb-0">Unnati Factory Portal</h6>
             <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
         </div>
         <nav class="nav flex-column mt-2">
             <a href="?page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="?page=production" class="nav-link <?php echo $page === 'production' ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Production</a>
-            <a href="?page=billing_system" class="nav-link <?php echo $page === 'billing_system' ? 'active' : ''; ?>"><i class="fas fa-truck"></i> Billing System</a>
-            <a href="?page=supply_management" class="nav-link <?php echo $page === 'supply_management' ? 'active' : ''; ?>"><i class="fas fa-box"></i> Supply Management</a>
-            <a href="?page=raw_materials" class="nav-link <?php echo $page === 'raw_materials' ? 'active' : ''; ?>"><i class="fas fa-wallet"></i> Raw Materials</a>
-            <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : ''; ?>"><i class="fas fa-file-invoice"></i> Inventory</a>
-            <a href="?page=workers" class="nav-link <?php echo $page === 'workers' ? 'active' : ''; ?>"><i class="fas fa-chart-bar"></i> Workers</a>
-            <a href="?page=maintenance" class="nav-link <?php echo $page === 'maintenance' ? 'active' : ''; ?>"><i class="fas fa-cog"></i> Maintenance</a>
-            <a href="?page=expenses" class="nav-link <?php echo $page === 'expenses' ? 'active' : ''; ?>"><i class="fas fa-cog"></i> Expenses</a>
-            <a href="?page=after_sales_service" class="nav-link <?php echo $page === 'after_sales_service' ? 'active' : ''; ?>"><i class="fas fa-cog"></i> After-Sales Service</a>
-            <a href="?page=reports" class="nav-link <?php echo $page === 'reports' ? 'active' : ''; ?>"><i class="fas fa-cog"></i> Reports</a>
+            <a href="?page=production" class="nav-link <?php echo $page === 'production' ? 'active' : ''; ?>"><i class="fa-solid fa-industry"></i> Production</a>
+            <a href="?page=billing_system" class="nav-link <?php echo $page === 'billing_system' ? 'active' : ''; ?>"><i class="fas fa-file-invoice"></i> Billing System</a>
+            <a href="?page=supply_management" class="nav-link <?php echo $page === 'supply_management' ? 'active' : ''; ?>"><i class="fa-solid fa-clipboard-list"></i> Supply Management</a>
+            <a href="?page=raw_materials" class="nav-link <?php echo $page === 'raw_materials' ? 'active' : ''; ?>"><i class="fa-solid fa-cube"></i> Raw Materials</a>
+            <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : ''; ?>"><i class="fa-solid fa-box"></i> Inventory</a>
+            <a href="?page=workers" class="nav-link <?php echo $page === 'workers' ? 'active' : ''; ?>"><i class="fa-regular fa-user"></i> Workers</a>
+            <a href="?page=expenses" class="nav-link <?php echo $page === 'expenses' ? 'active' : ''; ?>"><i class="fa-solid fa-sack-dollar"></i> Expenses</a>
+            <a href="?page=after_sales_service" class="nav-link <?php echo $page === 'after_sales_service' ? 'active' : ''; ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
+            <a href="?page=reports" class="nav-link <?php echo $page === 'reports' ? 'active' : ''; ?>"><i class="fa-solid fa-chart-column"></i> Reports</a>
             <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : ''; ?>"><i class="fas fa-cog"></i> Settings</a>
         </nav>
         <div class="footer">© 2025 Unnati Traders</div>
@@ -44,7 +43,7 @@
     <header class="header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
             <button class="hamburger me-3" id="hamburger"><i class="fas fa-bars"></i></button>
-            <h5 class="mb-0 fw-bold">Hey! <?php echo isset($_SESSION['user']) ? $_SESSION['user'] : 'Vendor'; ?></h5>
+            <h5 class="mb-0 fw-bold">Hey! <?php echo isset($_SESSION['user']) ? $_SESSION['user'] : 'Factory'; ?></h5>
         </div>
         <form class="d-flex" role="search" method="GET" action="search.php">
             <div class="input-group">

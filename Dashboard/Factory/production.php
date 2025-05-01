@@ -8,7 +8,6 @@
     }
 </style>
 
-<div class="container-fluid mt-3">
     <h1>Production Management</h1>
     <p>Monitor and manage factory production lines</p>
     <!-- Metrics Row -->
@@ -44,7 +43,6 @@
         </div>
     </div>
 
-    <div class="container">
         <div class="card p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
@@ -139,7 +137,7 @@
             </div>
         </div>
     </div>
-    <div class="container mt-4">
+
         <div class="card shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
@@ -274,8 +272,6 @@
                 </tbody>
             </table>
         </div>
-    </div>
-</div>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>

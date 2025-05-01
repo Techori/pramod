@@ -1,30 +1,4 @@
-<?php
-session_start();
-if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION["session_id"]))) {
-    header("location:../../login.php");
-    exit;
-} else {
-    if (in_array($_SESSION["user_type"] ,  ['Factory','Store','Vendor'])) {
-        header("location:../index.php");
-        exit;
 
-    } else if (!($_SESSION["user_type"] == 'Admin')) {
-        header("location:../../login.php");
-        exit;
-    }
-}
-?>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="unnati">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>Shree Unnati Wires & Traders - Premium Wire Manufacturing</title>
     <style>
         .cards {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -79,13 +53,7 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
         }
 
     </style>
-</head>
-<body class="bg-secondary bg-opacity-10">
-    <?php
-        include('./_admin_nav.php');
-    ?>
 
-    <div class="main-content">
         <h1>Factory Stock Dashboard</h1>
         <p>Monitor and manage production inventory</p>
         
@@ -197,8 +165,6 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
                     </tbody>
                 </table>
             </div>
-
-    </div>
 
     <script>
 

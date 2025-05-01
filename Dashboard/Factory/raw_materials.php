@@ -104,15 +104,13 @@
         text-align: left;
     }
 </style>
-<div class="container py-4">
-<div class="container py-4">
-        <h1>Raw Materials Management
+<h1>Raw Materials Management
         </h1>
         <p>Monitor and manage factory raw materials inventory</p>
         <!-- Search bar & buttons -->
         <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
 
-
+        
             <div class="d-flex justify-content-start">
             <div class="col-md-9">
                 <input type="text" id="searchInput" class="form-control"
@@ -243,13 +241,8 @@
                 </div>
             </div>
         </div>
-        <div class="container">
-            <div class="card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
                         <h4 class="mb-1">Raw Material Stock</h4>
                         <p class="text-muted mb-0" style="font-size: 14px;">Current raw materials inventory status</p>
-                    </div>
                     <div class="header-buttons">
                     <button id="refreshBtn" class="btn btn-outline-secondary me-2">Refresh</button>
                     </div>
@@ -322,8 +315,6 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
             <script>
                   // Search Functionality
             document.getElementById('searchInput').addEventListener('input', function () {
@@ -365,7 +356,6 @@
             </script>
 
         </div>
-        <div class="container">
             <div class="row g-4">
                 <!-- Material Consumption Rates -->
                 <div class="col-md-6">
@@ -464,8 +454,6 @@
 
             </div>
         </div>
-
-    </div>
     <script>
         // Bar Chart
         const barCtx = document.getElementById('barChart').getContext('2d');

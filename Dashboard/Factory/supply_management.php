@@ -36,10 +36,6 @@
     }
 </style>
 
-
-
-<div class="container py-4">
-    <div class="container py-4">
         <!-- Top Section -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
@@ -230,9 +226,8 @@
                     row.style.display = match ? '' : 'none';
                 });
             });
-
-            // Filter Functionality (Filter by "Ordered" status)
-            document.getElementById('filterBtn').addEventListener('click', function () {
+                // Filter Functionality (Filter by "Ordered" status)
+                document.getElementById('filterBtn').addEventListener('click', function () {
                 const rows = document.querySelectorAll('#supplyTable tbody tr');
                 rows.forEach(row => {
                     const status = row.cells[5].textContent.trim().toLowerCase();
@@ -242,6 +237,10 @@
                         row.style.display = 'none';
                     }
                 });
+            });
+   // Refresh Button (Reload page)
+   document.getElementById('refreshBtn').addEventListener('click', function () {
+                location.reload();
             });
 
             // Schedule Functionality (Filter by "In Transit" status)
@@ -256,6 +255,7 @@
                     }
                 });
             });
+          
 
             // View All Button (Reveals hidden rows)
             document.getElementById('viewAllBtn').addEventListener('click', function () {
@@ -264,10 +264,7 @@
                 this.style.display = 'none';  // Hide the "View All" button
             });
 
-            // Refresh Button (Reload page)
-            document.getElementById('refreshBtn').addEventListener('click', function () {
-                location.reload();
-            });
+           
 
             // Handle form submission (for demo purposes, just log the form data)
             document.getElementById('newOrderForm').addEventListener('submit', function (e) {
@@ -295,7 +292,6 @@
                 document.getElementById('newOrderForm').reset();
             });
         </script>
-    </div>
     <!-- New Section: Low Stock and Supply Trends -->
     <div class="row g-4">
         <!-- Low Stock Alert Section -->
@@ -329,9 +325,9 @@
                     <div class="modal-body">
                         Do you want to place an order for the low stock items listed?
                         <ul class="mt-3">
-                            <li>Copper Wire 1.5mm – 120 kg</li>
-                            <li>PVC Insulation (Red) – 450 kg</li>
-                            <li>Aluminum Wire 2.0mm – 380 kg</li>
+                            <li>Copper Wire 1.5mm - 120 kg</li>
+                            <li>PVC Insulation (Red) - 450 kg</li>
+                            <li>Aluminum Wire 2.0mm - 380 kg</li>
                         </ul>
                     </div>
                     <div class="modal-footer">
