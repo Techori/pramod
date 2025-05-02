@@ -351,14 +351,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             <div class="d-flex justify-content-end">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                <div class="d-flex mb-3">
+                    <select  class="form-select me-2 w-50">
+                        <option value="" >Select Categories</option>
+                        <option value="Metals">Complete</option>
+                        <option value="Polymers">Pending</option>
+                    </select>
+                    <button class="btn btn-outline-primary me-2" id="categoryFilter"><i class="fa-solid fa-filter"></i></button>
+                </div>
                 <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
-
         </div>
-        <table class="table table-bordered table-hover">
+        <table class="table table-bordered table-hover" id = "supplyTable">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -468,6 +474,37 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             </div>
         </div>
     </div>
+    <script>
+    // Search Functionality
+            document.getElementById('searchInput').addEventListener('input', function () {
+                const searchText = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#supplyTable tbody tr');
+
+                rows.forEach(row => {
+                    const cells = row.getElementsByTagName('td');
+                    let match = false;
+                    for (let i = 0; i < cells.length; i++) {
+                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                            match = true;
+                            break;
+                        }
+                    }
+                    row.style.display = match ? '' : 'none';
+                });
+            });
+                // Filter Functionality (Filter by "Ordered" status)
+                document.getElementById('categoryFilter').addEventListener('click', function () {
+                const rows = document.querySelectorAll('#supplyTable tbody tr');
+                rows.forEach(row => {
+                    const status = row.cells[5].textContent.trim().toLowerCase();
+                    if (status === 'ordered') {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        </script>
 </div>
 
 <script>
@@ -514,38 +551,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         document.querySelector(`#${id}`).classList.add('active');
         document.querySelector(`[onclick="showaccountingTab('${id}')"]`).classList.add('active');
     }
-
-
-    // // Fetch transactions on page load
-    // function fetchTransactions() {
-    //     fetch('accounting.php?action=fetch')
-    //         .then(response => response.json())
-    //         .then(data => {
-    //             const tbody = document.getElementById("transactionTableBody");
-    //             tbody.innerHTML = "";
-
-    //             data.forEach(row => {
-    //                 const tr = document.createElement("tr");
-    //                 tr.innerHTML = `
-    //                 <td>${row.Transaction_ID}</td>
-    //                 <td>${new Date(row.Date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-    //                 <td>${row.Discription}</td>
-    //                 <td>${row.Type}</td>
-    //                 <td>₹${parseFloat(row.Amount).toLocaleString()}</td>
-    //                 <td>${row.payment_method}</td>
-    //                 <td>${row.Status}</td>
-    //             `;
-    //                 tbody.appendChild(tr);
-    //             });
-    //         })
-    //         .catch(error => {
-    //             console.error("Error fetching transactions:", error);
-    //         });
-    // }
-
-    // document.addEventListener("DOMContentLoaded", function () {
-    //     fetchTransactions();
-    // });
 </script>
 
 </body>

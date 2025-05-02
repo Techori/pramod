@@ -517,7 +517,25 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="investory">
                                 <label class="form-check-label" for="investory">Supply Management</label>
-                            </div>
+                            <script>
+                                function showsettingTab(tabId) {
+                                    // Remove active class from all tabs
+                                    document.querySelectorAll('.settingTab').forEach(tab => tab.classList.remove('active'));
+                                    document.querySelectorAll('.setting-tab-content').forEach(content => content.classList.remove('active'));
+                            
+                                    // Add active class to clicked tab
+                                    document.querySelector(`.settingTab[onclick="showsettingTab('${tabId}')"]`).classList.add('active');
+                                    document.getElementById(tabId).classList.add('active');
+                                }
+                            </script>                            <div class="text-end position-relative">
+                                <button type="submit" class="btn btn-info text-white" onclick="showSavePopup(event)">
+                                    <i class="bi bi-save"></i> Save Settings
+                                </button>
+                                <div id="savePopup" class="position-absolute bg-success text-white px-3 py-2 rounded shadow"
+                                    style="top: 100%; right: 0; display: none; z-index: 1000;">
+                                    Your settings have been updated successfully.
+                                </div>
+                            </div>                            </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="expenses">
                                 <label class="form-check-label" for="expenses">Raw Materials</label>

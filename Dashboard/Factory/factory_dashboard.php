@@ -27,7 +27,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="../../public/css/styles.css">
+    <link rel="stylesheet" href="../../public/css/styles.css">.
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
         body {
             font-family: sans-serif;
@@ -56,16 +58,84 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 </div>
 
                 <!-- Add User Button -->
+                <!-- Button -->
                 <div>
-                    <button class="btn btn-outline-primary">
-                        <i class="fa-solid fa-user-plus"></i> schedule production
+                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#materialRequestModal">
+                        <i class="fa-solid fa-user-plus"></i> Request Materials
                     </button>
                 </div>
+
+                <!-- Modal -->
+                <div class="modal fade" id="schedulingModal" tabindex="-1" aria-labelledby="schedulingModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content rounded-4 shadow">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="schedulingModalLabel">Production Scheduling</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Scheduling Form -->
+                                <form>
+                                    <div class="mb-3">
+                                        <label for="scheduleDate" class="form-label">Select Date</label>
+                                        <input type="date" class="form-control" id="scheduleDate" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="shift" class="form-label">Shift</label>
+                                        <select class="form-select" id="shift" required>
+                                            <option value="">Choose Shift</option>
+                                            <option>Morning</option>
+                                            <option>Evening</option>
+                                            <option>Night</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="quantity" class="form-label">Quantity to Produce</label>
+                                        <input type="number" class="form-control" id="quantity"
+                                            placeholder="e.g., 1000 units" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Schedule</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
-                    <button class="btn btn-outline-primary">
-                        <i class="fa-solid fa-user-plus"></i> request materials
+                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#materialRequestModal">
+                        <i class="fa-solid fa-user-plus"></i> Request Materials
                     </button>
                 </div>
+
+                <!-- Modal -->
+                <div class="modal fade" id="materialRequestModal" tabindex="-1" aria-labelledby="materialRequestLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content rounded-4 shadow">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="materialRequestLabel">Material Request</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form>
+                                    <div class="mb-3">
+                                        <label for="materialName" class="form-label">Material Name</label>
+                                        <input type="text" class="form-control" id="materialName"
+                                            placeholder="e.g., Copper Wire" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="quantity" class="form-label">Quantity Needed</label>
+                                        <input type="number" class="form-control" id="quantity" placeholder="e.g., 200"
+                                            required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Submit Request</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div class="container-fluid mt-3">
                 <!-- Metrics Row -->
@@ -165,12 +235,12 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 
                 <!-- Charts & Alerts -->
                 <div class="row">
-                    <div class="col-lg-8 mb-4">
-                        <div class="card p-3">
-                            <h5>Production Output (Last 6 months)</h5>
-                            <canvas id="outputChart" height="200"></canvas>
-                        </div>
-                    </div>
+                <div class="col-lg-8 mb-4">
+            <div class="card p-3">
+                <h5>Production Output (Last 6 months)</h5>
+                <canvas id="outputChart" height="200"></canvas>
+            </div>
+        </div>
                     <div class="col-lg-4 mb-4">
                         <div class="card p-3">
                             <h5>Alerts & Notifications</h5>
@@ -188,24 +258,88 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                 </div>
 
                 <div class="btn-group" role="group" aria-label="Default button group">
-                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                    <!-- Button -->
+                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;"
+                        data-bs-toggle="modal" data-bs-target="#schedulingModal">
                         Production Scheduling
                     </button>
-                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                    <!-- Modal -->
+                    <div class="modal fade" id="schedulingModal" tabindex="-1" aria-labelledby="schedulingModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content rounded-4 shadow">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="schedulingModalLabel">Production Scheduling</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- Your scheduling form goes here -->
+                                    <form>
+                                        <div class="mb-3">
+                                            <label for="scheduleDate" class="form-label">Select Date</label>
+                                            <input type="date" class="form-control" id="scheduleDate">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="shift" class="form-label">Shift</label>
+                                            <select class="form-select" id="shift">
+                                                <option>Select Date</option>
+                                                <option>Shift</option>
+                                                <option>Night</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Save Schedule</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Button -->
+                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;"
+                        data-bs-toggle="modal" data-bs-target="#rawMaterialsModal">
                         Raw Materials
                     </button>
-                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="rawMaterialsModal" tabindex="-1" aria-labelledby="rawMaterialsModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content rounded-4 shadow">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="rawMaterialsModalLabel">Raw Materials Entry</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- Raw Materials Form -->
+                                    <form>
+                                        <div class="mb-3">
+                                            <label for="materialName" class="form-label">Material Name</label>
+                                            <input type="text" class="form-control" id="materialName"
+                                                placeholder="e.g., Steel">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="quantity" class="form-label">Quantity (kg)</label>
+                                            <input type="number" class="form-control" id="quantity" placeholder="e.g., 500">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="supplier" class="form-label">Supplier</label>
+                                            <input type="text" class="form-control" id="supplier"
+                                                placeholder="e.g., ABC Corp">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Add Material</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="workers.php" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
                         Workers
-                    </button>
-                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
-                        Maintenace
-                    </button>
-                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
+                    </a>
+                    <a href="reports.php" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
                         Reports
-                    </button>
-                    <button type="button" class="btn btn-outline-primary shadow-sm rounded-3 p-4" style="min-width: 120px;">
-                        Quality
-                    </button>
+                    </a>
                 </div>
 
                 <!-- Raw Material Usage & Status -->
@@ -312,6 +446,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
                         </div>
                     </div>
                 </div>
+                
             </div>
         <?php elseif ($page === 'production'): ?>
             <?php include 'production.php'; ?>

@@ -8,7 +8,6 @@
     }
 </style>
 
-<div class="container-fluid mt-3">
     <h1>Production Management</h1>
     <p>Monitor and manage factory production lines</p>
     <!-- Metrics Row -->
@@ -44,14 +43,13 @@
         </div>
     </div>
 
-    <div class="container">
         <div class="card p-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4 class="fw-bold">Production Lines Status</h4>
                     <p class="text-muted mb-0">Real-time status of production line operations</p>
                 </div>
-                <button class="btn btn-light border" onclick="refreshPage()">
+                <button class="btn btn-light border" onclick="location.reload()">
                     🔄 Refresh
                 </button>
             </div>
@@ -139,7 +137,7 @@
             </div>
         </div>
     </div>
-    <div class="container mt-4">
+
         <div class="card shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
@@ -204,68 +202,75 @@
                             </div>
                         </div>
                     </div>
-                                <button class="btn btn-light-custom">
-                                    View All
-                                </button>
+                    <button class="btn btn-light-custom" onclick="showAllRows(this)">
+                        View All
+                    </button>
+
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead>
-                        <tr class="text-muted">
-                            <th>ID</th>
-                            <th>Product</th>
-                            <th>Quantity</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="fw-bold">PRD-001</td>
-                            <td>1.5mm House Wire</td>
-                            <td>2,500 m</td>
-                            <td>12 Apr 2025</td>
-                            <td>14 Apr 2025</td>
-                            <td><span class="badge badge-in-progress">In Progress</span></td>
-                            <td><button class="btn btn-outline-primary btn-sm">View Details</button></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">PRD-002</td>
-                            <td>2.5mm Industrial Cable</td>
-                            <td>1,800 m</td>
-                            <td>14 Apr 2025</td>
-                            <td>16 Apr 2025</td>
-                            <td><span class="badge badge-scheduled">Scheduled</span></td>
-                            <td><button class="btn btn-outline-primary btn-sm">Start Production</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">PRD-003</td>
-                            <td>4mm Armored Cable</td>
-                            <td>950 m</td>
-                            <td>15 Apr 2025</td>
-                            <td>17 Apr 2025</td>
-                            <td><span class="badge badge-scheduled">Scheduled</span></td>
-                            <td><button class="btn btn-outline-primary btn-sm">Start Production</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">PRD-004</td>
-                            <td>6mm Power Cable</td>
-                            <td>750 m</td>
-                            <td>18 Apr 2025</td>
-                            <td>20 Apr 2025</td>
-                            <td><span class="badge badge-scheduled">Scheduled</span></td>
-                            <td><button class="btn btn-outline-primary btn-sm">Start Production</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr class="text-muted">
+                        <th>ID</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="fw-bold">PRD-001</td>
+                        <td>1.5mm House Wire</td>
+                        <td>2,500 m</td>
+                        <td>12 Apr 2025</td>
+                        <td>14 Apr 2025</td>
+                        <td><span class="badge badge-in-progress">In Progress</span></td>
+                        <td>
+                            <span class="text-warning action-btn" onclick="toggleIcon(this)">⏸️</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">PRD-002</td>
+                        <td>2.5mm Industrial Cable</td>
+                        <td>1,800 m</td>
+                        <td>14 Apr 2025</td>
+                        <td>16 Apr 2025</td>
+                        <td><span class="badge badge-scheduled">Scheduled</span></td>
+                        <td>
+                            <span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
+                        </td>
+                    </tr>
+
+                    <!-- Hidden rows initially -->
+                    <tr class="extra-row d-none">
+                        <td class="fw-bold">PRD-003</td>
+                        <td>4mm Armored Cable</td>
+                        <td>950 m</td>
+                        <td>15 Apr 2025</td>
+                        <td>17 Apr 2025</td>
+                        <td><span class="badge badge-scheduled">Scheduled</span></td>
+                        <td>
+                            <span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
+                        </td>
+                    </tr>
+                    <tr class="extra-row d-none">
+                        <td class="fw-bold">PRD-004</td>
+                        <td>6mm Power Cable</td>
+                        <td>750 m</td>
+                        <td>18 Apr 2025</td>
+                        <td>20 Apr 2025</td>
+                        <td><span class="badge badge-scheduled">Scheduled</span></td>
+                        <td>
+                            <span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -293,31 +298,69 @@
     }
 
     <!-- Optional: schedule production ke liye -->
-  function submitSchedule() {
-    const form = document.getElementById('scheduleForm');
-    if (form.checkValidity()) {
-      // Get the form values
-      const data = {
-        id: document.getElementById('idInput').value,
-        product: document.getElementById('productInput').value,
-        quantity: document.getElementById('quantityInput').value,
-        startDate: document.getElementById('startDateInput').value,
-        endDate: document.getElementById('endDateInput').value,
-        status: document.getElementById('statusInput').value,
-      };
-      
-      console.log('Form Submitted:', data);
+    function submitSchedule() {
+        const form = document.getElementById('scheduleForm');
+        if (form.checkValidity()) {
+            // Get the form values
+            const data = {
+                id: document.getElementById('idInput').value,
+                product: document.getElementById('productInput').value,
+                quantity: document.getElementById('quantityInput').value,
+                startDate: document.getElementById('startDateInput').value,
+                endDate: document.getElementById('endDateInput').value,
+                status: document.getElementById('statusInput').value,
+            };
 
-      // Close modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-      modal.hide();
+            console.log('Form Submitted:', data);
 
-      // Reset form
-      form.reset();
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
+            modal.hide();
 
-      // TODO: Save the data to server or update UI
-    } else {
-      form.reportValidity(); // Show validation messages
+            // Reset form
+            form.reset();
+
+            // TODO: Save the data to server or update UI
+        } else {
+            form.reportValidity(); // Show validation messages
+        }
     }
-  }
+    // table kka pura data dikhane ke liye
+    function showAllRows() {
+    const extraRows = document.querySelectorAll('.extra-row');
+    extraRows.forEach(row => row.classList.remove('d-none'));
+}
+
+// action field 
+function toggleIcon(element) {
+        // If the icon is "▶️", change to "⏸️" and change the status to "In Progress"
+        if (element.innerText.trim() === '▶️') {
+            element.innerText = '⏸️';
+            element.classList.remove('text-success');
+            element.classList.add('text-warning');
+            // Update the status badge to "In Progress"
+            const row = element.closest('tr');
+            row.querySelector('td:nth-child(6) .badge').innerText = 'In Progress';
+            row.querySelector('td:nth-child(6) .badge').classList.remove('badge-scheduled');
+            row.querySelector('td:nth-child(6) .badge').classList.add('badge-in-progress');
+        } 
+        // If the icon is "⏸️", change to "▶️" and change the status to "Scheduled"
+        else {
+            element.innerText = '▶️';
+            element.classList.remove('text-warning');
+            element.classList.add('text-success');
+            // Update the status badge to "Scheduled"
+            const row = element.closest('tr');
+            row.querySelector('td:nth-child(6) .badge').innerText = 'Scheduled';
+            row.querySelector('td:nth-child(6) .badge').classList.remove('badge-in-progress');
+            row.querySelector('td:nth-child(6) .badge').classList.add('badge-scheduled');
+        }
+    }
+
+    // Show more rows when the "View All" button is clicked
+    document.getElementById('viewAllBtn').addEventListener('click', function() {
+        const extraRows = document.querySelectorAll('.extra-row');
+        extraRows.forEach(row => row.classList.remove('d-none'));
+        this.style.display = 'none';  // Hide the "View All" button
+    });
 </script>
