@@ -3,35 +3,38 @@ include '../../_conn.php';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
+    // Clean input data function
+    function clean($input)
+    {
+        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    }
+
+    // Transaction action
     if ($_POST['whatAction'] === 'Transaction') {
-        // Clean input data
-        function clean($input)
-        {
-            return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-        }
-    
-        // Collect data
+        // Collect data for transaction
         $date = clean($_POST['date']);
         $description = clean($_POST['description']);
         $type = clean($_POST['type']);
         $amount = floatval($_POST['amount']);
         $payment_method = clean($_POST['payment_method']);
         $status = clean($_POST['status']);
-    
-        // Validate data
+
+        // Validate data for transaction
         $allowedStatus = ['Completed', 'Pending'];
         $allowedPayments = ['Bank Transfer', 'Cash', 'UPI', 'Cheque', 'Card'];
         if (!in_array($status, $allowedStatus) || !in_array($payment_method, $allowedPayments)) {
             echo json_encode(["success" => false, "message" => "Invalid status or payment method"]);
             header("Location: admin_dashboard.php?page=accounting");
+            exit;
         }
-    
+
+        // Start database transaction
         $conn->begin_transaction();
-    
-        // Generate a new transaction ID and insert the transaction record into the database
+
         try {
+            // Generate a new transaction ID
             $result = $conn->query("SELECT Transaction_ID FROM transactions ORDER BY CAST(SUBSTRING(Transaction_ID, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
-    
+
             if ($result && $row = $result->fetch_assoc()) {
                 $lastId = $row['Transaction_ID']; // e.g. TRX-005
                 $num = (int) substr($lastId, 4);   // get "005" → 5
@@ -39,22 +42,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             } else {
                 $newNum = 1;
             }
-    
+
             $newTransactionId = 'TRX-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
-    
+
+            // Insert the transaction record
             $stmt = $conn->prepare("INSERT INTO transactions 
                 (Transaction_ID, Date, Description, Type, Amount, Status, payment_method) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)");
-    
-    
+
             $stmt->bind_param("ssssdss", $newTransactionId, $date, $description, $type, $amount, $status, $payment_method);
             $stmt->execute();
-    
+
             $conn->commit();
             $stmt->close();
-    
-            // echo json_encode(["success" => true, "message" => "Transaction recorded with ID: $newTransactionId"]);
+
             header("Location: admin_dashboard.php?page=accounting");
+            exit;
+
         } catch (Exception $e) {
             $conn->rollback();
             http_response_code(500);
@@ -62,17 +66,62 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 "success" => false,
                 "message" => "Transaction failed: " . $e->getMessage()
             ]);
+            exit;
         }
-        header("Location: admin_dashboard.php?page=accounting");
-    } else if ($_POST['whatAction'] === 'Account') {
-        
-    } else {
+
+    } 
+    // Account action
+    else if ($_POST['whatAction'] === 'Account') {
+        // Collect account details
+        $businessAccount = clean($_POST['businessAccount']);
+        $savingAccount = clean($_POST['savingAccount']);
+
+        // Validate account details
+        if (!is_numeric($businessAccount) || !is_numeric($savingAccount) || $businessAccount < 0 || $savingAccount < 0) {
+            echo json_encode(["success" => false, "message" => "Invalid account details. Amount must be a valid number greater than or equal to 0."]);
+            exit;
+        }
+
+        // Start database transaction for account
+        $conn->begin_transaction();
+
+        try {
+            // Insert account details into the database
+            $stmt = $conn->prepare("INSERT INTO accounts (business_account, saving_account) VALUES (?, ?)");
+            $stmt->bind_param("dd", $businessAccount, $savingAccount); // 'd' stands for double (decimal numbers)
+
+            // Execute the statement
+            $stmt->execute();
+            $conn->commit(); // Commit the transaction
+
+            // Close the statement
+            $stmt->close();
+
+            header("Location: admin_dashboard.php?page=accounting");
+            exit;
+
+        } catch (Exception $e) {
+            $conn->rollback(); // Rollback the transaction in case of error
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Failed to add account details: " . $e->getMessage()
+            ]);
+            exit;
+        }
+    } 
+    else {
+        // Invalid action
         echo json_encode(["success" => false, "message" => "Invalid action"]);
         exit;
     }
-}
 
+} else {
+    // Invalid request method or missing 'whatAction'
+    echo json_encode(["success" => false, "message" => "Invalid request"]);
+}
 ?>
+
 
 <style>
     .cards {
@@ -402,33 +451,63 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         </table>
     </div>
 
-    <!-- Accounts -->
-    <div id="accounts" class="accounting-tab-content">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
+    <?php
+// Check if the connection is valid
+if ($conn === false) {
+    die("ERROR: Could not connect to the database.");
+}
 
-            <div class="justify-content-start">
-                <h1>Account Balances</h1>
-            </div>
+// Query the database to get account details
+$query = "SELECT business_account, saving_account FROM accounts ORDER BY id DESC LIMIT 1";
+
+$result = $conn->query($query);
+
+// Check if the query was successful
+if (!$result) {
+    die("ERROR: Could not execute query. " . $conn->error);
+}
+
+// Fetch the account details
+if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $businessAccount = $row['business_account'];
+    $savingAccount = $row['saving_account'];
+} else {
+    $businessAccount = 0;
+    $savingAccount = 0;
+}
+
+$conn->close();
+?>
+
+<!-- Accounts -->
+<div id="accounts" class="accounting-tab-content">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <div class="justify-content-start">
+            <h1>Account Balances</h1>
         </div>
-        <div class="row">
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm" style="background-color:rgb(147, 212, 250);">
-                    <div class="card-body">
-                        <h5 class="text-muted">Main Business Account</h5>
-                        <h4>₹3,24,560</h4> <!-- Dynamic data -->
-                    </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 col-sm-12 my-4">
+            <div class="card stat-card cards shadow-sm" style="background-color:rgb(147, 212, 250);">
+                <div class="card-body">
+                    <h5 class="text-muted">Main Business Account</h5>
+                    <h4><?php echo number_format($businessAccount, 0, '.', ','); ?></h4>
                 </div>
             </div>
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
-                    <div class="card-body">
-                        <h5 class="text-muted">Savings Account</h5>
-                        <h4>₹1,85,200</h4> <!-- Dynamic data -->
-                    </div>
+        </div>
+        <div class="col-md-6 col-sm-12 my-4">
+            <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
+                <div class="card-body">
+                    <h5 class="text-muted">Savings Account</h5>
+                    <h4><?php echo number_format($savingAccount, 0, '.', ','); ?></h4>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+
 
     <!-- Tax -->
     <div id="tax" class="accounting-tab-content">
@@ -554,5 +633,4 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 </script>
 
 </body>
-
 </html>
