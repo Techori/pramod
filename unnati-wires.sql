@@ -54,6 +54,20 @@ INSERT INTO `users` (`email`, `password`, `user_type`, `user_roll`, `salt`) VALU
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`email`);
+
+--Tickets Table
+CREATE TABLE `tickets` (
+  `ticket_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `customer` VARCHAR(255) NOT NULL,
+  `date` DATE NOT NULL,
+  `issue_description` TEXT NOT NULL,
+  `product` VARCHAR(255) NOT NULL,
+  `priority` VARCHAR(50) NOT NULL,
+  `status` VARCHAR(50) NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
