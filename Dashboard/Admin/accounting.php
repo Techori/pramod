@@ -1,3 +1,79 @@
+<?php
+include '../../_conn.php';
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+    if ($_POST['whatAction'] === 'Transaction') {
+        // Clean input data
+        function clean($input)
+        {
+            return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+        }
+    
+        // Collect data
+        $date = clean($_POST['date']);
+        $description = clean($_POST['description']);
+        $type = clean($_POST['type']);
+        $amount = floatval($_POST['amount']);
+        $payment_method = clean($_POST['payment_method']);
+        $status = clean($_POST['status']);
+    
+        // Validate data
+        $allowedStatus = ['Completed', 'Pending'];
+        $allowedPayments = ['Bank Transfer', 'Cash', 'UPI', 'Cheque', 'Card'];
+        if (!in_array($status, $allowedStatus) || !in_array($payment_method, $allowedPayments)) {
+            echo json_encode(["success" => false, "message" => "Invalid status or payment method"]);
+            header("Location: admin_dashboard.php?page=accounting");
+        }
+    
+        $conn->begin_transaction();
+    
+        // Generate a new transaction ID and insert the transaction record into the database
+        try {
+            $result = $conn->query("SELECT Transaction_ID FROM transactions ORDER BY CAST(SUBSTRING(Transaction_ID, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+    
+            if ($result && $row = $result->fetch_assoc()) {
+                $lastId = $row['Transaction_ID']; // e.g. TRX-005
+                $num = (int) substr($lastId, 4);   // get "005" → 5
+                $newNum = $num + 1;
+            } else {
+                $newNum = 1;
+            }
+    
+            $newTransactionId = 'TRX-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+    
+            $stmt = $conn->prepare("INSERT INTO transactions 
+                (Transaction_ID, Date, Description, Type, Amount, Status, payment_method) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)");
+    
+    
+            $stmt->bind_param("ssssdss", $newTransactionId, $date, $description, $type, $amount, $status, $payment_method);
+            $stmt->execute();
+    
+            $conn->commit();
+            $stmt->close();
+    
+            // echo json_encode(["success" => true, "message" => "Transaction recorded with ID: $newTransactionId"]);
+            header("Location: admin_dashboard.php?page=accounting");
+        } catch (Exception $e) {
+            $conn->rollback();
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Transaction failed: " . $e->getMessage()
+            ]);
+        }
+        header("Location: admin_dashboard.php?page=accounting");
+    } else if ($_POST['whatAction'] === 'Account') {
+        
+    } else {
+        echo json_encode(["success" => false, "message" => "Invalid action"]);
+        exit;
+    }
+}
+
+?>
+
 <style>
     .cards {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -135,10 +211,13 @@
             Financial Reports</a>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal" data-bs-target="#recordTransaction"><i class="fa-solid fa-circle-dollar-to-slot"></i> Record Transaction</button>
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal"
+            data-bs-target="#recordTransaction"><i class="fa-solid fa-circle-dollar-to-slot"></i> Record
+            Transaction</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-wallet"></i> Manage
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal"
+            data-bs-target="#manageAccount"><i class="fa-solid fa-wallet"></i> Manage
             Accounts</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
@@ -152,47 +231,88 @@
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form>
+            <form action="accounting.php" method="POST">
                 <div class="modal-header">
                     <h5 class="modal-title" id="recordTransactionLabel">Record Transaction</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="id" class="form-label">Id</label>
-                        <input type="text" class="form-control" id="id">
-                    </div>
 
                     <div class="mb-3">
                         <label for="date" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="date">
+                        <input type="date" class="form-control" id="date" name="date" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <input type="text" class="form-control" id="description">
+                        <input type="text" class="form-control" id="description" name="description" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="type" class="form-label">Type</label>
-                        <input type="text" class="form-control" id="type">
+                        <input type="text" class="form-control" id="type" name="type" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
-                        <input type="text" class="form-control" id="amount">
+                        <input type="number" class="form-control" id="amount" name="amount" min="0" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="status" class="form-label">Status</label>
-                        <input type="text" class="form-control" id="status">
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="Completed">Completed</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Payment Method</label>
+                        <select class="form-select" id="payment_method" name="payment_method" required>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Card">Card</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Record</button>
+                    <button type="submit" class="btn btn-primary" name="whatAction" value="Transaction">Add Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Account Form -->
+<div class="modal fade" id="manageAccount" tabindex="-1" aria-labelledby="manageAccountLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="accounting.php" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manageAccountLabel">Add Account Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="businessAccount" class="form-label">Business Account</label>
+                        <input type="number" class="form-control" id="businessAccount" name="businessAccount" min="0" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="savingAccount" class="form-label">Savings Account</label>
+                        <input type="number" class="form-control" id="savingAccount" name="savingAccount" min="0" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" name="whatAction" value="Account">Add Details</button>
                 </div>
             </form>
         </div>
@@ -252,18 +372,32 @@
                     <th>Description</th>
                     <th>Type</th>
                     <th>Amount</th>
+                    <th>Payment Method</th>
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr>
-                    <td>TRX-001</td> <!-- Dynamic data -->
-                    <td>12 Apr, 2025</td> <!-- Dynamic data -->
-                    <td>Supplier Payment - Havells</td> <!-- Dynamic data -->
-                    <td>Expense</td> <!-- Dynamic data -->
-                    <td>₹45,600</td> <!-- Dynamic data -->
-                    <td>Completed</td> <!-- Dynamic data -->
-                </tr>
+            <tbody id="transactionTableBody">
+                <?php 
+
+                    // Fetch transactions from the database
+                    $result = $conn->query("SELECT * FROM transactions ORDER BY Transaction_ID DESC");
+
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . htmlspecialchars($row['Transaction_ID']) . "</td>";
+                            echo "<td>" . date('d-M-Y', strtotime($row['Date'])) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['Description']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['Type']) . "</td>";
+                            echo "<td>₹" . number_format($row['Amount'], 2) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                            echo "</tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                    }
+                ?>
             </tbody>
         </table>
     </div>
