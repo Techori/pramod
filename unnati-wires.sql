@@ -55,6 +55,9 @@ INSERT INTO `users` (`email`, `password`, `user_type`, `user_roll`, `salt`) VALU
 ALTER TABLE `users`
   ADD PRIMARY KEY (`email`);
 
+--whenever you make it dynamic to api for tables with auto increment,
+--make sure to use truncate table 'table_name' before inserting data or adding api for that table.
+
 --Tickets Table
 CREATE TABLE `tickets` (
   `ticket_id` INT AUTO_INCREMENT PRIMARY KEY,
