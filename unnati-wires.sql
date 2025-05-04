@@ -71,17 +71,17 @@ CREATE TABLE `tickets` (
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-<<<<<<< HEAD
 -- inventory
 CREATE TABLE inventory (
-    Id VARCHAR(20) NOT NULL PRIMARY KEY,
-    Product_Name VARCHAR(20) NOT NULL,
-    Category VARCHAR(20) NOT NULL,
-    Stock VARCHAR(50) NOT NULL,
-    Status ENUM('In Stock', 'Low Stock') NOT NULL,
-    Supplier VARCHAR(50) NOT NULL
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-=======
+    Id VARCHAR(10) PRIMARY KEY,
+    product_id VARCHAR(10) NOT NULL,
+    Product_Name VARCHAR(255) NOT NULL,
+    Category VARCHAR(100) NOT NULL,
+    Stock INT NOT NULL,
+    Status VARCHAR(20) NOT NULL,
+    Supplier VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Expenses Table
 CREATE TABLE `expenses` (
@@ -107,8 +107,8 @@ CREATE TABLE products (
     selling_price DECIMAL(10, 2) NOT NULL,
     stock_quantity INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-);
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `factory_stock` (
    `stock_id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -143,7 +143,6 @@ CREATE TABLE `factory_stock` (
  ('SUP-2025-003', 'Aluminum Wire', '3000 kg', 'Sterlite Technologies', '2025-04-12', 'Ordered'),
  ('SUP-2025-004', 'Packaging Material', '500 units', 'Packaging Solutions', '2025-04-05', 'Delivered'),
  ('SUP-2025-005', 'Machine Parts', '24 units', 'Industrial Machines Ltd', '2025-04-11', 'In Transit');
->>>>>>> c556176d327e8bce94a00a64f788bc84a107acaa
 
 COMMIT;
 
