@@ -69,7 +69,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             exit;
         }
 
-    } 
+    }
     // Account action
     else if ($_POST['whatAction'] === 'Account') {
         // Collect account details
@@ -109,8 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             ]);
             exit;
         }
-    } 
-    else {
+    } else {
         // Invalid action
         echo json_encode(["success" => false, "message" => "Invalid action"]);
         exit;
@@ -330,7 +329,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" name="whatAction" value="Transaction">Add Record</button>
+                    <button type="submit" class="btn btn-primary" name="whatAction" value="Transaction">Add
+                        Record</button>
                 </div>
             </form>
         </div>
@@ -350,12 +350,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="businessAccount" class="form-label">Business Account</label>
-                        <input type="number" class="form-control" id="businessAccount" name="businessAccount" min="0" required>
+                        <input type="number" class="form-control" id="businessAccount" name="businessAccount" min="0"
+                            required>
                     </div>
 
                     <div class="mb-3">
                         <label for="savingAccount" class="form-label">Savings Account</label>
-                        <input type="number" class="form-control" id="savingAccount" name="savingAccount" min="0" required>
+                        <input type="number" class="form-control" id="savingAccount" name="savingAccount" min="0"
+                            required>
                     </div>
                 </div>
 
@@ -403,17 +405,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                     <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search..." />
                 </div>
                 <div class="d-flex mb-3">
-                    <select  class="form-select me-2 w-50">
-                        <option value="" >Select Categories</option>
+                    <select class="form-select me-2 w-50">
+                        <option value="">Select Categories</option>
                         <option value="Metals">Complete</option>
                         <option value="Polymers">Pending</option>
                     </select>
-                    <button class="btn btn-outline-primary me-2" id="categoryFilter"><i class="fa-solid fa-filter"></i></button>
+                    <button class="btn btn-outline-primary me-2" id="categoryFilter"><i
+                            class="fa-solid fa-filter"></i></button>
                 </div>
                 <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
         </div>
-        <table class="table table-bordered table-hover" id = "supplyTable">
+        <table class="table table-bordered table-hover" id="supplyTable">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -426,86 +429,86 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 </tr>
             </thead>
             <tbody id="transactionTableBody">
-                <?php 
+                <?php
 
-                    // Fetch transactions from the database
-                    $result = $conn->query("SELECT * FROM transactions ORDER BY Transaction_ID DESC");
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM transactions ORDER BY Transaction_ID DESC");
 
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            echo "<tr>";
-                            echo "<td>" . htmlspecialchars($row['Transaction_ID']) . "</td>";
-                            echo "<td>" . date('d-M-Y', strtotime($row['Date'])) . "</td>";
-                            echo "<td>" . htmlspecialchars($row['Description']) . "</td>";
-                            echo "<td>" . htmlspecialchars($row['Type']) . "</td>";
-                            echo "<td>₹" . number_format($row['Amount'], 2) . "</td>";
-                            echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
-                            echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
-                            echo "</tr>";
-                        }
-                    } else {
-                        echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['Transaction_ID']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['Date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Type']) . "</td>";
+                        echo "<td>₹" . number_format($row['Amount'], 2) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                        echo "</tr>";
                     }
+                } else {
+                    echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                }
                 ?>
             </tbody>
         </table>
     </div>
 
     <?php
-// Check if the connection is valid
-if ($conn === false) {
-    die("ERROR: Could not connect to the database.");
-}
+    // Check if the connection is valid
+    if ($conn === false) {
+        die("ERROR: Could not connect to the database.");
+    }
 
-// Query the database to get account details
-$query = "SELECT business_account, saving_account FROM accounts ORDER BY id DESC LIMIT 1";
+    // Query the database to get account details
+    $query = "SELECT business_account, saving_account FROM accounts ORDER BY id DESC LIMIT 1";
 
-$result = $conn->query($query);
+    $result = $conn->query($query);
 
-// Check if the query was successful
-if (!$result) {
-    die("ERROR: Could not execute query. " . $conn->error);
-}
+    // Check if the query was successful
+    if (!$result) {
+        die("ERROR: Could not execute query. " . $conn->error);
+    }
 
-// Fetch the account details
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $businessAccount = $row['business_account'];
-    $savingAccount = $row['saving_account'];
-} else {
-    $businessAccount = 0;
-    $savingAccount = 0;
-}
+    // Fetch the account details
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $businessAccount = $row['business_account'];
+        $savingAccount = $row['saving_account'];
+    } else {
+        $businessAccount = 0;
+        $savingAccount = 0;
+    }
 
-$conn->close();
-?>
+    $conn->close();
+    ?>
 
-<!-- Accounts -->
-<div id="accounts" class="accounting-tab-content">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-        <div class="justify-content-start">
-            <h1>Account Balances</h1>
+    <!-- Accounts -->
+    <div id="accounts" class="accounting-tab-content">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            <div class="justify-content-start">
+                <h1>Account Balances</h1>
+            </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-6 col-sm-12 my-4">
-            <div class="card stat-card cards shadow-sm" style="background-color:rgb(147, 212, 250);">
-                <div class="card-body">
-                    <h5 class="text-muted">Main Business Account</h5>
-                    <h4><?php echo number_format($businessAccount, 0, '.', ','); ?></h4>
+        <div class="row">
+            <div class="col-md-6 col-sm-12 my-4">
+                <div class="card stat-card cards shadow-sm" style="background-color:rgb(147, 212, 250);">
+                    <div class="card-body">
+                        <h5 class="text-muted">Main Business Account</h5>
+                        <h4><?php echo number_format($businessAccount, 0, '.', ','); ?></h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-sm-12 my-4">
+                <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
+                    <div class="card-body">
+                        <h5 class="text-muted">Savings Account</h5>
+                        <h4><?php echo number_format($savingAccount, 0, '.', ','); ?></h4>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-sm-12 my-4">
-            <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
-                <div class="card-body">
-                    <h5 class="text-muted">Savings Account</h5>
-                    <h4><?php echo number_format($savingAccount, 0, '.', ','); ?></h4>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
 
 
 
@@ -554,36 +557,36 @@ $conn->close();
         </div>
     </div>
     <script>
-    // Search Functionality
-            document.getElementById('searchInput').addEventListener('input', function () {
-                const searchText = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
+        // Search Functionality
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchText = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#supplyTable tbody tr');
 
-                rows.forEach(row => {
-                    const cells = row.getElementsByTagName('td');
-                    let match = false;
-                    for (let i = 0; i < cells.length; i++) {
-                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                            match = true;
-                            break;
-                        }
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName('td');
+                let match = false;
+                for (let i = 0; i < cells.length; i++) {
+                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                        match = true;
+                        break;
                     }
-                    row.style.display = match ? '' : 'none';
-                });
+                }
+                row.style.display = match ? '' : 'none';
             });
-                // Filter Functionality (Filter by "Ordered" status)
-                document.getElementById('categoryFilter').addEventListener('click', function () {
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
-                rows.forEach(row => {
-                    const status = row.cells[5].textContent.trim().toLowerCase();
-                    if (status === 'ordered') {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
+        });
+        // Filter Functionality (Filter by "Ordered" status)
+        document.getElementById('categoryFilter').addEventListener('click', function () {
+            const rows = document.querySelectorAll('#supplyTable tbody tr');
+            rows.forEach(row => {
+                const status = row.cells[5].textContent.trim().toLowerCase();
+                if (status === 'ordered') {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
             });
-        </script>
+        });
+    </script>
 </div>
 
 <script>
@@ -633,4 +636,5 @@ $conn->close();
 </script>
 
 </body>
+
 </html>

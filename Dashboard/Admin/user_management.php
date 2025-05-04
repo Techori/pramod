@@ -1,3 +1,101 @@
+<?php
+include '../../_conn.php'; // Your DB connection file
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+// Function to clean input data
+function clean($input)
+{
+  return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+  // ===== ADD USER =====
+  if ($_POST['whatAction'] === 'AddUser') {
+
+    $userName = clean($_POST['userName']);
+    $userEmail = clean($_POST['userEmail']);
+    $role = clean($_POST['role']);
+    $status = 'Active';
+
+    // Capture permissions
+    $permissions = isset($_POST['permissions']) ? $_POST['permissions'] : [];
+    $permissionsJson = json_encode($permissions);
+
+    $allowedRoles = ['Manager', 'Accountant', 'Store', 'Admin'];
+
+    if (!in_array($role, $allowedRoles)) {
+      die("Invalid role selected.");
+    }
+
+    try {
+      $conn->begin_transaction();
+
+      // Get latest User_ID
+      $query = "SELECT User_ID FROM user_management 
+                ORDER BY CAST(SUBSTRING(User_ID, 5) AS UNSIGNED) DESC 
+                LIMIT 1 FOR UPDATE";
+      $result = $conn->query($query);
+
+      $newNum = 1;
+      if ($row = $result->fetch_assoc()) {
+        $lastId = $row['User_ID'];
+        $newNum = (int) substr($lastId, 4) + 1;
+      }
+
+      $newUserId = 'USR-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+      // Insert user
+      $stmt = $conn->prepare("INSERT INTO user_management (User_ID, User_Name, Email, Role, Status, Permission) 
+                              VALUES (?, ?, ?, ?, ?, ?)");
+      $stmt->bind_param("ssssss", $newUserId, $userName, $userEmail, $role, $status, $permissionsJson);
+      $stmt->execute();
+      $conn->commit();
+      $stmt->close();
+
+      header("Location: admin_dashboard.php?page=user_management");
+      exit;
+
+    } catch (Exception $e) {
+      $conn->rollback();
+      echo "Error adding user: " . $e->getMessage();
+    }
+
+  }
+
+  // ===== UPDATE PERMISSIONS =====
+  elseif ($_POST['whatAction'] === 'UpdatePermissions') {
+
+    $userId = clean($_POST['userId']);
+
+    // If permissions come as JSON string (from JS), decode them
+    if (isset($_POST['permissions']) && is_string($_POST['permissions'])) {
+      $permissions = json_decode($_POST['permissions'], true);
+    } else {
+      $permissions = isset($_POST['permissions']) ? $_POST['permissions'] : [];
+    }
+
+    $permissionsJson = json_encode($permissions);
+
+    try {
+      $stmt = $conn->prepare("UPDATE user_management SET Permission = ? WHERE User_ID = ?");
+      $stmt->bind_param("ss", $permissionsJson, $userId);
+      $stmt->execute();
+      $stmt->close();
+
+      echo "Permissions updated successfully!";
+    } catch (Exception $e) {
+      echo "Error updating permissions: " . $e->getMessage();
+    }
+  }
+
+} else {
+  echo "Invalid request.";
+}
+?>
+
+
+
 <style>
   .cards {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -183,69 +281,82 @@
     <div class="d-flex justify-content-between mb-3">
       <div>
         <button class="btn btn-outline-secondary" id="refreshBtn">Refresh</button>
-      <!-- Export Button -->
-<!-- Export Button -->
-<button class="btn btn-outline-secondary" onclick="exportTableToCSV()">Export</button>
+        <!-- Export Button -->
+        <!-- Export Button -->
+        <button class="btn btn-outline-secondary" onclick="exportTableToCSV()">Export</button>
 
-<!-- Export Success Modal -->
-<div class="modal fade" id="exportSuccessModal" tabindex="-1" aria-labelledby="exportSuccessLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center">
-      <div class="modal-header">
-        <h5 class="modal-title" id="exportSuccessLabel">Export Complete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        ✅ Your table has been successfully exported!
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" id="okBtn" data-bs-dismiss="modal">OK</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
+        <!-- Export Success Modal -->
+        <div class="modal fade" id="exportSuccessModal" tabindex="-1" aria-labelledby="exportSuccessLabel"
+          aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center">
+              <div class="modal-header">
+                <h5 class="modal-title" id="exportSuccessLabel">Export Complete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                ✅ Your table has been successfully exported!
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="okBtn" data-bs-dismiss="modal">OK</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Add User Button -->
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">+ Add User</button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal">+ Add User</button>
 
-        <!-- Add User Modal -->
-        <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
+        <!-- Modal Structure -->
+        <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="addUserLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
 
-              <!-- Modal Header -->
               <div class="modal-header">
-                <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+                <h5 class="modal-title" id="addUserLabel">Add New User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
 
-              <!-- Modal Body with Form Fields -->
               <div class="modal-body">
-                <div class="mb-3">
-                  <label for="userName" class="form-label">User Name</label>
-                  <input type="text" class="form-control" id="userName">
-                </div>
-                <div class="mb-3">
-                  <label for="userId" class="form-label">ID</label>
-                  <input type="text" class="form-control" id="userId">
-                </div>
-                <div class="mb-3">
-                  <label for="userRole" class="form-label">Role</label>
-                  <input type="text" class="form-control" id="userRole">
-                </div>
-              </div>
+                <!-- Form Fields for New User -->
+                <form id="userForm" method="POST" action="user_management.php">
+                  <input type="hidden" name="whatAction" value="AddUser">
 
-              <!-- Modal Footer -->
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary">Add User</button>
+                  <div class="mb-3">
+                    <label for="userName" class="form-label">User Name</label>
+                    <input type="text" class="form-control" id="userName" name="userName" placeholder="Enter User Name"
+                      required>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="userEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="userEmail" name="userEmail"
+                      placeholder="Enter User Email" required>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="role" class="form-label">Role</label>
+                    <select class="form-select" id="role" name="role" required>
+                      <option value="Manager">Manager</option>
+                      <option value="Accountant">Accountant</option>
+                      <option value="Store">Store</option>
+                      <option value="Admin">Admin</option>
+                    </select>
+                  </div>
+                  <input type="hidden" name="whatAction" value="AddUser">
+                  <!-- Footer Buttons -->
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <!-- Submit button - no auto-dismiss -->
+                    <button type="submit" class="btn btn-primary">Save User</button>
+                  </div>
+                </form>
               </div>
 
             </div>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -254,6 +365,15 @@
       <button class="btn btn-danger btn-sm float-end" onclick="alert('Delete Successful')">Delete Selected</button>
     </div>
 
+    <?php
+    // Include your DB connection file
+    include '../../_conn.php';
+
+    // Query to fetch user data
+    $query = "SELECT User_ID, User_Name, Email, Role, Status, Last_Login, Permission FROM user_management";
+    $result = $conn->query($query);
+    ?>
+
     <div class="card">
       <div class="card-body">
         <h5 class="card-title mb-3">Users</h5>
@@ -261,10 +381,10 @@
           <table class="table align-middle" id="supplyTable">
             <thead>
               <tr>
-                <!-- Only ONE master checkbox -->
                 <th><input type="checkbox" id="selectAll"></th>
-                <th>User</th>
                 <th>ID</th>
+                <th>User</th>
+                <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Last Login</th>
@@ -273,13 +393,170 @@
               </tr>
             </thead>
             <tbody id="userTableBody">
-              <!-- User rows will be added by JS -->
+              <?php
+              // Loop through the results and display user data
+              while ($row = $result->fetch_assoc()) {
+                // Decode permissions from JSON
+                $permissions = json_decode($row['Permission'], true);
+                $permissionList = $permissions ? implode(', ', $permissions) : 'No permissions set'; // Display permissions list
+                ?>
+                <tr>
+                  <td><input type="checkbox" class="selectUser" data-id="<?php echo $row['User_ID']; ?>"></td>
+                  <td><?php echo $row['User_ID']; ?></td>
+                  <td><?php echo $row['User_Name']; ?></td>
+                  <td><?php echo $row['Email']; ?></td>
+                  <td><?php echo $row['Role']; ?></td>
+                  <td><?php echo $row['Status']; ?></td>
+                  <td><?php echo $row['Last_Login']; ?></td>
+                  <td>
+                    <!-- Permission button -->
+                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#permissionModal"
+                      data-userid="<?php echo $row['User_ID']; ?>" data-username="<?php echo $row['User_Name']; ?>"
+                      data-permissions='<?php echo htmlspecialchars(json_encode($permissions)); ?>'
+                      id="permissionBtn_<?php echo $row['User_ID']; ?>">Set Permissions</button>
+                  </td>
+                  <td><?php echo $permissionList; ?></td>
+                </tr>
+              <?php } ?>
             </tbody>
           </table>
-
         </div>
       </div>
     </div>
+
+    <!-- Permission Modal -->
+    <div class="modal fade" id="permissionModal" tabindex="-1" aria-labelledby="permissionModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="permissionModalLabel">Set Permissions</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="permissionForm" method="POST">
+              <!-- Checkboxes for permissions -->
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="maindashbord" name="permissions[]"
+                  value="Main Dashboard">
+                <label class="form-check-label" for="maindashbord">Main Dashboard</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="billingdesk" name="permissions[]"
+                  value="Billing Desk">
+                <label class="form-check-label" for="billingdesk">Billing Desk</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="accounting" name="permissions[]" value="Accounting">
+                <label class="form-check-label" for="accounting">Accounting</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="investory" name="permissions[]" value="Inventory">
+                <label class="form-check-label" for="investory">Inventory</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="expenses" name="permissions[]" value="Expenses">
+                <label class="form-check-label" for="expenses">Expenses</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="factorystock" name="permissions[]"
+                  value="Factory Stock">
+                <label class="form-check-label" for="factorystock">Factory Stock</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="retailstore" name="permissions[]"
+                  value="Retail Store">
+                <label class="form-check-label" for="retailstore">Retail Store</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="aftersellservice" name="permissions[]"
+                  value="After-Sell Service">
+                <label class="form-check-label" for="aftersellservice">After-Sell Service</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="suppliers" name="permissions[]" value="Suppliers">
+                <label class="form-check-label" for="suppliers">Suppliers</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="reports" name="permissions[]" value="Reports">
+                <label class="form-check-label" for="reports">Reports</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="settings" name="permissions[]" value="Settings">
+                <label class="form-check-label" for="settings">Settings</label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="savePermissionBtn">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+  // Get all permission buttons
+  const permissionBtns = document.querySelectorAll('[id^="permissionBtn_"]');
+
+  permissionBtns.forEach(button => {
+    button.addEventListener('click', function() {
+      // Retrieve the user data
+      const userId = this.getAttribute('data-userid');
+      const userName = this.getAttribute('data-username');
+      const permissions = JSON.parse(this.getAttribute('data-permissions'));
+
+      // Set modal title
+      document.getElementById('permissionModalLabel').textContent = `Set Permissions for ${userName}`;
+
+      // Reset all checkboxes
+      const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+
+      // Pre-check the checkboxes based on the user's permissions
+      permissions.forEach(permission => {
+        const checkbox = document.querySelector(`#permissionForm input[value="${permission}"]`);
+        if (checkbox) {
+          checkbox.checked = true;
+        }
+      });
+
+      // Attach the userId to the save button for later use
+      document.getElementById('savePermissionBtn').setAttribute('data-userid', userId);
+    });
+  });
+
+  // Handle saving updated permissions
+  document.getElementById('savePermissionBtn').addEventListener('click', function() {
+    const userId = this.getAttribute('data-userid');
+    const selectedPermissions = [];
+    const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]:checked');
+    
+    checkboxes.forEach(checkbox => {
+      selectedPermissions.push(checkbox.value);
+    });
+
+    // Send the selected permissions to the server via AJAX or a simple form submission
+    const formData = new FormData();
+    formData.append('whatAction', 'UpdatePermissions');
+    formData.append('userId', userId);
+    formData.append('permissions', JSON.stringify(selectedPermissions));
+
+    fetch('update_permissions.php', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+      alert(data);  // You can display success or failure messages
+      $('#permissionModal').modal('hide');  // Hide the modal after saving
+    })
+    .catch(error => console.error('Error:', error));
+  });
+});
+</script>
     <script>
 
       // Search Functionality
@@ -335,128 +612,20 @@
   </div>
 </div>
 
-<!-- Permission Modal -->
-<div class="modal fade" id="permissionModal" tabindex="-1" aria-labelledby="permissionModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="permissionModalLabel">Set Permissions</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="permissionForm">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="maindashbord">
-            <label class="form-check-label" for="maindashbord">Main Dashboard</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="billingdesk">
-            <label class="form-check-label" for="billingdesk">Billing Desk</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="accounting">
-            <label class="form-check-label" for="accounting">Accounting</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="investory">
-            <label class="form-check-label" for="investory">Inventory</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="expenses">
-            <label class="form-check-label" for="expenses">Expenses</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="factorystock">
-            <label class="form-check-label" for="factorystock">Factory Stock</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="retailstore">
-            <label class="form-check-label" for="retailstore">Retail Store</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="aftersellservice">
-            <label class="form-check-label" for="aftersellservice">After-Sell Service</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="suppliers">
-            <label class="form-check-label" for="suppliers">Suppliers</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="reports">
-            <label class="form-check-label" for="reports">Reports</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="settings">
-            <label class="form-check-label" for="settings">Settings</label>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="savePermissionBtn">Save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
 <!-- JAVASCRIPT -->
 <script>
-  function showsettingTab(id) {
-    const contents = document.querySelectorAll('.tab-pane');
-    const tabs = document.querySelectorAll('.settingTab');
 
-    tabs.forEach(tab => tab.classList.remove('active'));
-    contents.forEach(content => content.classList.remove('show', 'active'));
 
-    document.getElementById(id).classList.add('show', 'active');
-    document.querySelector(`[onclick="showsettingTab('${id}')"]`).classList.add('active');
-  }
-
-  const users = [
-    { initials: "RK", name: "Rajesh Kumar", email: "rajesh@unnatitraders.com", id: "USR-001", role: "Admin", roleClass: "bg-light text-purple", status: "Active", statusClass: "bg-success text-white", login: "2023-04-10 09:45 AM" },
-    { initials: "PS", name: "Priya Sharma", email: "priya@unnatitraders.com", id: "USR-002", role: "Manager", roleClass: "bg-primary text-white", status: "Active", statusClass: "bg-success text-white", login: "2023-04-10 11:30 AM" },
-    { initials: "AP", name: "Amit Patel", email: "amit@unnatitraders.com", id: "USR-003", role: "Accountant", roleClass: "bg-warning text-dark", status: "Active", statusClass: "bg-success text-white", login: "2023-04-09 04:15 PM" },
-    { initials: "NS", name: "Neha Singh", email: "neha@unnatitraders.com", id: "USR-004", role: "Store", roleClass: "bg-success text-white", status: "Inactive", statusClass: "bg-danger text-white", login: "2023-04-01 10:22 AM" },
-    { initials: "RV", name: "Rahul Verma", email: "rahul@unnatitraders.com", id: "USR-005", role: "User", roleClass: "bg-secondary text-white", status: "Pending", statusClass: "bg-warning text-dark", login: "Never logged in" },
-    { initials: "SJ", name: "Sunita Joshi", email: "sunita@unnatitraders.com", id: "USR-006", role: "Manager", roleClass: "bg-primary text-white", status: "Active", statusClass: "bg-success text-white", login: "2023-04-10 02:15 PM" },
-  ];
-
-  const tbody = document.getElementById('userTableBody');
-
-  users.forEach((user, index) => {
-    tbody.innerHTML += `
-      <tr>
-        <td><input type="checkbox" class="row-checkbox" checked></td>
-        <td>
-          <div class="d-flex align-items-center">
-            <div class="rounded-circle bg-secondary text-white text-center me-2" style="width:32px;height:32px;line-height:32px;">${user.initials}</div>
-            <div>
-              <div>${user.name}</div>
-              <small class="text-muted">${user.email}</small>
-            </div>
-          </div>
-        </td>
-        <td>${user.id}</td>
-        <td><span class="badge ${user.roleClass}">${user.role}</span></td>
-        <td><span class="badge ${user.statusClass}">${user.status}</span></td>
-        <td>${user.login}</td>
-        <td><button class="btn btn-sm btn-light">⋮</button></td>
-        <td>
-          <button class="btn btn-sm btn-outline-primary open-permission-btn" data-user-index="${index}" data-bs-toggle="modal" data-bs-target="#permissionModal">
-            Allow
-          </button>
-        </td>
-      </tr>
-    `;
-  });
-
-  // ✅ Master checkbox to select/deselect all rows
+  // Select/Deselect All Checkboxes
   document.getElementById('selectAll').addEventListener('change', function () {
     const isChecked = this.checked;
-    const checkboxes = document.querySelectorAll('.row-checkbox');
-    checkboxes.forEach(cb => cb.checked = isChecked);
+    const checkboxes = document.querySelectorAll('#supplyTable tbody input[type="checkbox"]');
+
+    checkboxes.forEach(function (checkbox) {
+      checkbox.checked = isChecked;
+    });
   });
+
 
 
   document.getElementById('savePermissionBtn').addEventListener('click', function () {
@@ -472,8 +641,8 @@
     const modal = bootstrap.Modal.getInstance(document.getElementById('permissionModal'));
     modal.hide();
   });
-// export btn ke liye
-function exportTableToCSV(filename = 'table-data.csv') {
+  // export btn ke liye
+  function exportTableToCSV(filename = 'table-data.csv') {
     const rows = document.querySelectorAll("#supplyTable tr");
     let csv = [];
 
@@ -497,7 +666,7 @@ function exportTableToCSV(filename = 'table-data.csv') {
   }
 
   // Event listener for 'OK' button
-  document.getElementById("okBtn").addEventListener("click", function() {
+  document.getElementById("okBtn").addEventListener("click", function () {
     alert("You clicked OK, export is complete!");
     // Optionally, you can trigger another action here if needed
   });
@@ -505,7 +674,7 @@ function exportTableToCSV(filename = 'table-data.csv') {
   // Event listener for 'Cancel' button (will not do anything if clicked)
   const cancelBtns = document.querySelectorAll("[data-bs-dismiss='modal']");
   cancelBtns.forEach((btn) => {
-    btn.addEventListener("click", function() {
+    btn.addEventListener("click", function () {
       // Do nothing or log if you need
       console.log("Modal closed without action");
     });

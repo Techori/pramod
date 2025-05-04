@@ -1,3 +1,130 @@
+<?php
+include '../../_conn.php';
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+function clean($input)
+{
+  return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+  // ================= PURCHASE =================
+  if ($_POST['whatAction'] === 'Purchase') {
+    $name = clean($_POST['name']);
+    $amount = floatval($_POST['amount']);
+    $date = clean($_POST['date']);
+    $item = clean($_POST['item']);
+    $unit = clean($_POST['unit']);
+    $payment_method = clean($_POST['payment_method']);
+    $status = clean($_POST['status']);
+
+    $allowedStatus = ['Received', 'In Transit', 'Ordered'];
+    $allowedPayments = ['Bank Transfer', 'Cash', 'UPI', 'Cheque', 'Card'];
+    if (!in_array($status, $allowedStatus) || !in_array($payment_method, $allowedPayments)) {
+      die("Invalid status or payment method");
+    }
+
+    try {
+      $conn->begin_transaction();
+
+      $currentYear = date('Y');
+      $query = "SELECT Purchase_Id FROM purchase_order 
+                WHERE Purchase_Id LIKE 'PO-$currentYear-%' 
+                ORDER BY CAST(SUBSTRING(Purchase_Id, 9) AS UNSIGNED) DESC 
+                LIMIT 1 FOR UPDATE";
+      $result = $conn->query($query);
+
+      $newNum = 1;
+      if ($row = $result->fetch_assoc()) {
+        $lastId = $row['Purchase_Id'];
+        $newNum = (int) substr($lastId, 9) + 1;
+      }
+
+      $newPurchaseId = 'PO-' . $currentYear . '-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+      $stmt = $conn->prepare("INSERT INTO purchase_order 
+        (Purchase_ID, Customer_Name, Amount, Date, Item, Unit, Payment_Method, Status) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+      $stmt->bind_param("ssdsssss", $newPurchaseId, $name, $amount, $date, $item, $unit, $payment_method, $status);
+      $stmt->execute();
+
+      $conn->commit();
+      $stmt->close();
+
+      header("Location: admin_dashboard.php?page=suppliers#purchase");
+      exit;
+
+    } catch (Exception $e) {
+      $conn->rollback();
+      error_log("Purchase insert error: " . $e->getMessage());
+      echo "Error processing purchase order.";
+    }
+  }
+
+  // ================ ADD SUPPLIER =================
+  elseif ($_POST['suppliers'] === 'AddSupplier') {
+    $name = clean($_POST['supplierName']);
+    $type = clean($_POST['type']);
+    $items = clean($_POST['items']);
+    $orders = intval($_POST['orders']);
+    $spending = floatval($_POST['spending']);
+
+    $allowedTypes = ['Manufacturer', 'Distributor'];
+    $allowedItems = ['Wires, Switches', 'Wires, Cables', 'Fans, Lights', 'Appliances', 'Switches, Sockets'];
+
+    if (!in_array($type, $allowedTypes) || !in_array($items, $allowedItems)) {
+      die("Invalid supplier type or items");
+    }
+
+    try {
+      $conn->begin_transaction();
+
+      $query = "SELECT Supplier_ID FROM suppliers 
+              ORDER BY CAST(SUBSTRING(Supplier_ID, 4) AS UNSIGNED) DESC 
+              LIMIT 1 FOR UPDATE";
+      $result = $conn->query($query);
+
+      $newNum = 1;
+      if ($row = $result->fetch_assoc()) {
+        $lastId = $row['Supplier_ID']; // SUP001
+        $newNum = (int) substr($lastId, 3) + 1;
+      }
+
+      $newSupplierId = 'SUP' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+      // Optional: define $actions or remove it if not needed
+      $actions = 'Active'; // or null, or handle as per your logic
+
+      $stmt = $conn->prepare("INSERT INTO suppliers 
+      (Supplier_ID, Supplier_Name, Type, Items, Orders, Spending, Actions) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+$stmt->bind_param("ssssids", $newSupplierId, $name, $type, $items, $orders, $spending, $actions);
+      // sssids: 7 variables, correct data types
+
+      $stmt->execute();
+      $conn->commit();
+      $stmt->close();
+
+      header("Location: admin_dashboard.php?page=suppliers#purchase");
+
+    } catch (Exception $e) {
+      $conn->rollback();
+      error_log("Supplier insert error: " . $e->getMessage());
+      echo "Error adding supplier.";
+    }
+
+  } else {
+    echo "Invalid action.";
+  }
+
+} else {
+  echo "Invalid request.";
+}
+?>
+
+
 <style>
   .tab-nav {
     background-color: #f8f9fa;
@@ -125,133 +252,127 @@
     <a href="#suppliers" onclick="showTab('suppliers')">Suppliers</a>
   </div>
   <div>
-    <input type="text" placeholder="Search..." class="form-control d-inline-block w-auto me-2" id = "searchInput">
-    <button class="btn btn-outline-secondary me-2"><i class="bi bi-funnel"></i></button>
-    <!-- Button to trigger the popup -->
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newOrderModal">
+    <input type="text" placeholder="Search..." class="form-control d-inline-block w-auto me-2" id="searchInput">
+    <button class="btn btn-outline-secondary me-2" id="filterBtn"><i class="bi bi-funnel"></i></button>
+    <button id="modalTriggerButton" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#purchaseModal">
       <i class="bi bi-plus-circle"></i> <span id="actionLabel">New Order</span>
     </button>
 
     <!-- Modal Structure -->
-    <div class="modal fade" id="newOrderModal" tabindex="-1" aria-labelledby="newOrderModalLabel" aria-hidden="true">
+    <div class="modal fade" id="purchaseModal" tabindex="-1" aria-labelledby="newOrderModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="newOrderModalLabel">Add New Order</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <!-- Form Fields for New Order -->
-            <form id="orderForm">
-              <div class="mb-3">
-                <label for="orderId" class="form-label">Order ID</label>
-                <input type="text" class="form-control" id="orderId" placeholder="Enter Order ID" required>
-              </div>
+          <form id="orderForm" method="POST" action="suppliers.php">
+            <div class="modal-header">
+              <h5 class="modal-title" id="newOrderModalLabel">Add New Order</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
               <div class="mb-3">
                 <label for="supplier" class="form-label">Supplier</label>
-                <input type="text" class="form-control" id="supplier" placeholder="Enter Supplier Name" required>
+                <input type="text" name="name" class="form-control" id="supplier" required>
               </div>
+
               <div class="mb-3">
                 <label for="orderDate" class="form-label">Date</label>
-                <input type="date" class="form-control" id="orderDate" required>
+                <input type="date" name="date" class="form-control" id="orderDate" required>
               </div>
+
               <div class="mb-3">
                 <label for="items" class="form-label">Items</label>
-                <input type="text" class="form-control" id="items" placeholder="Enter Items" required>
+                <input type="text" name="item" class="form-control" id="items" required>
               </div>
+
+              <div class="mb-3">
+                <label for="unit" class="form-label">Unit</label>
+                <input type="text" name="unit" class="form-control" id="unit" required>
+              </div>
+
               <div class="mb-3">
                 <label for="amount" class="form-label">Amount</label>
-                <input type="number" class="form-control" id="amount" placeholder="Enter Amount" required>
+                <input type="number" name="amount" class="form-control" id="amount" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="payment_method" class="form-label">Payment</label>
+                <select class="form-select" id="payment_method" name="payment_method" required>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Card">Card</option>
+                </select>
               </div>
               <div class="mb-3">
                 <label for="status" class="form-label">Status</label>
-                <select class="form-select" id="status" required>
+                <select class="form-select" id="status" name="status" required>
                   <option value="Received">Received</option>
                   <option value="In Transit">In Transit</option>
                   <option value="Ordered">Ordered</option>
                 </select>
               </div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary" data-bs-dismiss="modal" id="saveOrderBtn">Save Order</button>
-          </div>
+              <input type="hidden" name="whatAction" value="Purchase">
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Save Order</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
 
+
   </div>
 </div>
 
-<div id="purchase" class="tab-content">
-  <div class="table-heading">Purchase Orders</div>
-  <table class="table table-bordered" id = "supplyTable">
-    <thead class="table-light">
+<table class="table table-bordered" id="supplyTable">
+  <thead class="table-light">
+    <tr>
+      <th>Order ID</th>
+      <th>Supplier Name</th>
+      <th>Date</th>
+      <th>Item Name</th>
+      <th>Amount</th>
+      <th>Payment Method</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <?php
+    $result = $conn->query("SELECT * FROM purchase_order ORDER BY Date DESC");
+
+    if ($result && $result->num_rows > 0):
+      while ($row = $result->fetch_assoc()):
+        ?>
+        <tr>
+          <td><?= htmlspecialchars($row['Purchase_Id']) ?></td>
+          <td><?= htmlspecialchars($row['Customer_Name']) ?></td>
+          <td><?= htmlspecialchars($row['Date']) ?></td>
+          <td><?= htmlspecialchars($row['Item']) ?></td>
+          <td><?= htmlspecialchars($row['Amount']) ?></td>
+          <td><?= htmlspecialchars($row['Payment_Method']) ?></td>
+          <td><?= htmlspecialchars($row['Status']) ?></td>
+          <td>
+            <!-- Example actions -->
+            <button class="btn btn-sm btn-info">View</button>
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </td>
+        </tr>
+        <?php
+      endwhile;
+    else:
+      ?>
       <tr>
-        <th>Order ID</th>
-        <th>Supplier</th>
-        <th>Date</th>
-        <th>Items</th>
-        <th>Amount</th>
-        <th>Status</th>
-        <th>Actions</th>
+        <td colspan="8" class="text-center">No purchase orders found.</td>
       </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>PO-2025-001</td>
-        <td>Havells India Ltd.</td>
-        <td>08 Apr, 2025</td>
-        <td>Copper Wires</td>
-        <td>₹45,800</td>
-        <td><span class="badge bg-success">Received</span></td>
-        <td class="table-actions"><i class="bi bi-eye"></i><i class="bi bi-pencil"></i><i class="bi bi-printer"></i><i
-            class="bi bi-download"></i><i class="bi bi-three-dots"></i></td>
-      </tr>
-      <tr>
-        <td>PO-2025-002</td>
-        <td>Orient Electric</td>
-        <td>07 Apr, 2025</td>
-        <td>LED Panels</td>
-        <td>₹28,500</td>
-        <td><span class="badge bg-primary">In Transit</span></td>
-        <td class="table-actions"><i class="bi bi-eye"></i><i class="bi bi-pencil"></i><i class="bi bi-printer"></i><i
-            class="bi bi-download"></i><i class="bi bi-three-dots"></i></td>
-      </tr>
-      <tr>
-        <td>PO-2025-003</td>
-        <td>Polycab Wires</td>
-        <td>06 Apr, 2025</td>
-        <td>FRLSH Cables</td>
-        <td>₹65,200</td>
-        <td><span class="badge bg-warning text-dark">Ordered</span></td>
-        <td class="table-actions"><i class="bi bi-eye"></i><i class="bi bi-pencil"></i><i class="bi bi-printer"></i><i
-            class="bi bi-download"></i><i class="bi bi-three-dots"></i></td>
-      </tr>
-      <tr>
-        <td>PO-2025-004</td>
-        <td>Anchor Electricals</td>
-        <td>05 Apr, 2025</td>
-        <td>Switch Boards</td>
-        <td>₹18,400</td>
-        <td><span class="badge bg-success">Received</span></td>
-        <td class="table-actions"><i class="bi bi-eye"></i><i class="bi bi-pencil"></i><i class="bi bi-printer"></i><i
-            class="bi bi-download"></i><i class="bi bi-three-dots"></i></td>
-      </tr>
-      <tr>
-        <td>PO-2025-005</td>
-        <td>Bajaj Electricals</td>
-        <td>04 Apr, 2025</td>
-        <td>Ceiling Fans</td>
-        <td>₹35,200</td>
-        <td><span class="badge bg-primary">In Transit</span></td>
-        <td class="table-actions"><i class="bi bi-eye"></i><i class="bi bi-pencil"></i><i class="bi bi-printer"></i><i
-            class="bi bi-download"></i><i class="bi bi-three-dots"></i></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+    <?php endif; ?>
+  </tbody>
+</table>
+
 <script>
   // Search Functionality
   document.getElementById('searchInput').addEventListener('input', function () {
@@ -270,10 +391,82 @@
       row.style.display = match ? '' : 'none';
     });
   });
+  // Filter Functionality (Filter by "Ordered" status)
+  document.getElementById('filterBtn').addEventListener('click', function () {
+    const rows = document.querySelectorAll('#supplyTable tbody tr');
+    rows.forEach(row => {
+      const status = row.cells[5].textContent.trim().toLowerCase();
+      if (status === 'ordered') {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  });
 </script>
+
+<!-- Modal Structure -->
+<div class="modal fade" id="suppliersModal" tabindex="-1" aria-labelledby="addSuppliersLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addSuppliersLabel">Add New Supplier</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Form Fields for New Supplier -->
+        <form id="supplierForm" method="POST" action="suppliers.php">
+          <input type="hidden" name="whatAction" value="AddSupplier">
+
+          <div class="mb-3">
+            <label for="supplierName" class="form-label">Supplier Name</label>
+            <input type="text" class="form-control" id="supplierName" name="supplierName"
+              placeholder="Enter Supplier Name" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="type" class="form-label">Type</label>
+            <select class="form-select" id="type" name="type" required>
+              <option value="Manufacturer">Manufacturer</option>
+              <option value="Distributor">Distributor</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="items" class="form-label">Items</label>
+            <select class="form-select" id="items" name="items" required>
+              <option value="Wires, Switches">Wires, Switches</option>
+              <option value="Wires, Cables">Wires, Cables</option>
+              <option value="Fans, Lights">Fans, Lights</option>
+              <option value="Appliances">Appliances</option>
+              <option value="Switches, Sockets">Switches, Sockets</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="orders" class="form-label">Orders</label>
+            <input type="number" class="form-control" id="orders" name="orders" placeholder="Enter Orders" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="spending" class="form-label">Spending</label>
+            <input type="number" class="form-control" id="spending" name="spending" placeholder="Enter Spending"
+              required>
+          </div>
+          <input type="hidden" name="suppliers" value="AddSupplier">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="submit" class="btn btn-primary" data-bs-dismiss="modal" id="saveOrderBtn">Save Order</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div id="suppliers" class="tab-content d-none">
   <div class="table-heading">Suppliers</div>
-  <table class="table table-bordered" id ="supplyTable">
+  <table class="table table-bordered" id="supplyTable">
     <thead class="table-light">
       <tr>
         <th>ID</th>
@@ -282,64 +475,33 @@
         <th>Items</th>
         <th>Orders</th>
         <th>Spending</th>
-        <th>Rating</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>SUP001</td>
-        <td>Havells India Ltd.</td>
-        <td>Manufacturer</td>
-        <td>Wires, Switches</td>
-        <td>32</td>
-        <td>₹3,45,200</td>
-        <td>⭐ 4.8</td>
-        <td class="table-actions"><i class="bi bi-box-arrow-up-right"></i><i class="bi bi-pencil-square"></i></td>
-      </tr>
-      <tr>
-        <td>SUP002</td>
-        <td>Polycab Wires Pvt Ltd.</td>
-        <td>Manufacturer</td>
-        <td>Wires, Cables</td>
-        <td>28</td>
-        <td>₹2,85,600</td>
-        <td>⭐ 4.7</td>
-        <td class="table-actions"><i class="bi bi-box-arrow-up-right"></i><i class="bi bi-pencil-square"></i></td>
-      </tr>
-      <tr>
-        <td>SUP003</td>
-        <td>Orient Electric</td>
-        <td>Manufacturer</td>
-        <td>Fans, Lights</td>
-        <td>15</td>
-        <td>₹1,25,800</td>
-        <td>⭐ 4.5</td>
-        <td class="table-actions"><i class="bi bi-box-arrow-up-right"></i><i class="bi bi-pencil-square"></i></td>
-      </tr>
-      <tr>
-        <td>SUP004</td>
-        <td>Bajaj Electricals</td>
-        <td>Distributor</td>
-        <td>Appliances</td>
-        <td>12</td>
-        <td>₹95,400</td>
-        <td>⭐ 4.3</td>
-        <td class="table-actions"><i class="bi bi-box-arrow-up-right"></i><i class="bi bi-pencil-square"></i></td>
-      </tr>
-      <tr>
-        <td>SUP005</td>
-        <td>Anchor Electricals</td>
-        <td>Manufacturer</td>
-        <td>Switches, Sockets</td>
-        <td>18</td>
-        <td>₹1,45,200</td>
-        <td>⭐ 4.6</td>
-        <td class="table-actions"><i class="bi bi-box-arrow-up-right"></i><i class="bi bi-pencil-square"></i></td>
-      </tr>
+      <?php
+      $result = $conn->query("SELECT * FROM suppliers");
+
+      if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+          echo "<tr>
+                  <td>{$row['Supplier_ID']}</td>
+                  <td>{$row['Supplier_Name']}</td>
+                  <td>{$row['Type']}</td>
+                  <td>{$row['Items']}</td>
+                  <td>{$row['Orders']}</td>
+                  <td>{$row['Spending']}</td>
+                  <td>{$row['Actions']}</td>
+                </tr>";
+        }
+      } else {
+        echo "<tr><td colspan='7'>No suppliers found.</td></tr>";
+      }
+      ?>
     </tbody>
   </table>
 </div>
+
 <script>
   // Search Functionality
   document.getElementById('searchInput').addEventListener('input', function () {
@@ -363,8 +525,14 @@
     document.getElementById(tab).classList.remove('d-none');
     document.querySelectorAll('.tab-nav a').forEach(a => a.classList.remove('active'));
     document.querySelector('.tab-nav a[href="#' + tab + '"]').classList.add('active');
+
     document.getElementById('actionLabel').innerText = tab === 'purchase' ? 'New Order' : 'Add Supplier';
+
+    // सही तरीका - बटन का data-bs-target अपडेट करना
+    let triggerButton = document.querySelector(`[data-bs-target="#${tab !== "purchase" ? 'purchase' : 'suppliers'}Modal"]`);
+    triggerButton.setAttribute('data-bs-target', `#${tab}Modal`);
   }
+
 </script>
 
 <script>

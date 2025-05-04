@@ -29,7 +29,7 @@
 </style>
 
 <div class="main-content container my-4">
-    <h1>Factory Settings</h1>
+    <h1>Admin Settings</h1>
     <p>Configure factory operations and preferences</p>
 
     <div class="col-md-12 card p-4 shadow-sm my-4">
