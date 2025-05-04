@@ -1,5 +1,6 @@
 <?php
 session_start();
+include '../../_conn.php';
 if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSION["session_id"]))) {
     header("location:../../login.php");
     exit;
@@ -759,7 +760,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
 
 
                         <div class="justify-contnt-end">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal"><i class="fa-solid fa-plus"></i> Add Product</button>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productModal"><i
+                                    class="fa-solid fa-plus"></i> Add Product</button>
                         </div>
                     </div>
                     <table id="Table" class="table table-bordered table-hover">
@@ -809,7 +811,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                         </div>
 
                         <div class="justify-contnt-end">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#recordMovement"><i class="fa-solid fa-plus"></i> Record
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#recordMovement"><i class="fa-solid fa-plus"></i> Record
                                 Movement</button>
                         </div>
                     </div>
@@ -927,7 +930,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
             </div>
 
             <!-- Record Movement Form -->
-            <div class="modal fade" id="recordMovement" tabindex="-1" aria-labelledby="recordMovementLabel" aria-hidden="true">
+            <div class="modal fade" id="recordMovement" tabindex="-1" aria-labelledby="recordMovementLabel"
+                aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>
@@ -1009,7 +1013,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
 
 
                         <div class="justify-contnt-end">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#productionOrder"><i class="fa-solid fa-plus"></i> New Production
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#productionOrder"><i class="fa-solid fa-plus"></i> New Production
                                 Order</button>
                         </div>
                     </div>
@@ -1062,8 +1067,10 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                         </div>
 
                         <div class="d-flex gap-2 justify-contnt-end">
-                            <button class="btn btn-outline-primary"  data-bs-toggle="modal" data-bs-target="#orderMaterial"><i class="fa-solid fa-box"></i> Oreder Material</button>
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addMaterial"><i class="fa-solid fa-plus"></i> Add Material</button>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#orderMaterial"><i class="fa-solid fa-box"></i> Oreder Material</button>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addMaterial"><i
+                                    class="fa-solid fa-plus"></i> Add Material</button>
                         </div>
                     </div>
                     <table id="Table" class="table table-bordered table-hover">
@@ -1112,7 +1119,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                         </div>
 
                         <div class="justify-contnt-end">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#qualityTest"><i class="fa-regular fa-clipboard"></i> New Quality
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#qualityTest"><i
+                                    class="fa-regular fa-clipboard"></i> New Quality
                                 Test</button>
                         </div>
                     </div>
@@ -1143,8 +1151,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 </div>
             </div>
 
-             <!-- Production Order Form -->
-             <div class="modal fade" id="productionOrder" tabindex="-1" aria-labelledby="productionOrderLabel" aria-hidden="true">
+            <!-- Production Order Form -->
+            <div class="modal fade" id="productionOrder" tabindex="-1" aria-labelledby="productionOrderLabel"
+                aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>
@@ -1199,8 +1208,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 </div>
             </div>
 
-             <!-- Order Material Form -->
-             <div class="modal fade" id="orderMaterial" tabindex="-1" aria-labelledby="orderMaterialLabel" aria-hidden="true">
+            <!-- Order Material Form -->
+            <div class="modal fade" id="orderMaterial" tabindex="-1" aria-labelledby="orderMaterialLabel"
+                aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>
@@ -1235,8 +1245,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 </div>
             </div>
 
-             <!-- Add Material Form -->
-             <div class="modal fade" id="addMaterial" tabindex="-1" aria-labelledby="addMaterialLabel" aria-hidden="true">
+            <!-- Add Material Form -->
+            <div class="modal fade" id="addMaterial" tabindex="-1" aria-labelledby="addMaterialLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>
@@ -1286,8 +1296,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 </div>
             </div>
 
-             <!-- Quality Test Form -->
-             <div class="modal fade" id="qualityTest" tabindex="-1" aria-labelledby="qualityTestLabel" aria-hidden="true">
+            <!-- Quality Test Form -->
+            <div class="modal fade" id="qualityTest" tabindex="-1" aria-labelledby="qualityTestLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>
@@ -1362,7 +1372,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
 
 
                         <div class="justify-contnt-end">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addSales"><i class="fa-solid fa-cart-plus"></i> New Sales</button>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addSales"><i
+                                    class="fa-solid fa-cart-plus"></i> New Sales</button>
                         </div>
                     </div>
                     <table id="Table" class="table table-bordered table-hover">
@@ -1379,26 +1390,39 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>SL-0001</td>
-                                <td>11/04/2025</td>
-                                <td>Priya Sharma</td>
-                                <td>3</td>
-                                <td>₹8,750</td>
-                                <td>Cash</td>
-                                <td>Completed</td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-outline-primary btn-sm"><i
-                                                class="fa-regular fa-eye"></i></button>
-                                        <button class="btn btn-outline-primary btn-sm"><i
-                                                class="fa-regular fa-file-lines"></i></button>
-                                        <button class="btn btn-outline-primary btn-sm"><i
-                                                class="fa-solid fa-download"></i></button>
+                            <?php
 
-                                    </div>
-                                </td>
-                            </tr>
+                            // Fetch transactions from the database
+                            $result = $conn->query("SELECT * FROM sales ORDER BY Sales_Id DESC");
+
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo "<tr>";
+                                    echo "<td>" . htmlspecialchars($row['Sales_Id']) . "</td>";
+                                    echo "<td>" . date('d-M-Y', strtotime($row['Date'])) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['Customer_Name']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['Category']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['Item']) . "</td>";
+                                    echo "<td>₹" . number_format($row['Amount'], 2) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['Payment_Method']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                                    echo '<td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                                <!-- View button -->
+                                                <button class="btn btn-outline-primary btn-sm"><i
+                                                        class="fa-regular fa-file-lines"></i></button> <!-- Print button -->
+                                                <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                                <!-- Download button -->
+
+                                            </div>
+                                        </td>';
+                                    echo "</tr>";
+                                }
+                            } else {
+                                echo "<tr><td colspan='9' class='text-center'>No transactions found</td></tr>";
+                            }
+                            ?>
                         </tbody>
                     </table>
                 </div>
@@ -1418,8 +1442,10 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
 
 
                         <div class="d-flex gap-2 justify-contnt-end">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#requestStock"><i class="fa-solid fa-box"></i> Request Stock</button>
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addProductAtStore"><i class="fa-solid fa-cart-plus"></i> Add
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#requestStock"><i
+                                    class="fa-solid fa-box"></i> Request Stock</button>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#addProductAtStore"><i class="fa-solid fa-cart-plus"></i> Add
                                 Product</button>
                         </div>
                     </div>
@@ -1472,7 +1498,8 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
 
 
                         <div class="justify-contnt-end">
-                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCustomer"><i class="fa-regular fa-user"></i> Add Customer</button>
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCustomer"><i
+                                    class="fa-regular fa-user"></i> Add Customer</button>
                         </div>
                     </div>
                     <table id="Table" class="table table-bordered table-hover">
@@ -1484,100 +1511,117 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                                 <th>Contact</th>
                                 <th>Purchases</th>
                                 <th>Total Spent</th>
-                                <th>Last Visit</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>CUST-001</td>
-                                <td>Priya Sharma</td>
-                                <td>Retail</td>
-                                <td>9876543210</td>
-                                <td>8</td>
-                                <td>₹23,450</td>
-                                <td>11/04/2025</td>
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <button class="btn btn-outline-primary btn-sm"><i
-                                                class="fa-regular fa-eye"></i></button>
-                                        <button class="btn btn-outline-primary btn-sm"><i
-                                                class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="btn btn-outline-primary btn-sm"><i
-                                                class="fa-solid fa-cart-plus"></i></button>
+                            <?php
 
-                                    </div>
-                                </td>
-                            </tr>
+                            // Fetch transactions from the database
+                            $result = $conn->query("SELECT * FROM customer ORDER BY customer_Id DESC");
+
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo "<tr>";
+                                    echo "<td>" . htmlspecialchars($row['customer_Id']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['type']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['contact']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['purchases']) . "</td>";
+                                    echo "<td>₹" . number_format($row['total_spent'], 2) . "</td>";
+                                    echo '<td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm"><i
+                                                class="fa-regular fa-pen-to-square"></i></button> <!-- Edit button -->
+
+                                            </div>
+                                        </td>';
+                                    echo "</tr>";
+                                }
+                            } else {
+                                echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                            }
+                            ?>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-             <!-- Sales Form -->
-             <div class="modal fade" id="addSales" tabindex="-1" aria-labelledby="addSalesLabel" aria-hidden="true">
+            <!-- New Sale form -->
+            <div class="modal fade" id="newSales" tabindex="-1" aria-labelledby="newSalesLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
-                        <form>
+                        <form action="retail_store.php" method="POST">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="addSalesLabel">Add Sales</h5>
+                                <h5 class="modal-title" id="newSalesLabel">Add Sales</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
 
                             <div class="modal-body">
                                 <div class="mb-3">
-                                    <label for="salesId" class="form-label">Sales ID</label>
-                                    <input type="text" class="form-control" id="salesId">
+                                    <label for="customerName" class="form-label">Customer</label>
+                                    <input type="text" class="form-control" id="customerName" name="customerName" required>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="date" class="form-label">Date</label>
-                                    <input type="date" class="form-control" id="date">
+                                    <input type="date" class="form-control" id="date" name="date" required>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="customer" class="form-label">Customer</label>
-                                    <input type="text" class="form-control" id="customer">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="item" class="form-label">Items</label>
-                                    <input type="number" class="form-control" id="item">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="amount" class="form-label">Amount</label>
-                                    <input type="text" class="form-control" id="amount">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="method" class="form-label">Method</label>
-                                    <select class="form-select" id="method">
-                                        <option>Bank Transfer</option>
-                                        <option>Cash</option>
-                                        <option>UPI</option>
-                                        <option>Cheque</option>
-                                        <option>Card</option>
+                                    <label for="category" class="form-label">Category</label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="Wires and Cables">Wires and Cables</option>
+                                        <option value="Swithces and Sockets">Switches and Sockets</option>
+                                        <option value="Lighting">Lighting</option>
+                                        <option value="Fans">Fans</option>
+                                        <option value="MCBs and DBs">MCBs and DBs</option>
+                                        <option value="Accessories">Accessories</option>
                                     </select>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="status" class="form-label">Status</label>
-                                    <input type="text" class="form-control" id="status">
+                                    <label for="item" class="form-label">Items</label>
+                                    <input type="number" class="form-control" id="item" name="item" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="amount" class="form-label">Amount</label>
+                                    <input type="text" class="form-control" id="amount" name="amount" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="Payment_Method" class="form-label">Payment Method</label>
+                                    <select class="form-select" id="Payment_Method" name="Payment_Method" required>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="Cheque">Cheque</option>
+                                        <option value="Card">Card</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="Status" class="form-label">Status</label>
+                                    <select class="form-select" id="Status" name="Status" required>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Pending">Pending</option>
+                                    </select>
                                 </div>
                             </div>
 
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Save Sales</button>
+                                <button type="submit" class="btn btn-primary" name="whatAction" value="Sales">Add
+                                    Sales</button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
 
-             <!-- Request Stock Form -->
-             <div class="modal fade" id="requestStock" tabindex="-1" aria-labelledby="requestStockLabel" aria-hidden="true">
+            <!-- Request Stock Form -->
+            <div class="modal fade" id="requestStock" tabindex="-1" aria-labelledby="requestStockLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>
@@ -1617,8 +1661,9 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 </div>
             </div>
 
-             <!-- Add Product Form -->
-            <div class="modal fade" id="addProductAtStore" tabindex="-1" aria-labelledby="addProductAtStoreLabel" aria-hidden="true">
+            <!-- Add Product Form -->
+            <div class="modal fade" id="addProductAtStore" tabindex="-1" aria-labelledby="addProductAtStoreLabel"
+                aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form>
@@ -1668,41 +1713,53 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
                 </div>
             </div>
 
-             <!-- Add Customer Form -->
-             <div class="modal fade" id="addCustomer" tabindex="-1" aria-labelledby="addCustomerLabel" aria-hidden="true">
+            <!-- Add Customer Form -->
+            <div class="modal fade" id="addCustomer" tabindex="-1" aria-labelledby="addCustomerLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
-                        <form>
+                        <form action="retail_store.php" method="POST">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="addCustomerLabel">Add Customer</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
 
                             <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="Id" class="form-label">ID</label>
-                                    <input type="text" class="form-control" id="Id">
-                                </div>
 
                                 <div class="mb-3">
                                     <label for="name" class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="name">
+                                    <input type="text" class="form-control" id="name" name="name" required>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="type" class="form-label">Type</label>
-                                    <input type="text" class="form-control" id="type">
+                                    <select class="form-select" id="type" name="type" required>
+                                        <option value="Retail">Retail</option>
+                                        <option value="Wholesale">Wholesale</option>
+                                        <option value="Contractor">Contractor</option>
+                                    </select>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="contact" class="form-label">Contact</label>
-                                    <input type="tel" class="form-control" id="contact">
+                                    <input type="tel" class="form-control" id="contact" name="contact" required>
                                 </div>
 
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Save Customer</button>
-                            </div>
+                                <div class="mb-3">
+                                    <label for="purchases" class="form-label">Purchases</label>
+                                    <input type="number" class="form-control" id="purchases" name="purchases" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="total_spent" class="form-label">Total Spent</label>
+                                    <input type="number" class="form-control" id="total_spent" name="total_spent" required>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary" name="whatAction"
+                                        value="add_customer">Save
+                                        Customer</button>
+                                </div>
                         </form>
                     </div>
                 </div>

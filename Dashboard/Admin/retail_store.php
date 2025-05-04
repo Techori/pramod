@@ -1,3 +1,142 @@
+<?php
+include '../../_conn.php';
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+    // Clean input data function
+    function clean($input)
+    {
+        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    }
+
+    // Transaction action
+    if ($_POST['whatAction'] === 'Sales') {
+        // Collect data for transaction
+        $date = clean($_POST['date']);
+        $customerName = clean($_POST['customerName']);
+        $category = clean($_POST['category']);
+        $Item = clean($_POST['item']);
+        $amount = floatval($_POST['amount']);
+        $payment_method = clean($_POST['Payment_Method']);
+        $status = clean($_POST['Status']);
+
+        // Validate data for transaction
+        $allowedCategory = ['Wires and Cables', 'Switches and Sockets', 'Lighting', 'Fans', 'MCBs and DBs', 'Accessories'];
+        $allowedStatus = ['Completed', 'Pending'];
+        $allowedPayments = ['Bank Transfer', 'Cash', 'UPI', 'Cheque', 'Card'];
+        if (!in_array($status, $allowedStatus) || !in_array($payment_method, $allowedPayments) || !in_array($category, $allowedCategory)) {
+            header("Location: admin_dashboard.php?page=retail_store");
+            echo json_encode(["success" => false, "message" => "Invalid status, payment method or category"]);
+            exit;
+        }
+
+        // Start database transaction
+        $conn->begin_transaction();
+
+        try {
+            // Generate a new transaction ID
+            $result = $conn->query("SELECT Sales_Id FROM sales ORDER BY CAST(SUBSTRING(Sales_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+            if ($result && $row = $result->fetch_assoc()) {
+                $lastId = $row['Sales_Id']; // e.g. SL-005
+                $num = (int) substr($lastId, 4);   // get "005" → 5
+                $newNum = $num + 1;
+            } else {
+                $newNum = 1;
+            }
+
+            $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+            // Insert the transaction record
+            $stmt = $conn->prepare("INSERT INTO sales 
+                (Sales_Id, Date, Customer_Name, Item, Category, Amount, Status, payment_method) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->bind_param("sssisdss", $newSalesId, $date, $customerName, $Item, $category, $amount, $status, $payment_method);
+            $stmt->execute();
+
+            $conn->commit();
+            $stmt->close();
+
+            header("Location: admin_dashboard.php?page=retail_store");
+            exit;
+
+        } catch (Exception $e) {
+            $conn->rollback();
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Sale entry failed: " . $e->getMessage()
+            ]);
+            exit;
+        }
+
+    } else if ($_POST['whatAction'] === 'add_customer') {
+        // Collect data for transaction
+        $Name = clean($_POST['name']);
+        $type = clean($_POST['type']);
+        $contact = clean($_POST['contact']);
+        $purchases = clean($_POST['purchases']);
+        $total_spent = clean($_POST['total_spent']);
+        $current_date = date('Y-m-d');
+
+        // Validate data for transaction
+        $allowedType = ['Contractor', 'Retail', 'Wholesale'];
+        if (!in_array($type, $allowedType)) {
+            header("Location: admin_dashboard.php?page=retail_store");
+            echo json_encode(["success" => false, "message" => "Invalid type"]);
+            exit;
+        }
+
+        // Start database transaction
+        $conn->begin_transaction();
+
+        try {
+            // Generate a new transaction ID
+            $result = $conn->query("SELECT customer_Id  FROM customer ORDER BY CAST(SUBSTRING(customer_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+            if ($result && $row = $result->fetch_assoc()) {
+                $lastId = $row['customer_Id']; // e.g. SL-005
+                $num = (int) substr($lastId, 4);   // get "005" → 5
+                $newNum = $num + 1;
+            } else {
+                $newNum = 1;
+            }
+
+            $newCustomerId = 'CUST-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+            // Insert the transaction record
+            $stmt = $conn->prepare("INSERT INTO customer 
+                (customer_Id, name, type, contact, purchases, total_spent, date) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->bind_param("ssssids", $newCustomerId, $Name, $type, $contact, $purchases, $total_spent, $current_date);
+            $stmt->execute();
+
+            $conn->commit();
+            $stmt->close();
+
+            header("Location: admin_dashboard.php?page=retail_store");
+            exit;
+
+        } catch (Exception $e) {
+            $conn->rollback();
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Customer entry failed: " . $e->getMessage()
+            ]);
+            exit;
+        }
+    } else {
+        // Invalid action
+        echo json_encode(["success" => false, "message" => "Invalid action"]);
+        exit;
+    }
+
+}
+?>
+
 <style>
     .cards {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -120,11 +259,109 @@
     </div>
 
     <div class="justify-contnt-end">
-        <button class="btn btn-outline-primary" data-bs-toggle="modal"
-        data-bs-target="#newSales"><i class="fa-solid fa-cart-plus"></i> New Sales</button>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newSales"><i
+                class="fa-solid fa-cart-plus"></i> New Sales</button>
         <a href="?page=billing_desk" class="btn btn-outline-primary"><i class="fa-solid fa-file-lines"></i> Billing</a>
     </div>
 </div>
+
+<!-- To get the todays sales -->
+<?php
+
+// Get today's date in Y-m-d format
+$today = date('Y-m-d');
+
+// Prepare and execute SQL query to get today's sales summary
+$sql = "SELECT 
+    SUM(Amount) AS total_sales,
+    COUNT(*) AS total_transactions,
+    SUM(Item) AS total_items_sold
+FROM sales
+WHERE date = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $today);
+$stmt->execute();
+$result = $stmt->get_result();
+$data = $result->fetch_assoc();
+
+// Handle nulls
+$total_sales = $data['total_sales'] ?? 0;
+$total_transactions = $data['total_transactions'] ?? 0;
+$total_items_sold = $data['total_items_sold'] ?? 0;
+$stmt->close();
+
+// Format amount in ₹
+$total_sales_formatted = "₹" . number_format($total_sales, 2);
+
+// Prepare and execute SQL query to get today's customer count
+$sql = "SELECT 
+    COUNT(*) AS total_customers
+FROM customer
+WHERE date = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $today);
+$stmt->execute();
+$result = $stmt->get_result();
+$data = $result->fetch_assoc();
+
+// Handle nulls
+$total_customers = $data['total_customers'] ?? 0;
+$stmt->close();
+?>
+
+<?php
+$last_month_same_day = date('Y-m-d', strtotime('-1 month'));
+// Last month's data from 'sales' table
+$sql = "SELECT 
+    SUM(Amount) AS last_month_sales,
+    SUM(Item) AS last_month_items
+FROM sales
+WHERE date = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $last_month_same_day);
+$stmt->execute();
+$result = $stmt->get_result();
+$data = $result->fetch_assoc();
+
+$last_month_sales = $data['last_month_sales'] ?? 0;
+$last_month_items = $data['last_month_items'] ?? 0;
+$stmt->close();
+
+// Last month's customers from 'customer' table
+$sql = "SELECT 
+    COUNT(*) AS last_month_customers
+FROM customer
+WHERE date = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $last_month_same_day);
+$stmt->execute();
+$result = $stmt->get_result();
+$data = $result->fetch_assoc();
+
+$last_month_customers = $data['last_month_customers'] ?? 0;
+$stmt->close();
+
+// Calculate percentage change
+function calculateChangeInfo($todayValue, $lastMonthValue)
+{
+    if ($lastMonthValue == 0) {
+        return ['text' => 'N/A', 'positive' => true]; // Avoid divide by zero
+    }
+
+    $change = (($todayValue - $lastMonthValue) / $lastMonthValue) * 100;
+    $isPositive = $change >= 0;
+    $changeText = number_format(abs($change), 1) . '%';
+
+    return ['text' => $changeText, 'positive' => $isPositive];
+}
+
+
+$sales_info = calculateChangeInfo($total_sales, $last_month_sales);
+$customers_info = calculateChangeInfo($total_transactions, $last_month_customers);
+$items_info = calculateChangeInfo($total_items_sold, $last_month_items);
+
+
+?>
 
 <!-- Cards -->
 <div class="row">
@@ -132,8 +369,10 @@
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
             <div class="card-body">
                 <h6 class="text-muted">Today's Sales</h6>
-                <h3 class="fw-bold">₹28,450</h3> <!-- Dynamic data -->
-                <p class="text-success">+12.5% vs last month</p> <!-- Dynamic data -->
+                <h3 class="fw-bold"><?php echo $total_sales_formatted; ?></h3>
+                <p class="<?php echo $sales_info['positive'] ? 'text-success' : 'text-danger'; ?>">
+                    <?php echo ($sales_info['positive'] ? '+' : '-') . $sales_info['text']; ?> vs last month
+                </p>
             </div>
         </div>
     </div>
@@ -141,8 +380,10 @@
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
             <div class="card-body">
                 <h6 class="text-muted">Customers Today</h6>
-                <h3 class="fw-bold">32</h3> <!-- Dynamic data -->
-                <p class="text-success">+8.2% vs last month</p> <!-- Dynamic data -->
+                <h3 class="fw-bold"><?php echo $total_customers; ?></h3>
+                <p class="<?php echo $customers_info['positive'] ? 'text-success' : 'text-danger'; ?>">
+                    <?php echo ($customers_info['positive'] ? '+' : '-') . $customers_info['text']; ?> vs last month
+                </p>
             </div>
         </div>
     </div>
@@ -150,8 +391,10 @@
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
             <div class="card-body">
                 <h6 class="text-muted">Items Sold</h6>
-                <h3 class="fw-bold">85</h3> <!-- Dynamic data -->
-                <p class="text-success">+12.8% vs last month</p> <!-- Dynamic data -->
+                <h3 class="fw-bold"><?php echo $total_items_sold; ?></h3>
+                <p class="<?php echo $items_info['positive'] ? 'text-success' : 'text-danger'; ?>">
+                    <?php echo ($items_info['positive'] ? '+' : '-') . $items_info['text']; ?> vs last month
+                </p>
             </div>
         </div>
     </div>
@@ -191,7 +434,7 @@
 <div class="modal fade" id="newSales" tabindex="-1" aria-labelledby="newSalesLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form>
+            <form action="retail_store.php" method="POST">
                 <div class="modal-header">
                     <h5 class="modal-title" id="newSalesLabel">Add Sales</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -199,50 +442,60 @@
 
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="saleId" class="form-label">Sale Id</label>
-                        <input type="text" class="form-control" id="saleId">
-                    </div>
-
-                    <div class="mb-3">
                         <label for="customerName" class="form-label">Customer</label>
-                        <input type="text" class="form-control" id="customerName">
+                        <input type="text" class="form-control" id="customerName" name="customerName" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="date" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="date">
+                        <input type="date" class="form-control" id="date" name="date" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="item" class="form-label">Items</label>
-                        <input type="number" class="form-control" id="item">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Amount</label>
-                        <input type="text" class="form-control" id="amount">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="method" class="form-label">Method</label>
-                        <select class="form-select" id="method">
-                            <option>Bank Transfer</option>
-                            <option>Cash</option>
-                            <option>UPI</option>
-                            <option>Cheque</option>
-                            <option>Card</option>
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="Wires and Cables">Wires and Cables</option>
+                            <option value="Swithces and Sockets">Switches and Sockets</option>
+                            <option value="Lighting">Lighting</option>
+                            <option value="Fans">Fans</option>
+                            <option value="MCBs and DBs">MCBs and DBs</option>
+                            <option value="Accessories">Accessories</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <input type="text" class="form-control" id="status">
+                        <label for="item" class="form-label">Items</label>
+                        <input type="number" class="form-control" id="item" name="item" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="text" class="form-control" id="amount" name="amount" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="Payment_Method" class="form-label">Payment Method</label>
+                        <select class="form-select" id="Payment_Method" name="Payment_Method" required>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Card">Card</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="Status" class="form-label">Status</label>
+                        <select class="form-select" id="Status" name="Status" required>
+                            <option value="Completed">Completed</option>
+                            <option value="Pending">Pending</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Transfer Stock</button>
+                    <button type="submit" class="btn btn-primary" name="whatAction" value="Sales">Add Sales</button>
                 </div>
             </form>
         </div>
@@ -306,7 +559,8 @@
     <div class="alert-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0"><i class="fa-solid fa-circle-exclamation"></i> Low Stock Alerts</h5>
-            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#requestStock">Request Stock</button>
+            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#requestStock">Request
+                Stock</button>
         </div>
 
         <!-- Havells Wires -->
@@ -349,44 +603,44 @@
 
 <!-- Request Stock Form -->
 <div class="modal fade" id="requestStock" tabindex="-1" aria-labelledby="requestStockLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <form>
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="requestStockLabel">Request Stock</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="requestStockLabel">Request Stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
 
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="name">
-                                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name">
+                    </div>
 
-                                <div class="mb-3">
-                                    <label for="category" class="form-label">Category</label>
-                                    <input type="text" class="form-control" id="category">
-                                </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="category">
+                    </div>
 
-                                <div class="mb-3">
-                                    <label for="quantity" class="form-label">Quantity</label>
-                                    <input type="number" class="form-control" id="quantity">
-                                </div>
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="quantity">
+                    </div>
 
-                                <div class="mb-3">
-                                    <label for="location" class="form-label">Location</label>
-                                    <input type="text" class="form-control" id="location">
-                                </div>
-                            </div>
-
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Request Stock</button>
-                            </div>
-                        </form>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location">
                     </div>
                 </div>
-            </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Request Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Recent sales table -->
 <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
@@ -474,8 +728,8 @@
             </div>
 
             <div class="justify-content-end">
-                <button class="btn btn-outline-primary" data-bs-toggle="modal"
-                data-bs-target="#newSales"><i class="fa-solid fa-cart-plus"></i> New Sale</button>
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newSales"><i
+                        class="fa-solid fa-cart-plus"></i> New Sale</button>
             </div>
 
         </div>
@@ -485,6 +739,7 @@
                     <th>Sale ID</th>
                     <th>Date</th>
                     <th>Customer</th>
+                    <th>Category</th>
                     <th>Items</th>
                     <th>Amount</th>
                     <th>Payment Method</th>
@@ -493,35 +748,50 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>SL-0001</td> <!-- Dynamic data -->
-                    <td>11/04/2025</td> <!-- Dynamic data -->
-                    <td>Priya Sharma</td> <!-- Dynamic data -->
-                    <td>3</td> <!-- Dynamic data -->
-                    <td>₹8,750</td> <!-- Dynamic data -->
-                    <td>Cash</td> <!-- Dynamic data -->
-                    <td>Completed</td> <!-- Dynamic data -->
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <!-- View button -->
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-file-lines"></i></button> <!-- Print button -->
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <!-- Download button -->
 
-                        </div>
-                    </td>
-                </tr>
+                <?php
+
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM sales ORDER BY Sales_Id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['Sales_Id']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['Date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Customer_Name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Category']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Item']) . "</td>";
+                        echo "<td>₹" . number_format($row['Amount'], 2) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Payment_Method']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <!-- View button -->
+                                    <button class="btn btn-outline-primary btn-sm"><i
+                                            class="fa-regular fa-file-lines"></i></button> <!-- Print button -->
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                    <!-- Download button -->
+
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='9' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
+
         <div class="row">
             <div class="col-md-4 col-sm-12 mb-2">
                 <div class="card stat-card cards shadow-sm">
                     <div class="card-body">
                         <h5 class="text-muted"><i class="fa-regular fa-credit-card"></i> Today's Sales</h5>
-                        <p>₹23,070</p> <!-- Dynamic data -->
-                        <p>8 transactions</p> <!-- Dynamic data -->
+                        <p><?php echo $total_sales_formatted; ?></p>
+                        <p><?php echo $total_transactions; ?> transactions</p>
                     </div>
                 </div>
             </div>
@@ -529,8 +799,8 @@
                 <div class="card stat-card cards shadow-sm">
                     <div class="card-body">
                         <h5 class="text-muted"><i class="fa-solid fa-box"></i> Items Sold (Today)</h5>
-                        <p>25</p> <!-- Dynamic data -->
-                        <p>Across 8 categories</p> <!-- Dynamic data -->
+                        <p><?php echo $total_items_sold; ?></p>
+                        <p>Across 6 categories</p>
                     </div>
                 </div>
             </div>
@@ -538,7 +808,7 @@
                 <div class="card stat-card cards shadow-sm">
                     <div class="card-body">
                         <h5 class="text-muted"><i class="fa-regular fa-user"></i> New Customers</h5>
-                        <p>3</p> <!-- Dynamic data -->
+                        <p><?php echo $total_customers; ?></p>
                         <p>Today</p>
                     </div>
                 </div>
@@ -559,8 +829,10 @@
             </div>
 
             <div class="justify-content-end">
-                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#requestStock"><i class="fa-solid fa-box"></i> Request Stock</button>
-                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addProductAtStore"><i class="fa-solid fa-plus"></i> Add Product</button>
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#requestStock"><i
+                        class="fa-solid fa-box"></i> Request Stock</button>
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addProductAtStore"><i
+                        class="fa-solid fa-plus"></i> Add Product</button>
             </div>
 
         </div>
@@ -613,7 +885,8 @@
             </div>
 
             <div class="justify-content-end">
-                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCustomer"><i class="fa-regular fa-user"></i> Add Customer</button>
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCustomer"><i
+                        class="fa-regular fa-user"></i> Add Customer</button>
             </div>
 
         </div>
@@ -626,137 +899,207 @@
                     <th>Contact</th>
                     <th>Purchases</th>
                     <th>Total Spent</th>
-                    <th>Last Visit</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>CUST-001</td> <!-- Dynamic data -->
-                    <td>Priya Sharma</td> <!-- Dynamic data -->
-                    <td>Retail</td> <!-- Dynamic data -->
-                    <td>9876543210</td> <!-- Dynamic data -->
-                    <td>8</td> <!-- Dynamic data -->
-                    <td>₹23,450</td> <!-- Dynamic data -->
-                    <td>11/04/2025</td> <!-- Dynamic data -->
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <!-- View button -->
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button> <!-- Edit button -->
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-solid fa-cart-plus"></i></button> <!-- New Sale button -->
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM customer ORDER BY customer_Id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['customer_Id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['type']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['contact']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['purchases']) . "</td>";
+                        echo "<td>₹" . number_format($row['total_spent'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i
+                                    class="fa-regular fa-pen-to-square"></i></button> <!-- Edit button -->
+
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
 
     <!-- Add Product Form -->
-    <div class="modal fade" id="addProductAtStore" tabindex="-1" aria-labelledby="addProductAtStoreLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <form>
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="addProductAtStoreLabel">Add Product</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="productId" class="form-label">Product ID</label>
-                                    <input type="text" class="form-control" id="productId">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="name">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="category" class="form-label">Category</label>
-                                    <input type="text" class="form-control" id="category">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="stock" class="form-label">Stock</label>
-                                    <input type="number" class="form-control" id="stock">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="price" class="form-label">Price</label>
-                                    <input type="text" class="form-control" id="price">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="location" class="form-label">Location</label>
-                                    <input type="text" class="form-control" id="location">
-                                </div>
-                            </div>
-
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Add Product</button>
-                            </div>
-                        </form>
+    <div class="modal fade" id="addProductAtStore" tabindex="-1" aria-labelledby="addProductAtStoreLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form>
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addProductAtStoreLabel">Add Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                </div>
-            </div>
 
-            <!-- Add Customer Form -->
-            <div class="modal fade" id="addCustomer" tabindex="-1" aria-labelledby="addCustomerLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <form>
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="addCustomerLabel">Add Customer</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="productId" class="form-label">Product ID</label>
+                            <input type="text" class="form-control" id="productId">
+                        </div>
 
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <label for="Id" class="form-label">ID</label>
-                                    <input type="text" class="form-control" id="Id">
-                                </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name">
+                        </div>
 
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="name">
-                                </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="category">
+                        </div>
 
-                                <div class="mb-3">
-                                    <label for="type" class="form-label">Type</label>
-                                    <input type="text" class="form-control" id="type">
-                                </div>
+                        <div class="mb-3">
+                            <label for="stock" class="form-label">Stock</label>
+                            <input type="number" class="form-control" id="stock">
+                        </div>
 
-                                <div class="mb-3">
-                                    <label for="contact" class="form-label">Contact</label>
-                                    <input type="tel" class="form-control" id="contact">
-                                </div>
+                        <div class="mb-3">
+                            <label for="price" class="form-label">Price</label>
+                            <input type="text" class="form-control" id="price">
+                        </div>
 
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Save Customer</button>
-                            </div>
-                        </form>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location">
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Product</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Customer Form -->
+    <div class="modal fade" id="addCustomer" tabindex="-1" aria-labelledby="addCustomerLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="retail_store.php" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addCustomerLabel">Add Customer</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="type" class="form-label">Type</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="Retail">Retail</option>
+                                <option value="Wholesale">Wholesale</option>
+                                <option value="Contractor">Contractor</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="contact" class="form-label">Contact</label>
+                            <input type="tel" class="form-control" id="contact" name="contact" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="purchases" class="form-label">Purchases</label>
+                            <input type="number" class="form-control" id="purchases" name="purchases" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="total_spent" class="form-label">Total Spent</label>
+                            <input type="number" class="form-control" id="total_spent" name="total_spent" required>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" name="whatAction" value="add_customer">Save
+                                Customer</button>
+                        </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- To get data for bar chart -->
+    <?php
+
+    // Get sales for the last 7 days
+    $query = "
+    SELECT 
+    DATE(Date) as sale_date, 
+    SUM(Amount) as total_sales 
+    FROM sales 
+    WHERE date >= CURDATE() - INTERVAL 6 DAY
+    GROUP BY sale_date 
+    ORDER BY sale_date ASC";
+
+    $result = $conn->query($query);
+
+    $labels = [];
+    $sales = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $date = date("d-M (D)", strtotime($row['sale_date'])); // e.g., 01-May (Wed)
+        $labels[] = $date;
+        $sales[] = $row['total_sales'];
+    }
+    ?>
+
+    <!-- To get data for pie chart -->
+    <?php
+
+    // Define category list
+    $categories = ['Fans', 'Lighting', 'Wires and Cables', 'Switches and Sockets', 'MCBs and DBs', 'Accessories'];
+
+    // Initialize array to store sales for each category
+    $sales = array_fill(0, count($categories), 0);
+
+    // Fetch total sales per category in last 7 days
+    $query = "
+    SELECT category, SUM(amount) AS total_sales 
+    FROM sales 
+    WHERE date >= CURDATE() - INTERVAL 6 DAY 
+    GROUP BY category";
+
+    $result = $conn->query($query);
+
+    // Map results to predefined categories
+    while ($row = $result->fetch_assoc()) {
+        $index = array_search($row['category'], $categories);
+        if ($index !== false) {
+            $sales[$index] = $row['total_sales'];
+        }
+    }
+    ?>
+
+
     <script>
         // Bar Chart
         const barCtx = document.getElementById('barChart').getContext('2d');
         new Chart(barCtx, {
             type: 'bar',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: <?php echo json_encode($labels); ?>,
                 datasets: [{
                     label: 'Revenue',
-                    data: [12500, 9800, 15200, 11300, 18400, 25600, 16800],
+                    data: <?php echo json_encode($sales); ?>,
                     backgroundColor: '#0d6efd',
                     borderColor: '#0d6efd',
                     borderWidth: 1,
@@ -785,9 +1128,9 @@
         new Chart(pieCtx, {
             type: 'pie',
             data: {
-                labels: ['Wires & Cables', 'Switches & Sockets', 'Lighting', 'Fans', 'MCBs & DBs', 'Accessories'],
+                labels: <?php echo json_encode($categories); ?>,
                 datasets: [{
-                    data: [21, 16, 25, 19, 11, 9],
+                    data: <?php echo json_encode($sales); ?>,
                     backgroundColor: [
                         '#0d6efd',  // Blue (Wires & Cables)
                         '#20c997',  // Green (Switches & Sockets)
