@@ -23,8 +23,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $allowedStatus = ['Completed', 'Pending'];
         $allowedPayments = ['Bank Transfer', 'Cash', 'UPI', 'Cheque', 'Card'];
         if (!in_array($status, $allowedStatus) || !in_array($payment_method, $allowedPayments)) {
-            echo json_encode(["success" => false, "message" => "Invalid status or payment method"]);
             header("Location: admin_dashboard.php?page=accounting");
+            echo json_encode(["success" => false, "message" => "Invalid status or payment method"]);
             exit;
         }
 
@@ -116,9 +116,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         exit;
     }
 
-} else {
-    // Invalid request method or missing 'whatAction'
-    echo json_encode(["success" => false, "message" => "Invalid request"]);
 }
 ?>
 
@@ -280,7 +277,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form action="accounting.php" method="POST">
+            <form action="admin_dashboard.php?page=accounting" method="POST">
                 <div class="modal-header">
                     <h5 class="modal-title" id="recordTransactionLabel">Record Transaction</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
