@@ -86,6 +86,43 @@ CREATE TABLE `expenses` (
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `factory_stock` (
+  `stock_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `item_name` VARCHAR(100) NOT NULL,
+  `category` VARCHAR(50) NOT NULL,
+  `quantity` INT NOT NULL,
+  `value` DECIMAL(10,2) NOT NULL,
+  `status` VARCHAR(20) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+INSERT INTO factory_stock (item_name, category, quantity, value, status, record_date) VALUES 
+('Copper Wire 1.5mm', 'Raw Materials', 450, 115200.00, 'In Stock', '2025-05-01'),
+('PVC Conduit Pipes', 'Components', 325, 45500.00, 'In Stock', '2025-04-15'),
+('Circuit Breakers 16A', 'Finished Goods', 279, 98000.00, 'In Stock', '2025-03-10'),
+('LED Bulbs 9W', 'Finished Goods', 620, 62000.00, 'In Stock', '2025-02-20'),
+('sample item', 'sample category', 0, 0.00, 'Out of Stock', '2025-05-02'),
+('Terminal Blocks', 'Components', 84, 8500.00, 'Low Stock', '2025-01-05');
+
+
+CREATE TABLE factory_orders (
+  order_id INT AUTO_INCREMENT PRIMARY KEY,
+  order_code VARCHAR(20) UNIQUE,
+  item VARCHAR(255) NOT NULL,
+  quantity VARCHAR(50) NOT NULL,
+  supplier VARCHAR(255) NOT NULL,
+  delivery_date DATE NOT NULL,
+  status ENUM('Ordered', 'In Transit', 'Delivered') DEFAULT 'Ordered'
+);
+
+INSERT INTO factory_orders (order_code, item, quantity, supplier, delivery_date, status) VALUES
+('SUP-2025-001', 'Copper Wire 2.5mm', '2000 kg', 'Hindalco Industries', '2025-04-08', 'Delivered'),
+('SUP-2025-002', 'PVC Insulation', '1500 kg', 'Polycab Ltd', '2025-04-10', 'In Transit'),
+('SUP-2025-003', 'Aluminum Wire', '3000 kg', 'Sterlite Technologies', '2025-04-12', 'Ordered'),
+('SUP-2025-004', 'Packaging Material', '500 units', 'Packaging Solutions', '2025-04-05', 'Delivered'),
+('SUP-2025-005', 'Machine Parts', '24 units', 'Industrial Machines Ltd', '2025-04-11', 'In Transit');
+
+
+
+
 
 COMMIT;
 
