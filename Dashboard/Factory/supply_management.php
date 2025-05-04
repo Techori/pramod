@@ -1,3 +1,31 @@
+<?php
+$conn = new mysqli("localhost", "root", "", "unnati-wires");
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+// Count stats
+$pending = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='Ordered'")->fetch_assoc()['count'];
+$in_transit = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='In Transit'")->fetch_assoc()['count'];
+$delivered = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='Delivered'")->fetch_assoc()['count'];
+$suppliers = $conn->query("SELECT COUNT(DISTINCT supplier) as count FROM factory_orders")->fetch_assoc()['count'];
+?>
+<?php
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $item = $_POST['orderItem'];
+    $quantity = $_POST['orderQuantity'];
+    $supplier = $_POST['orderSupplier'];
+    $delivery = $_POST['orderDelivery'];
+    $latest_code = $conn->query("SELECT order_code FROM factory_orders ORDER BY order_id DESC LIMIT 1")->fetch_assoc();
+    $new_code = 'SUP-2025-' . str_pad((intval(substr($latest_code['order_code'], 9)) + 1), 3, '0', STR_PAD_LEFT);
+
+    $stmt = $conn->prepare("INSERT INTO factory_orders (order_code, item, quantity, supplier, delivery_date, status) VALUES (?, ?, ?, ?, ?, 'Ordered')");
+    $stmt->bind_param("sssss", $new_code, $item, $quantity, $supplier, $delivery);
+    $stmt->execute();
+    header("Location: supply_management.php");
+}
+?>
+    
 <style>
     .tab-nav {
         background-color: #f8f9fa;
@@ -107,35 +135,36 @@
         </div>
 
         <div class="row mb-5 g-3">
-            <div class="col-md-3">
-                <div class="card text-center p-3">
-                    <div class="fs-1 mb-2"><i class="fa-regular fa-hourglass-half"></i></div>
-                    <h5 class="mb-0">Pending Orders</h5>
-                    <h3 class="fw-bold">12</h3>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center p-3">
-                    <div class="fs-1 mb-2"><i class="fa-solid fa-truck-arrow-right"></i></div>
-                    <h5 class="mb-0">In Transit</h5>
-                    <h3 class="fw-bold">8</h3>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center p-3">
-                    <div class="fs-1 mb-2"><i class="fa-solid fa-check"></i></div>
-                    <h5 class="mb-0">Delivered This Month</h5>
-                    <h3 class="fw-bold">34</h3>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center p-3">
-                    <div class="fs-1 mb-2"><i class="fa-brands fa-creative-commons-by"></i></div>
-                    <h5 class="mb-0">Active Suppliers</h5>
-                    <h3 class="fw-bold">16</h3>
-                </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <div class="fs-1 mb-2"><i class="fa-regular fa-hourglass-half"></i></div>
+                <h5 class="mb-0">Pending Orders</h5>
+                <h3 class="fw-bold"><?= $pending ?></h3>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <div class="fs-1 mb-2"><i class="fa-solid fa-truck-arrow-right"></i></div>
+                <h5 class="mb-0">In Transit</h5>
+                <h3 class="fw-bold"><?= $in_transit ?></h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <div class="fs-1 mb-2"><i class="fa-solid fa-check"></i></div>
+                <h5 class="mb-0">Delivered This Month</h5>
+                <h3 class="fw-bold"><?= $delivered ?></h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <div class="fs-1 mb-2"><i class="fa-brands fa-creative-commons-by"></i></div>
+                <h5 class="mb-0">Active Suppliers</h5>
+                <h3 class="fw-bold"><?= $suppliers ?></h3>
+            </div>
+        </div>
+    </div>
+
 
         <!-- Recent Supply Orders -->
         <div class="d-flex justify-content-between align-items-center mb-3">
