@@ -459,10 +459,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     </div>
 
     <?php
-    // Check if the connection is valid
-    if ($conn === false) {
-        die("ERROR: Could not connect to the database.");
-    }
 
     // Query the database to get account details
     $query = "SELECT business_account, saving_account, cash_account FROM accounts ORDER BY id DESC LIMIT 1";

@@ -10,7 +10,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $table = $data['table'];
 
         $docType = $data['document_type'];
-        $prefix = ($docType === 'with GST') ? 'INV' : 'INVWO';
+        if ($table === 'invoice') {
+            $prefix = ($docType === 'with GST') ? 'INV' : 'INVWO';
+        } else if ($table === 'quotation') {
+            $prefix = ($docType === 'with GST') ? 'QT' : 'QTWO';
+        } else if ($table === 'proforma') {
+            $prefix = ($docType === 'with GST') ? 'PI' : 'PIWO';
+        } else if ($table === 'purchase_order') {
+            $prefix = ($docType === 'with GST') ? 'PO' : 'POWO';
+        }
+
         $currentYear = date("Y");
 
         // Fetch latest invoice ID for the current document type and current or previous year
@@ -627,7 +636,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="salesReturn">Create Sales
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="sales_return">Create Sales
                     Return</button>
             </div>
 
@@ -685,7 +694,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="creditNote">Create Credit
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="credit_note">Create Credit
                     Note</button>
             </div>
 
@@ -776,25 +785,42 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>QT-2025-001</td>
-                    <td>Rajesh Electronics</td>
-                    <td>12 Apr, 2025</td>
-                    <td>12 items</td>
-                    <td>₹24,500</td>
-                    <td>Sent</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM quotation ORDER BY invoice_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['document_type']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                        echo '<td>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                    <button class="btn btn-outline-primary btn-sm"><i
+                            class="fa-regular fa-pen-to-square"></i></button>
+                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+
+                </div>
+            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -816,7 +842,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="deliveryChallan">Create
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="delivery_challan">Create
                     Delivery Challan</button>
             </div>
 
@@ -883,7 +909,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="proformaInvoice">Create
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="proforma">Create
                     Proforma Invoice</button>
             </div>
 
@@ -947,7 +973,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="automatedBill">Create
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="auto_bill">Create
                     Automated Bills</button>
             </div>
 
@@ -1005,7 +1031,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="counterPurchase">Create
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="counter_purchase">Create
                     Counter Purchases</button>
             </div>
 
@@ -1014,7 +1040,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Customer</th>
+                    <th>Vendor</th>
                     <th>Date</th>
                     <th>Items</th>
                     <th>Amount</th>
@@ -1063,7 +1089,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="paymentOut">Create Payments
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="payment_out">Create Payments
                     Out</button>
             </div>
 
@@ -1121,7 +1147,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="purchaseReturn">Create
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="purchase_return">Create
                     Purchase Returns</button>
             </div>
 
@@ -1179,7 +1205,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="debitNote">Create Debit
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="debit_note">Create Debit
                     Notes</button>
             </div>
 
@@ -1246,7 +1272,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="purchaseOrder">Create
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="purchase_order_bill">Create
                     Purchase Orders</button>
             </div>
 
@@ -1255,7 +1281,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Customer</th>
+                    <th>Vendor</th>
                     <th>Date</th>
                     <th>Due Date</th>
                     <th>Document Type</th>

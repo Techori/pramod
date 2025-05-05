@@ -156,5 +156,60 @@
         </div>
     </header>
 
+     </body>
      
 </html>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const navbarSearch = document.querySelector('.input-group input[type="search"]');
+
+    if (navbarSearch) {
+        navbarSearch.addEventListener("input", function () {
+            const searchText = navbarSearch.value.trim().toLowerCase();
+
+            // Remove old highlights
+            document.querySelectorAll("mark.navbar-search-highlight").forEach(mark => {
+                const parent = mark.parentNode;
+                parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                parent.normalize();
+            });
+
+            if (!searchText) return;
+
+            let firstMatchElement = null;
+
+            document.body.querySelectorAll("*:not(script):not(style)").forEach(el => {
+                if (el.children.length === 0 && el.textContent.toLowerCase().includes(searchText)) {
+                    const regex = new RegExp(`(${searchText})`, "i");
+                    el.innerHTML = el.textContent.replace(regex, '<mark class="navbar-search-highlight">$1</mark>');
+
+                    if (!firstMatchElement) {
+                        firstMatchElement = el;
+                    }
+                }
+            });
+
+            if (firstMatchElement) {
+                const hiddenTab = firstMatchElement.closest(".billing-tab-content");
+                if (hiddenTab && !hiddenTab.classList.contains("active")) {
+                    document.querySelectorAll(".billing-tab-content").forEach(tab => tab.classList.remove("active"));
+                    hiddenTab.classList.add("active");
+                }
+
+                setTimeout(() => {
+                    firstMatchElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 200);
+            }
+        });
+    }
+});
+</script>
+
+<style>
+mark.navbar-search-highlight {
+    background-color: yellow;
+    color: black;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+</style>
