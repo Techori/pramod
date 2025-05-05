@@ -7,13 +7,16 @@ if (session_status() === PHP_SESSION_NONE) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet"
+        crossorigin="anonymous">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="../../public/css/nav.css">
 </head>
+
 <body>
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
@@ -23,16 +26,26 @@ if (session_status() === PHP_SESSION_NONE) {
             <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
         </div>
         <nav class="nav flex-column mt-2">
-            <a href="?page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="?page=billing" class="nav-link <?php echo $page === 'billing' ? 'active' : ''; ?>"><i class="fas fa-file-invoice-dollar"></i> Billing</a>
-            <a href="?page=supply" class="nav-link <?php echo $page === 'supply' ? 'active' : ''; ?>"><i class="fas fa-boxes"></i> Supply</a>
-            <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : ''; ?>"><i class="fas fa-warehouse"></i> Inventory</a>
-            <a href="?page=customers" class="nav-link <?php echo $page === 'customers' ? 'active' : ''; ?>"><i class="fas fa-users"></i> Customers</a>
-            <a href="?page=orders" class="nav-link <?php echo $page === 'orders' ? 'active' : ''; ?>"><i class="fas fa-shopping-cart"></i> Orders</a>
-            <a href="?page=payments" class="nav-link <?php echo $page === 'payments' ? 'active' : ''; ?>"><i class="fas fa-wallet"></i> Payments</a>
-            <a href="?page=after_service" class="nav-link <?php echo $page === 'after_service' ? 'active' : ''; ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
-            <a href="?page=reports" class="nav-link <?php echo $page === 'reports' ? 'active' : ''; ?>"><i class="fas fa-chart-bar"></i> Reports</a>
-            <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : ''; ?>"><i class="fas fa-cog"></i> Settings</a>
+            <a href="?page=dashboard" class="nav-link <?php echo $page === 'dashboard' ? 'active' : ''; ?>"><i
+                    class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="?page=billing" class="nav-link <?php echo $page === 'billing' ? 'active' : ''; ?>"><i
+                    class="fas fa-file-invoice-dollar"></i> Billing</a>
+            <a href="?page=supply" class="nav-link <?php echo $page === 'supply' ? 'active' : ''; ?>"><i
+                    class="fas fa-boxes"></i> Supply</a>
+            <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : ''; ?>"><i
+                    class="fas fa-warehouse"></i> Inventory</a>
+            <a href="?page=customers" class="nav-link <?php echo $page === 'customers' ? 'active' : ''; ?>"><i
+                    class="fas fa-users"></i> Customers</a>
+            <a href="?page=orders" class="nav-link <?php echo $page === 'orders' ? 'active' : ''; ?>"><i
+                    class="fas fa-shopping-cart"></i> Orders</a>
+            <a href="?page=payments" class="nav-link <?php echo $page === 'payments' ? 'active' : ''; ?>"><i
+                    class="fas fa-wallet"></i> Payments</a>
+            <a href="?page=after_service" class="nav-link <?php echo $page === 'after_service' ? 'active' : ''; ?>"><i
+                    class="fas fa-headset"></i> After-Sales Service</a>
+            <a href="?page=reports" class="nav-link <?php echo $page === 'reports' ? 'active' : ''; ?>"><i
+                    class="fas fa-chart-bar"></i> Reports</a>
+            <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : ''; ?>"><i
+                    class="fas fa-cog"></i> Settings</a>
         </nav>
         <div class="footer">© 2025 Unnati Traders</div>
     </div>
@@ -44,12 +57,14 @@ if (session_status() === PHP_SESSION_NONE) {
     <header class="header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
             <button class="hamburger me-3" id="hamburger"><i class="fas fa-bars"></i></button>
-            <h5 class="mb-0 fw-bold">Hey! <?php echo isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']) : 'Store Manager'; ?></h5>
+            <h5 class="mb-0 fw-bold">Hey!
+                <?php echo isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']) : 'Store Manager'; ?></h5>
         </div>
         <form class="d-flex" role="search" method="GET" action="search.php">
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                <input class="form-control border-start-0" type="search" placeholder="Search orders, products, or customers..." aria-label="Search">
+                <input class="form-control border-start-0" type="search"
+                    placeholder="Search orders, products, or invoices..." aria-label="Search">
             </div>
         </form>
         <div class="d-flex align-items-center">
@@ -89,14 +104,15 @@ if (session_status() === PHP_SESSION_NONE) {
                     });
 
                     if (count($unread) > 0):
-                    ?>
+                        ?>
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                             <?php echo count($unread); ?>
                             <span class="visually-hidden">unread notifications</span>
                         </span>
                     <?php endif; ?>
                 </button>
-                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0"
+                    style="width: 320px; max-height: 400px; overflow-y: auto;">
                     <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Notifications</h6>
                         <?php if (count($unread) > 0): ?>
@@ -105,18 +121,23 @@ if (session_status() === PHP_SESSION_NONE) {
                     </div>
                     <div class="notifications-list">
                         <?php foreach ($notifications as $notification): ?>
-                            <div class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
+                            <div
+                                class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
                                 <div class="d-flex align-items-center">
                                     <div class="flex-shrink-0">
                                         <span class="fa-stack fa-sm">
-                                            <i class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
-                                            <i class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
+                                            <i
+                                                class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
+                                            <i
+                                                class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
                                         </span>
                                     </div>
                                     <div class="flex-grow-1 ms-2">
-                                        <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?></h6>
+                                        <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?>
+                                        </h6>
                                         <p class="mb-0 small"><?php echo htmlspecialchars($notification['message']); ?></p>
-                                        <small class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
+                                        <small
+                                            class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
                                     </div>
                                     <?php if (!$notification['read']): ?>
                                         <div class="flex-shrink-0 ms-2">
@@ -133,7 +154,8 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
             </div>
             <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-user-circle"></i></button>
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i
+                        class="fas fa-user-circle"></i></button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <small class="text-muted text-center d-block" style="font-size: 0.8rem;">
                         <?php echo isset($_SESSION['user_email']) ? htmlspecialchars($_SESSION['user_email']) : 'store@unnati.com'; ?>
@@ -148,4 +170,59 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
     </header>
 </body>
+
 </html>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const navbarSearch = document.querySelector('.input-group input[type="search"]');
+
+        if (navbarSearch) {
+            navbarSearch.addEventListener("input", function () {
+                const searchText = navbarSearch.value.trim().toLowerCase();
+
+                // Remove old highlights
+                document.querySelectorAll("mark.navbar-search-highlight").forEach(mark => {
+                    const parent = mark.parentNode;
+                    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                    parent.normalize();
+                });
+
+                if (!searchText) return;
+
+                let firstMatchElement = null;
+
+                document.body.querySelectorAll("*:not(script):not(style)").forEach(el => {
+                    if (el.children.length === 0 && el.textContent.toLowerCase().includes(searchText)) {
+                        const regex = new RegExp(`(${searchText})`, "i");
+                        el.innerHTML = el.textContent.replace(regex, '<mark class="navbar-search-highlight">$1</mark>');
+
+                        if (!firstMatchElement) {
+                            firstMatchElement = el;
+                        }
+                    }
+                });
+
+                if (firstMatchElement) {
+                    const hiddenTab = firstMatchElement.closest(".billing-tab-content");
+                    if (hiddenTab && !hiddenTab.classList.contains("active")) {
+                        document.querySelectorAll(".billing-tab-content").forEach(tab => tab.classList.remove("active"));
+                        hiddenTab.classList.add("active");
+                    }
+
+                    setTimeout(() => {
+                        firstMatchElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }, 200);
+                }
+            });
+        }
+    });
+</script>
+
+<style>
+    mark.navbar-search-highlight {
+        background-color: yellow;
+        color: black;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+</style>

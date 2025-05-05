@@ -93,11 +93,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         try {
             // Generate a new transaction ID
-            $result = $conn->query("SELECT customer_Id  FROM customer ORDER BY CAST(SUBSTRING(customer_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+            $result = $conn->query("SELECT customer_Id FROM customer ORDER BY CAST(SUBSTRING(customer_Id, 6) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
             if ($result && $row = $result->fetch_assoc()) {
                 $lastId = $row['customer_Id']; // e.g. SL-005
-                $num = (int) substr($lastId, 4);   // get "005" → 5
+                $num = (int) substr($lastId, 5);   // get "005" → 5
                 $newNum = $num + 1;
             } else {
                 $newNum = 1;
@@ -242,6 +242,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         border: 1px solid #ddd;
         text-align: left;
     }
+
+    mark.search-highlight {
+        background-color: yellow;
+        color: black;
+        padding: 0;
+        border-radius: 2px;
+    }
 </style>
 
 <h1>Retail Store Dashboard</h1>
@@ -254,8 +261,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     <div class="d-flex justify-content-start">
         <div class="input-group w-100 me-2">
             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+            <input type="text" id="globalSearch" class="form-control border-start-0"
+                placeholder="Search this page..." />
         </div>
+
     </div>
 
     <div class="justify-contnt-end">
@@ -264,6 +273,47 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         <a href="?page=billing_desk" class="btn btn-outline-primary"><i class="fa-solid fa-file-lines"></i> Billing</a>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById("globalSearch");
+
+        searchInput.addEventListener("input", function () {
+            // Remove previous highlights
+            document.querySelectorAll("mark.search-highlight").forEach(el => {
+                const parent = el.parentNode;
+                parent.replaceChild(document.createTextNode(el.textContent), el);
+                parent.normalize(); // Combine adjacent text nodes
+            });
+
+            const query = searchInput.value.trim().toLowerCase();
+            if (!query) return;
+
+            const allElements = document.body.querySelectorAll("*:not(script):not(style)");
+
+            let firstMatch = null;
+
+            allElements.forEach(el => {
+                if (el.children.length === 0 && el.textContent.toLowerCase().includes(query)) {
+                    const regex = new RegExp(`(${query})`, "i");
+                    const newHTML = el.textContent.replace(regex, '<mark class="search-highlight">$1</mark>');
+                    el.innerHTML = newHTML;
+
+                    if (!firstMatch) firstMatch = el;
+                }
+            });
+
+            if (firstMatch) {
+                setTimeout(() => {
+                    firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 100);
+            }
+        });
+    });
+</script>
+
+
+
 
 <!-- To get the todays sales -->
 <?php
@@ -613,6 +663,11 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
 
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label for="request_to" class="form-label">Request to</label>
+                        <input type="text" class="form-control" id="request_to">
+                    </div>
+
+                    <div class="mb-3">
                         <label for="name" class="form-label">Name</label>
                         <input type="text" class="form-control" id="name">
                     </div>
@@ -655,7 +710,8 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             <div class="justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="recent_sales_table"
+                        placeholder="Search..." />
                 </div>
             </div>
 
@@ -665,7 +721,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="recent_sales_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>Invoice</th>
@@ -722,9 +778,15 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             <div class="d-flex justify-content-start">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="sales_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
+                <button class="btn btn-outline-primary status-filter me-2" data-type="Completed"
+                    data-table="sales_table">Completed</button>
+                <button class="btn btn-outline-primary status-filter me-2" data-type="Pending"
+                    data-table="sales_table">Pending</button>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="sales_table">Remove
+                    Filters</button>
             </div>
 
             <div class="justify-content-end">
@@ -733,7 +795,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="sales_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>Sale ID</th>
@@ -823,9 +885,9 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             <div class="d-flex justify-content-start">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="inventory_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i> Low Stock</button>
             </div>
 
             <div class="justify-content-end">
@@ -836,7 +898,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="inventory_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>Product ID</th>
@@ -877,11 +939,17 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             <div class="d-flex justify-content-start">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="customer_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2">All Customers</button>
-                <button class="btn btn-outline-primary me-2">Retail</button>
-                <button class="btn btn-outline-primary me-2">Wholesale</button>
+                <button class="btn btn-outline-primary customer-filter me-2" data-type="Retail"
+                    data-table="customer_table">Retail</button>
+                <button class="btn btn-outline-primary customer-filter me-2" data-type="Wholesale"
+                    data-table="customer_table">Wholesale</button>
+                <button class="btn btn-outline-primary customer-filter me-2" data-type="Contractor"
+                    data-table="customer_table">Contractor</button>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="customer_table">Remove
+                    Filters</button>
             </div>
 
             <div class="justify-content-end">
@@ -890,7 +958,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="customer_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -1036,6 +1104,74 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            // 🔍 Live Search Function
+            document.querySelectorAll(".table-search").forEach(input => {
+                input.addEventListener("input", () => {
+                    const tableId = input.dataset.table;
+                    const value = input.value.toLowerCase();
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(value) ? "" : "none";
+                    });
+                });
+            });
+
+            //  Status Filter Buttons
+            document.querySelectorAll(".status-filter").forEach(button => {
+                button.addEventListener("click", () => {
+                    const type = button.dataset.type.toLowerCase();
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const docType = row.children[7]?.innerText.trim().toLowerCase();
+                        row.style.display = docType === type ? "" : "none";
+                    });
+                });
+            });
+
+            //  Customer Filter Buttons
+            document.querySelectorAll(".customer-filter").forEach(button => {
+                button.addEventListener("click", () => {
+                    const type = button.dataset.type.toLowerCase();
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const docType = row.children[2]?.innerText.trim().toLowerCase();
+                        row.style.display = docType === type ? "" : "none";
+                    });
+                });
+            });
+
+            // ❌ Remove Filters Button
+            document.querySelectorAll(".reset-filters").forEach(button => {
+                button.addEventListener("click", () => {
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        row.style.display = "";
+                    });
+
+                    // Also clear search inputs for that table
+                    document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
+                        input.value = "";
+                    });
+                });
+            });
+
+            // ✅ Filter Helper Function
+            function filterTable(tableId, conditionFn) {
+                const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                rows.forEach(row => {
+                    row.style.display = conditionFn(row) ? "" : "none";
+                });
+            }
+        });
+    </script>
 
     <!-- To get data for bar chart -->
     <?php
