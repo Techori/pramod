@@ -90,6 +90,96 @@ $today = '2025-04-27';
     </div>
     <?php endif; ?>
 
+    <!-- Create Invoice form -->
+<div id="invoiceModal" class="modal">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <button type="button" class="btn-close" onclick="closeInvoiceModal()"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Customer:</label>
+                    <select class="form-select">
+                        <option>Select customer</option>
+                        <option>Customer A</option>
+                        <option>Customer B</option>
+                        <option>Customer C</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block">Document Type:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withGST" checked
+                            onchange="toggleGST()">
+                        <label class="form-check-label">With GST</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withoutGST"
+                            onchange="toggleGST()">
+                        <label class="form-check-label">Without GST</label>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Date:</label>
+                        <input type="date" id="invoiceDate" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Due Date:</label>
+                        <input type="date" id="dueDate" class="form-control">
+                    </div>
+                    <div class="col-md-4 gst-section">
+                        <label class="form-label">Tax Rate:</label>
+                        <select id="taxRate" class="form-select" onchange="updateTotals()">
+                            <option value="5">GST 5%</option>
+                            <option value="12">GST 12%</option>
+                            <option value="18">GST 18%</option>
+                            <option value="28">GST 28%</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered" id="itemTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Qty</th>
+                                <th>Price (₹)</th>
+                                <th>Total (₹)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes:</label>
+                    <textarea class="form-control" placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                </div>
+
+                <div class="text-end">
+                    <p>Subtotal: ₹<span id="subtotal">0.00</span></p>
+                    <p class="gst-section">GST (<span id="gstPercent">18</span>%): ₹<span id="gstAmount">0.00</span></p>
+                    <h5>Total: ₹<span id="totalAmount">0.00</span></h5>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
+                <button class="btn btn-primary">Create Invoice</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-4" id="billingTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -169,7 +259,8 @@ $today = '2025-04-27';
             <!-- Quick Actions -->
             <div class="row row-cols-1 row-cols-md-4 g-3 mb-4">
                 <div class="col">
-                    <button type="button" class="btn btn-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createInvoiceModal">
+                    <button type="button" class="btn btn-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2" onclick="openInvoiceModal(event)"
+                    id="newInvoice">
                         <i class="fas fa-file-invoice fa-2x"></i>
                         <span>Create Store Invoice</span>
                     </button>
@@ -778,4 +869,41 @@ $today = '2025-04-27';
     font-size: 0.85rem;
     padding: 4px 8px;
 }
+.modal-content {
+        border-radius: 0.5rem;
+    }
+
+    .gst-section {
+        display: block;
+    }
+
+    #itemTable input {
+        width: 100px;
+    }
+
+    .text-end {
+        text-align: right;
+    }
+
+    textarea {
+        width: 100%;
+        height: 60px;
+        margin-top: 10px;
+    }
+
+    .bill-modal {
+        position: fixed;
+        z-index: 1050;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .bill-modal-dialog {
+        margin: 5% auto;
+        max-width: 800px;
+    }
 </style>
