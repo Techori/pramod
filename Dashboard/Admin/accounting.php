@@ -75,9 +75,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         // Collect account details
         $businessAccount = clean($_POST['businessAccount']);
         $savingAccount = clean($_POST['savingAccount']);
+        $cashAccount = clean($_POST['cashAccount']);
 
         // Validate account details
-        if (!is_numeric($businessAccount) || !is_numeric($savingAccount) || $businessAccount < 0 || $savingAccount < 0) {
+        if (!is_numeric($businessAccount) || !is_numeric($savingAccount) || !is_numeric($cashAccount) || $businessAccount < 0 || $savingAccount < 0 || $cashAccount < 0) {
             echo json_encode(["success" => false, "message" => "Invalid account details. Amount must be a valid number greater than or equal to 0."]);
             exit;
         }
@@ -87,8 +88,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         try {
             // Insert account details into the database
-            $stmt = $conn->prepare("INSERT INTO accounts (business_account, saving_account) VALUES (?, ?)");
-            $stmt->bind_param("dd", $businessAccount, $savingAccount); // 'd' stands for double (decimal numbers)
+            $stmt = $conn->prepare("INSERT INTO accounts (business_account, saving_account, cash_account) VALUES (?, ?, ?)");
+            $stmt->bind_param("ddd", $businessAccount, $savingAccount, $cashAccount); // 'd' stands for double (decimal numbers)
 
             // Execute the statement
             $stmt->execute();
@@ -356,6 +357,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                         <input type="number" class="form-control" id="savingAccount" name="savingAccount" min="0"
                             required>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="cashAccount" class="form-label">Cash Account</label>
+                        <input type="number" class="form-control" id="cashAccount" name="cashAccount" min="0"
+                            required>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -458,7 +465,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     }
 
     // Query the database to get account details
-    $query = "SELECT business_account, saving_account FROM accounts ORDER BY id DESC LIMIT 1";
+    $query = "SELECT business_account, saving_account, cash_account FROM accounts ORDER BY id DESC LIMIT 1";
 
     $result = $conn->query($query);
 
@@ -472,9 +479,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $row = $result->fetch_assoc();
         $businessAccount = $row['business_account'];
         $savingAccount = $row['saving_account'];
+        $cashAccount = $row['cash_account'];
     } else {
         $businessAccount = 0;
         $savingAccount = 0;
+        $cashAccount = 0;
     }
 
     $conn->close();
@@ -488,19 +497,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             </div>
         </div>
         <div class="row">
-            <div class="col-md-6 col-sm-12 my-4">
+            <div class="col-md-4 col-sm-12 my-4">
                 <div class="card stat-card cards shadow-sm" style="background-color:rgb(147, 212, 250);">
                     <div class="card-body">
                         <h5 class="text-muted">Main Business Account</h5>
-                        <h4><?php echo number_format($businessAccount, 0, '.', ','); ?></h4>
+                        <h4>₹<?php echo number_format($businessAccount, 0, '.', ','); ?></h4>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6 col-sm-12 my-4">
+            <div class="col-md-4 col-sm-12 my-4">
                 <div class="card stat-card cards shadow-sm" style="background-color:rgb(212, 255, 233);">
                     <div class="card-body">
                         <h5 class="text-muted">Savings Account</h5>
-                        <h4><?php echo number_format($savingAccount, 0, '.', ','); ?></h4>
+                        <h4>₹<?php echo number_format($savingAccount, 0, '.', ','); ?></h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-12 my-4">
+                <div class="card stat-card cards shadow-sm" style="background-color:rgb(255, 251, 212);">
+                    <div class="card-body">
+                        <h5 class="text-muted">Cash Account</h5>
+                        <h4>₹<?php echo number_format($cashAccount, 0, '.', ','); ?></h4>
                     </div>
                 </div>
             </div>
@@ -527,10 +544,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                             <h6>GSTIN</h6>
                             <p>27AABCU9603R1ZX</p>
                         </div>
-                        <div style="flex: 1;">
-                            <h6>Next Filing Due</h6>
-                            <p>20 Apr, 2025</p> <!-- Dynamic data -->
-                        </div>
                     </div>
                 </div>
             </div>
@@ -543,10 +556,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                         <div style="flex: 1;">
                             <h6>PAN</h6>
                             <p>AABCU9603R</p>
-                        </div>
-                        <div style="flex: 1;">
-                            <h6>TDS Deducted YTD</h6>
-                            <p>₹18,450</p> <!-- Dynamic data -->
                         </div>
                     </div>
                 </div>

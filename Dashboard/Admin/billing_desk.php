@@ -1,3 +1,71 @@
+<?php
+include '../../_conn.php';
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    $whatAction = $data['whatAction'];
+
+    if ($whatAction === 'createInvoice') {
+        $table = $data['table'];
+
+        $docType = $data['document_type'];
+        $prefix = ($docType === 'with GST') ? 'INV' : 'INVWO';
+        $currentYear = date("Y");
+
+        // Fetch latest invoice ID for the current document type and current or previous year
+        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' ORDER BY invoice_id DESC LIMIT 1";
+        $result = $conn->query($query);
+
+        if ($row = $result->fetch_assoc()) {
+            $parts = explode('-', $row['invoice_id']);
+            $yearInId = $parts[1];
+            if ($yearInId === $currentYear) {
+                $lastNumber = intval($parts[2]) + 1;
+            } else {
+                $lastNumber = 1; // New year, start from 1
+            }
+        } else {
+            $lastNumber = 1;
+        }
+
+        $newInvoiceId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
+
+        // Prepare and insert
+        $stmt = $conn->prepare("INSERT INTO $table (
+            invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total,
+            item_name, description, quantity, price, total
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt->bind_param(
+            "sssssssdddsssss",
+            $newInvoiceId,
+            $data['customer_name'],
+            $data['document_type'],
+            $data['date'],
+            $data['due_date'],
+            $data['tax_rate'],
+            $data['notes'],
+            $data['subtotal'],
+            $data['GST_amount'],
+            $data['grand_total'],
+            $data['item_names'],
+            $data['descriptions'],
+            $data['quantities'],
+            $data['prices'],
+            $data['totals']
+        );
+
+        if ($stmt->execute()) {
+            echo "Invoice inserted successfully!";
+        } else {
+            echo "Error: " . $stmt->error;
+        }
+    }
+}
+?>
+
+
 <style>
     .cards {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -175,7 +243,8 @@
             Invoice</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openSalesModal(event)" id="creditNote"><i class="fa-solid fa-file-export"></i> Issue
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openSalesModal(event)"
+            id="creditNote"><i class="fa-solid fa-file-export"></i> Issue
             Credit Note</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
@@ -270,11 +339,19 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Customer:</label>
-                    <select class="form-select">
+                    <select class="form-select" id="customer" name="customer" required>
                         <option>Select customer</option>
-                        <option>Customer A</option>
-                        <option>Customer B</option>
-                        <option>Customer C</option>
+                        <?php
+
+                        // Fetch transactions from the database
+                        $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
+
+                        if ($result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
+                                echo "<option>" . $row['name'] . "</option>";
+                            }
+                        }
+                        ?>
                     </select>
                 </div>
 
@@ -295,15 +372,15 @@
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Date:</label>
-                        <input type="date" id="invoiceDate" class="form-control">
+                        <input type="date" id="invoiceDate" name="invoiceDate" class="form-control">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Due Date:</label>
-                        <input type="date" id="dueDate" class="form-control">
+                        <input type="date" id="dueDate" name="dueDate" class="form-control">
                     </div>
                     <div class="col-md-4 gst-section">
                         <label class="form-label">Tax Rate:</label>
-                        <select id="taxRate" class="form-select" onchange="updateTotals()">
+                        <select id="taxRate" class="form-select" name="taxRate" onchange="updateTotals()">
                             <option value="5">GST 5%</option>
                             <option value="12">GST 12%</option>
                             <option value="18">GST 18%</option>
@@ -331,7 +408,8 @@
 
                 <div class="mb-3">
                     <label class="form-label">Notes:</label>
-                    <textarea class="form-control" placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                    <textarea class="form-control" id="textarea" name="textarea"
+                        placeholder="Additional notes, payment terms..." rows="3"></textarea>
                 </div>
 
                 <div class="text-end">
@@ -343,7 +421,7 @@
 
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
-                <button class="btn btn-primary">Create Invoice</button>
+                <button class="btn btn-primary" onclick="collectInvoiceData()">Create Invoice</button>
             </div>
         </div>
     </div>
@@ -453,50 +531,81 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="invoice_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="with GST"
+                    data-table="invoice_table">With
+                    GST</button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="without GST"
+                    data-table="invoice_table">Without
+                    GST</button>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="invoice_table">Remove
+                    Filters</button>
+
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="newInvoice">Create New
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="invoice">Create New
                     Invoice</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="invoice_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Document Type</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>INV-2025-001</td>
-                    <td>Rajesh Electronics</td>
-                    <td>12 Apr, 2025</td>
-                    <td>12 items</td>
-                    <td>₹24,500</td>
-                    <td>Paid</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM invoice ORDER BY invoice_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['document_type']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i
+                                            class="fa-regular fa-pen-to-square"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -512,10 +621,9 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="sales_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
@@ -524,7 +632,7 @@
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="sales_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -571,18 +679,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="credit_note"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="creditNote">Create Credit Note</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="creditNote">Create Credit
+                    Note</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="credit_note" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -629,10 +737,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="quotation_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="with GST"
+                    data-table="quotation_table">With
+                    GST</button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="without GST"
+                    data-table="quotation_table">Without
+                    GST</button>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="quotation_table">Remove
+                    Filters</button>
+
             </div>
 
             <div class="justify-contnt-end">
@@ -641,15 +757,21 @@
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="quotation_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Document Type</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -688,18 +810,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="delivery_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="deliveryChallan">Create Delivery Challan</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="deliveryChallan">Create
+                    Delivery Challan</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="delivery_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -746,10 +868,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="proforma_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="with GST"
+                    data-table="proforma_table">With
+                    GST</button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="without GST"
+                    data-table="proforma_table">Without
+                    GST</button>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="proforma_table">Remove
+                    Filters</button>
+
             </div>
 
             <div class="justify-contnt-end">
@@ -758,15 +888,21 @@
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="proforma_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Document Type</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -805,18 +941,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="auto_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="automatedBill">Create Automated Bills</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="automatedBill">Create
+                    Automated Bills</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="auto_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -863,18 +999,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="counter_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="counterPurchase">Create Counter Purchases</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="counterPurchase">Create
+                    Counter Purchases</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="counter_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -921,18 +1057,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="payment_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="paymentOut">Create Payments Out</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="paymentOut">Create Payments
+                    Out</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="payment_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -979,18 +1115,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="purchase_return"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="purchaseReturn">Create Purchase Returns</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="purchaseReturn">Create
+                    Purchase Returns</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="purchase_return" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -1037,18 +1173,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="debit_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="debitNote">Create Debit Notes</button>
+                <button class="btn btn-outline-primary" onclick="openSalesModal(event)" id="debitNote">Create Debit
+                    Notes</button>
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="debit_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -1095,10 +1231,18 @@
             <div class="d-flex justify-content-center">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                    <input type="text" class="form-control border-start-0 table-search" data-table="purchase_table"
+                        placeholder="Search..." />
                 </div>
-                <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="with GST"
+                    data-table="purchase_table">With
+                    GST</button>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="without GST"
+                    data-table="purchase_table">Without
+                    GST</button>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="purchase_table">Remove
+                    Filters</button>
+
             </div>
 
             <div class="justify-contnt-end">
@@ -1107,15 +1251,21 @@
             </div>
 
         </div>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="purchase_table" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Document Type</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -1142,6 +1292,61 @@
             </tbody>
         </table>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            // 🔍 Live Search Function
+            document.querySelectorAll(".table-search").forEach(input => {
+                input.addEventListener("input", () => {
+                    const tableId = input.dataset.table;
+                    const value = input.value.toLowerCase();
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(value) ? "" : "none";
+                    });
+                });
+            });
+
+            // 🧾 GST Filter Buttons
+            document.querySelectorAll(".gst-filter").forEach(button => {
+                button.addEventListener("click", () => {
+                    const type = button.dataset.type.toLowerCase();
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const docType = row.children[4]?.innerText.trim().toLowerCase();
+                        row.style.display = docType === type ? "" : "none";
+                    });
+                });
+            });
+
+            // ❌ Remove Filters Button
+            document.querySelectorAll(".reset-filters").forEach(button => {
+                button.addEventListener("click", () => {
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        row.style.display = "";
+                    });
+
+                    // Also clear search inputs for that table
+                    document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
+                        input.value = "";
+                    });
+                });
+            });
+
+            // ✅ Filter Helper Function
+            function filterTable(tableId, conditionFn) {
+                const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                rows.forEach(row => {
+                    row.style.display = conditionFn(row) ? "" : "none";
+                });
+            }
+        });
+    </script>
 
     <script>
 
@@ -1221,10 +1426,11 @@
         // Create invoice form 
 
         // let itemIndex = 0;
+        let activeInvoiceButtonId = null;
 
         // To open form
         function openInvoiceModal(event) {
-            const clickedInvoiceButtonId = event.target.id; // To store clicked button ID
+            activeInvoiceButtonId = event.target.id; // To store clicked button ID
 
             const modal = document.getElementById('invoiceModal');
             modal.style.display = 'block';
@@ -1242,6 +1448,7 @@
             modal.classList.remove('show');
 
             document.querySelector('#itemTable tbody').innerHTML = '';
+            activeInvoiceButtonId = null;
             updateTotals();
         }
 
@@ -1311,6 +1518,61 @@
                 closeInvoiceModal();
             }
         };
+
+        function collectInvoiceData() {
+            let item_names = [], descriptions = [], quantities = [], prices = [], totals = [];
+
+            document.querySelectorAll("#itemTable tbody tr").forEach(row => {
+                item_names.push(row.children[0].querySelector("select").value);
+                descriptions.push(row.children[1].querySelector("input").value);
+                let qty = row.children[2].querySelector("input").value;
+                let price = row.children[3].querySelector("input").value;
+                quantities.push(qty);
+                prices.push(price);
+                totals.push((qty * price).toFixed(2));
+            });
+
+            const selectedRadio = document.querySelector('input[name="docType"]:checked');
+            if (!selectedRadio) {
+                alert("Please select document type (With GST / Without GST)");
+                return;
+            }
+            const document_type = selectedRadio.value;
+            const gstEnabled = document_type === 'withGST';
+
+            const data = {
+                table: activeInvoiceButtonId,
+                customer_name: document.getElementById("customer").value,
+                document_type: gstEnabled ? "with GST" : "without GST",
+                date: document.getElementById("invoiceDate").value,
+                due_date: document.getElementById("dueDate").value,
+                tax_rate: gstEnabled ? document.getElementById("taxRate").value : 0,
+                notes: document.getElementById("textarea").value,
+                subtotal: document.getElementById("subtotal").innerText,
+                GST_amount: gstEnabled ? document.getElementById("gstAmount").innerText : 0,
+                grand_total: document.getElementById("totalAmount").innerText,
+                item_names: item_names.join(","),
+                descriptions: descriptions.join(","),
+                quantities: quantities.join(","),
+                prices: prices.join(","),
+                totals: totals.join(","),
+                whatAction: "createInvoice",
+            };
+
+            fetch("billing_desk.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.text())
+                .then(msg => {
+                    activeInvoiceButtonId = null;
+                    location.reload();
+                })
+                .catch(err => alert("Error submitting invoice."));
+        }
 
         // To open sales form
         function openSalesModal(event) {
