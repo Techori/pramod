@@ -70,6 +70,82 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             echo "Error: " . $stmt->error;
         }
+    } else if ($whatAction === 'createSales') {
+        $table = $data['table'];
+
+        if ($table === 'credit_note') {
+            $prefix = 'CN';
+        } 
+        else if ($table === 'sales_return') {
+            $prefix = 'SR';
+        }
+        else if ($table === 'delivery_challan') {
+            $prefix = 'DC';
+        }
+        else if ($table === 'auto_bill') {
+            $prefix = 'AB';
+        }
+        else if ($table === 'counter_purchase') {
+            $prefix = 'CP';
+        }
+        else if ($table === 'payment_out') {
+            $prefix = 'PO';
+        }
+        else if ($table === 'purchase_return') {
+            $prefix = 'PR';
+        }
+        else if ($table === 'debit_note') {
+            $prefix = 'DN';
+        }
+
+        $currentYear = date("Y");
+
+        // Fetch latest invoice ID for the current document type and current or previous year
+        $query = "SELECT sales_return_id FROM $table WHERE sales_return_id LIKE '$prefix-%' ORDER BY sales_return_id DESC LIMIT 1";
+        $result = $conn->query($query);
+
+        if ($row = $result->fetch_assoc()) {
+            $parts = explode('-', $row['sales_return_id']);
+            $yearInId = $parts[1];
+            if ($yearInId === $currentYear) {
+                $lastNumber = intval($parts[2]) + 1;
+            } else {
+                $lastNumber = 1; // New year, start from 1
+            }
+        } else {
+            $lastNumber = 1;
+        }
+
+        $newSalesId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
+
+        // Prepare and insert
+        $stmt = $conn->prepare("INSERT INTO $table (
+            sales_return_id, customer_name, date, tax_rate, notes, subtotal, GST_amount, Grand_total,
+            item, description, quantity, price, total
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt->bind_param(
+            "sssssdddsssss",
+            $newSalesId,
+            $data['customer_name'],
+            $data['date'],
+            $data['tax_rate'],
+            $data['notes'],
+            $data['subtotal'],
+            $data['GST_amount'],
+            $data['grand_total'],
+            $data['item_names'],
+            $data['descriptions'],
+            $data['quantities'],
+            $data['prices'],
+            $data['totals']
+        );
+
+        if ($stmt->execute()) {
+            echo "Invoice inserted successfully!";
+        } else {
+            echo "Error: " . $stmt->error;
+        }
     }
 }
 ?>
@@ -448,22 +524,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Customer:</label>
-                    <select class="form-select">
+                    <select class="form-select" id="salesCustomer" name="salesCustomer" required>
                         <option>Select customer</option>
-                        <option>Customer A</option>
-                        <option>Customer B</option>
-                        <option>Customer C</option>
+                        <?php
+
+                        // Fetch transactions from the database
+                        $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
+
+                        if ($result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
+                                echo "<option>" . $row['name'] . "</option>";
+                            }
+                        }
+                        ?>
                     </select>
                 </div>
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Date:</label>
-                        <input type="date" id="invoiceDate" class="form-control">
+                        <input type="date" id="salesDate" name="salesDate" class="form-control" required>
                     </div>
                     <div class="col-md-4 gst-section">
                         <label class="form-label">Tax Rate:</label>
-                        <select id="gsttaxRate" class="form-select" onchange="calculateSalesTotals()">
+                        <select id="gsttaxRate" class="form-select" name="gsttaxRate" onchange="calculateSalesTotals()">
                             <option value="5">GST 5%</option>
                             <option value="12">GST 12%</option>
                             <option value="18">GST 18%</option>
@@ -491,7 +575,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 <div class="mb-3">
                     <label class="form-label">Notes:</label>
-                    <textarea class="form-control" placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                    <textarea class="form-control" id="salestextarea" name="salestextarea"
+                        placeholder="Additional notes, payment terms..." rows="3"></textarea>
                 </div>
 
                 <div class="text-end">
@@ -502,9 +587,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="modal-footer">
-                <button class="btn btn-secondary"
-                    onclick="document.getElementById('salesModal').style.display='none'">Cancel</button>
-                <button class="btn btn-primary">Create Invoice</button>
+                <button class="btn btn-secondary" onclick="closeSalesModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="collectSaleseData()">Create Invoice</button>
             </div>
         </div>
     </div>
@@ -602,11 +686,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         echo '<td>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i
-                                            class="fa-regular fa-pen-to-square"></i></button>
                                     <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
                                     <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-
                                 </div>
                             </td>';
                         echo "</tr>";
@@ -647,32 +728,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>ID</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>SR-2025-001</td>
-                    <td>Rajesh Electronics</td>
-                    <td>12 Apr, 2025</td>
-                    <td>12 items</td>
-                    <td>₹24,500</td>
-                    <td>Completed</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM sales_return ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -705,32 +802,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>ID</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>CN-2025-001</td>
-                    <td>Rajesh Electronics</td>
-                    <td>12 Apr, 2025</td>
-                    <td>Credit for INV-2025-001</td>
-                    <td>₹24,500</td>
-                    <td>Processed</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM credit_note ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -807,13 +920,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
                         echo '<td>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                    <button class="btn btn-outline-primary btn-sm"><i
-                            class="fa-regular fa-pen-to-square"></i></button>
-                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-
-                </div>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
             </td>';
                         echo "</tr>";
                     }
@@ -853,32 +963,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>ID</th>
                     <th>Customer</th>
                     <th>Date</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>DC-2025-001</td>
-                    <td>Rajesh Electronics</td>
-                    <td>12 Apr, 2025</td>
-                    <td>12 items</td>
-                    <td>₹24,500</td>
-                    <td>Delivered</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM delivery_challan ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -933,25 +1059,39 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>PI-2025-001</td>
-                    <td>Rajesh Electronics</td>
-                    <td>12 Apr, 2025</td>
-                    <td>12 items</td>
-                    <td>₹24,500</td>
-                    <td>Pending</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM proforma ORDER BY invoice_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['document_type']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                        echo '<td>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                    </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -982,34 +1122,50 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Tax Rate</th>
+                    <th>Items</th>
                     <th>Description</th>
-                    <th>Generation Date</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>AB-2025-001</td>
-                    <td>Monthly Subscription</td>
-                    <td>12 Apr, 2025</td>
-                    <td>Electricity Subscription</td>
-                    <td>₹24,500</td>
-                    <td>Generated</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM auto_bill ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -1042,32 +1198,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>ID</th>
                     <th>Vendor</th>
                     <th>Date</th>
+                    <th>Tax Rate</th>
                     <th>Items</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>CP-2025-001</td>
-                    <td>Rajesh Electronics</td>
-                    <td>12 Apr, 2025</td>
-                    <td>12 items</td>
-                    <td>₹24,500</td>
-                    <td>Completed</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM counter_purchase ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -1100,32 +1272,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>ID</th>
                     <th>Vendor</th>
                     <th>Date</th>
-                    <th>Reference</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Tax Rate</th>
+                    <th>Items</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>PO-2025-001</td>
-                    <td>Havells India Ltd.</td>
-                    <td>12 Apr, 2025</td>
-                    <td>Against Invoice HVL-458</td>
-                    <td>₹24,500</td>
-                    <td>Processed</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM payment_out ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -1158,32 +1346,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>ID</th>
                     <th>Vendor</th>
                     <th>Date</th>
+                    <th>Tax Rate</th>
+                    <th>Items</th>
                     <th>Description</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>PR-2025-001</td>
-                    <td>Havells India Ltd.</td>
-                    <td>12 Apr, 2025</td>
-                    <td>Damaged LED Panels</td>
-                    <td>₹24,500</td>
-                    <td>Processed</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM purchase_return ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -1216,32 +1420,48 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>ID</th>
                     <th>Vendor</th>
                     <th>Date</th>
-                    <th>Reference</th>
-                    <th>Amount</th>
-                    <th>Status</th>
+                    <th>Tax Rate</th>
+                    <th>Items</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Notes</th>
+                    <th>GST Amount</th>
+                    <th>Grand Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>DN-2025-001</td>
-                    <td>Havells India Ltd.</td>
-                    <td>12 Apr, 2025</td>
-                    <td>For PR-2025-001</td>
-                    <td>₹24,500</td>
-                    <td>Processed</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM debit_note ORDER BY sales_return_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                        echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -1272,7 +1492,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
             <div class="justify-contnt-end">
-                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)" id="purchase_order_bill">Create
+                <button class="btn btn-outline-primary" onclick="openInvoiceModal(event)"
+                    id="purchase_order_bill">Create
                     Purchase Orders</button>
             </div>
 
@@ -1296,25 +1517,39 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>PO-2025-001</td>
-                    <td>Havells India Ltd.</td>
-                    <td>12 Apr, 2025</td>
-                    <td>Copper Wires</td>
-                    <td>₹24,500</td>
-                    <td>Received</td>
-                    <td>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i
-                                    class="fa-regular fa-pen-to-square"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                            <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-ellipsis"></i></button>
+                <?php
 
-                        </div>
-                    </td>
-                </tr>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM purchase_order_bill ORDER BY invoice_id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['document_type']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                        echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                        echo '<td>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                        <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
+                                    </div>
+                                </td>';
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
             </tbody>
         </table>
     </div>
@@ -1453,6 +1688,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         // let itemIndex = 0;
         let activeInvoiceButtonId = null;
+        let activeSalesButtonId = null;
 
         // To open form
         function openInvoiceModal(event) {
@@ -1602,7 +1838,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         // To open sales form
         function openSalesModal(event) {
-            const clickedSalesButtonId = event.target.id; // To store clicked button ID
+            activeSalesButtonId = event.target.id; // To store clicked button ID
 
             document.getElementById('salesModal').style.display = 'block';
 
@@ -1616,21 +1852,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             const tbody = document.querySelector('#salesItemTable tbody');
             const row = document.createElement('tr');
             row.innerHTML = `
-            <td>
-                <select onchange="calculateSalesTotals()">
-                    <option value="">Select Product</option>
-                    <option value="Product A">Product A</option> // Dynamic data from database
-                    <option value="Product B">Product B</option> // Dynamic data from database
-                    <option value="Product C">Product C</option> // Dynamic data from database
-                </select>
-            </td>
-            <td><input type="text" placeholder="Description"></td>
-            <td><input type="number" class="qty" value="1" min="1" oninput="calculateSalesTotals()"></td>
-            <td><input type="number" class="price" value="0" min="0" oninput="calculateSalesTotals()"></td>
-            <td class="itemTotal">₹0.00</td>
-            <td><button class="btn btn-sm btn-outline-danger" onclick="deleteSalesRow(this)">Delete</button></td>
-            `;
+        <td>
+            <select onchange="calculateSalesTotals()">
+                <option value="">Select Product</option>
+                <option value="Product A">Product A</option> // Dynamic data from database
+                <option value="Product B">Product B</option> // Dynamic data from database
+                <option value="Product C">Product C</option> // Dynamic data from database
+            </select>
+        </td>
+        <td><input type="text" placeholder="Description"></td>
+        <td><input type="number" class="qty" value="1" min="1" oninput="calculateSalesTotals()"></td>
+        <td><input type="number" class="price" value="0" min="0" oninput="calculateSalesTotals()"></td>
+        <td class="itemTotal">₹0.00</td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="deleteSalesRow(this)">Delete</button></td>
+        `;
             tbody.appendChild(row);
+            calculateSalesTotals();
+        }
+
+        function closeSalesModal() {
+            document.getElementById('salesModal').style.display = 'none';
+            document.querySelector('#itemTable tbody').innerHTML = '';
+            activeSalesButtonId = null;
             calculateSalesTotals();
         }
 
@@ -1659,6 +1902,56 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             document.getElementById('gstTax').textContent = gst.toFixed(2);
             document.getElementById('grandTotal').textContent = totalWithTax.toFixed(2);
             document.getElementById('taxLabel').textContent = `${gsttaxRate}%`;
+        }
+
+        function collectSaleseData() {
+            let item_names = [],
+                descriptions = [],
+                quantities = [],
+                prices = [],
+                totals = [];
+
+            document.querySelectorAll("#salesItemTable tbody tr").forEach(row => {
+                item_names.push(row.children[0].querySelector("select").value);
+                descriptions.push(row.children[1].querySelector("input").value);
+                let qty = row.children[2].querySelector("input").value;
+                let price = row.children[3].querySelector("input").value;
+                quantities.push(qty);
+                prices.push(price);
+                totals.push((qty * price).toFixed(2));
+            });
+
+            const data = {
+                table: activeSalesButtonId,
+                customer_name: document.getElementById("salesCustomer").value,
+                date: document.getElementById("salesDate").value,
+                tax_rate: document.getElementById("taxRate").value,
+                notes: document.getElementById("salestextarea").value,
+                subtotal: document.getElementById("subtotal").innerText,
+                GST_amount: document.getElementById("gstTax").innerText,
+                grand_total: document.getElementById("grandTotal").innerText,
+                item_names: item_names.join(","),
+                descriptions: descriptions.join(","),
+                quantities: quantities.join(","),
+                prices: prices.join(","),
+                totals: totals.join(","),
+                whatAction: "createSales",
+            };
+
+            fetch("billing_desk.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+                .then(res => res.text())
+                .then(msg => {
+                    // alert(msg);
+                    activeSalesButtonId = null;
+                    location.reload();
+                })
+                .catch(err => alert("Error submitting invoice."));
         }
 
     </script>

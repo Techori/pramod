@@ -80,11 +80,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $currentYear = date("Y");
 
         // Fetch latest invoice ID for the current document type and current or previous year
-        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' ORDER BY invoice_id DESC LIMIT 1";
+        $query = "SELECT sales_return_id FROM $table WHERE sales_return_id LIKE '$prefix-%' ORDER BY sales_return_id DESC LIMIT 1";
         $result = $conn->query($query);
 
         if ($row = $result->fetch_assoc()) {
-            $parts = explode('-', $row['invoice_id']);
+            $parts = explode('-', $row['sales_return_id']);
             $yearInId = $parts[1];
             if ($yearInId === $currentYear) {
                 $lastNumber = intval($parts[2]) + 1;
@@ -129,11 +129,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $exportFormat = $data['export_format'];
         $startDate = $data['start_date'];
         $endDate = $data['end_date'];
-    
+
         // Fetch records from the database
         $query = "SELECT * FROM invoice WHERE date BETWEEN '$startDate' AND '$endDate' ORDER BY invoice_id";
         $result = $conn->query($query);
-    
+
         if ($result->num_rows > 0) {
             $rows = [];
             $headers = array_keys($result->fetch_assoc());
@@ -141,10 +141,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             while ($row = $result->fetch_assoc()) {
                 $rows[] = $row;
             }
-    
+
             // Convert data to JSON for JavaScript
             $jsonData = json_encode(['headers' => $headers, 'rows' => $rows]);
-    
+
             // Output JavaScript code that handles both CSV and PDF export
             echo "<script>
                 // Data from PHP
@@ -393,15 +393,15 @@ $types = ['All', 'Retail', 'Wholesale'];
                             <option>Select customer</option>
                             <?php
 
-                        // Fetch transactions from the database
-                        $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
+                            // Fetch transactions from the database
+                            $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
 
-                        if ($result->num_rows > 0) {
-                            while ($row = $result->fetch_assoc()) {
-                                echo "<option>" . $row['name'] . "</option>";
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo "<option>" . $row['name'] . "</option>";
+                                }
                             }
-                        }
-                        ?>
+                            ?>
                         </select>
                     </div>
 
@@ -458,12 +458,14 @@ $types = ['All', 'Retail', 'Wholesale'];
 
                     <div class="mb-3">
                         <label class="form-label">Notes:</label>
-                        <textarea class="form-control" id="textarea" name="textarea" placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                        <textarea class="form-control" id="textarea" name="textarea"
+                            placeholder="Additional notes, payment terms..." rows="3"></textarea>
                     </div>
 
                     <div class="text-end">
                         <p>Subtotal: ₹<span id="subtotal">0.00</span></p>
-                        <p class="gst-section">GST (<span id="gstPercent">18</span>%): ₹<span id="gstAmount">0.00</span></p>
+                        <p class="gst-section">GST (<span id="gstPercent">18</span>%): ₹<span id="gstAmount">0.00</span>
+                        </p>
                         <h5>Total: ₹<span id="totalAmount">0.00</span></h5>
                     </div>
                 </div>
@@ -477,106 +479,113 @@ $types = ['All', 'Retail', 'Wholesale'];
     </div>
 
     <!-- Sales Invoice Form -->
-<div class="modal" id="salesModal" style="display: none;">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content p-3">
-            <div class="modal-header">
-                <button type="button" class="btn-close"
-                    onclick="document.getElementById('salesModal').style.display='none'"></button>
-            </div>
-
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Customer:</label>
-                    <select class="form-select" id="customer" name="customer" required>
-                        <option>Select customer</option>
-                        <?php
-
-                        // Fetch transactions from the database
-                        $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
-
-                        if ($result->num_rows > 0) {
-                            while ($row = $result->fetch_assoc()) {
-                                echo "<option>" . $row['name'] . "</option>";
-                            }
-                        }
-                        ?>
-                    </select>
+    <div class="modal" id="salesModal" style="display: none;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content p-3">
+                <div class="modal-header">
+                    <button type="button" class="btn-close"
+                        onclick="document.getElementById('salesModal').style.display='none'"></button>
                 </div>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Date:</label>
-                        <input type="date" id="salesDate" name="salesDate" class="form-control" required>
-                    </div>
-                    <div class="col-md-4 gst-section">
-                        <label class="form-label">Tax Rate:</label>
-                        <select id="gsttaxRate" class="form-select" name="gsttaxRate" onchange="calculateSalesTotals()">
-                            <option value="5">GST 5%</option>
-                            <option value="12">GST 12%</option>
-                            <option value="18">GST 18%</option>
-                            <option value="28">GST 28%</option>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Customer:</label>
+                        <select class="form-select" id="salesCustomer" name="salesCustomer" required>
+                            <option>Select customer</option>
+                            <?php
+
+                            // Fetch transactions from the database
+                            $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
+
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo "<option>" . $row['name'] . "</option>";
+                                }
+                            }
+                            ?>
                         </select>
                     </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Date:</label>
+                            <input type="date" id="salesDate" name="salesDate" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 gst-section">
+                            <label class="form-label">Tax Rate:</label>
+                            <select id="gsttaxRate" class="form-select" name="gsttaxRate"
+                                onchange="calculateSalesTotals()">
+                                <option value="5">GST 5%</option>
+                                <option value="12">GST 12%</option>
+                                <option value="18">GST 18%</option>
+                                <option value="28">GST 28%</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered" id="salesItemTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Description</th>
+                                    <th>Qty</th>
+                                    <th>Price (₹)</th>
+                                    <th>Total (₹)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <button class="btn btn-sm btn-outline-primary" onclick="addSalesItem()">+ Add Item</button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes:</label>
+                        <textarea class="form-control" id="salestextarea" name="salestextarea"
+                            placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                    </div>
+
+                    <div class="text-end">
+                        <p>Subtotal: ₹<span id="subTotal">0.00</span></p>
+                        <p class="gst-section">GST (<span id="taxLabel">18%</span>): ₹<span id="gstTax">0.00</span></p>
+                        <h5>Total: ₹<span id="grandTotal">0.00</span></h5>
+                    </div>
                 </div>
 
-                <div class="table-responsive mb-3">
-                    <table class="table table-bordered" id="salesItemTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Item</th>
-                                <th>Description</th>
-                                <th>Qty</th>
-                                <th>Price (₹)</th>
-                                <th>Total (₹)</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                    <button class="btn btn-sm btn-outline-primary" onclick="addSalesItem()">+ Add Item</button>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSalesModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="collectSaleseData()">Create Invoice</button>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Notes:</label>
-                    <textarea class="form-control" id="salestextarea" name="salestextarea" placeholder="Additional notes, payment terms..." rows="3"></textarea>
-                </div>
-
-                <div class="text-end">
-                    <p>Subtotal: ₹<span id="subTotal">0.00</span></p>
-                    <p class="gst-section">GST (<span id="taxLabel">18%</span>): ₹<span id="gstTax">0.00</span></p>
-                    <h5>Total: ₹<span id="grandTotal">0.00</span></h5>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-secondary"
-                    onclick="closeSalesModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="collectSaleseData()">Create Invoice</button>
             </div>
         </div>
     </div>
-</div>
 
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-4" id="billingTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices" type="button" role="tab" aria-controls="invoices" aria-selected="true">Invoices</button>
+            <button class="nav-link active" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices"
+                type="button" role="tab" aria-controls="invoices" aria-selected="true">Invoices</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="quotations-tab" data-bs-toggle="tab" data-bs-target="#quotations" type="button" role="tab" aria-controls="quotations" aria-selected="false">Quotations</button>
+            <button class="nav-link" id="quotations-tab" data-bs-toggle="tab" data-bs-target="#quotations" type="button"
+                role="tab" aria-controls="quotations" aria-selected="false">Quotations</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="credit-notes-tab" data-bs-toggle="tab" data-bs-target="#credit-notes" type="button" role="tab" aria-controls="credit-notes" aria-selected="false">Credit Notes</button>
+            <button class="nav-link" id="credit-notes-tab" data-bs-toggle="tab" data-bs-target="#credit-notes"
+                type="button" role="tab" aria-controls="credit-notes" aria-selected="false">Credit Notes</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="sales-returns-tab" data-bs-toggle="tab" data-bs-target="#sales-returns" type="button" role="tab" aria-controls="sales-returns" aria-selected="false">Sales Returns</button>
+            <button class="nav-link" id="sales-returns-tab" data-bs-toggle="tab" data-bs-target="#sales-returns"
+                type="button" role="tab" aria-controls="sales-returns" aria-selected="false">Sales Returns</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button" role="tab" aria-controls="payments" aria-selected="false">Payments</button>
+            <button class="nav-link" id="payments-tab" data-bs-toggle="tab" data-bs-target="#payments" type="button"
+                role="tab" aria-controls="payments" aria-selected="false">Payments</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab" aria-controls="reports" aria-selected="false">Reports</button>
+            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button"
+                role="tab" aria-controls="reports" aria-selected="false">Reports</button>
         </li>
     </ul>
 
@@ -589,30 +598,29 @@ $types = ['All', 'Retail', 'Wholesale'];
                     <form method="GET" action="?page=billing" class="d-flex align-items-center gap-2">
                         <input type="hidden" name="page" value="billing">
                         <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0 table-search" data-table="invoice_table"
-                        placeholder="Search..." />
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0 table-search"
+                                data-table="invoice_table" placeholder="Search..." />
                         </div>
                     </form>
                 </div>
                 <div class="d-flex gap-2">
                     <div>
                         <button class="btn btn-outline-primary gst-filter me-2" data-type="with GST"
-                    data-table="invoice_table">With
-                    GST</button>
+                            data-table="invoice_table">With
+                            GST</button>
                     </div>
                     <div>
                         <button class="btn btn-outline-primary gst-filter me-2" data-type="without GST"
-                    data-table="invoice_table">Without
-                    GST</button>
+                            data-table="invoice_table">Without
+                            GST</button>
                     </div>
                     <div>
-                    <button class="btn btn-outline-danger reset-filters me-2" data-table="invoice_table">Remove
-                    Filters</button>
+                        <button class="btn btn-outline-danger reset-filters me-2" data-table="invoice_table">Remove
+                            Filters</button>
                     </div>
                 </div>
-                <button type="button" class="btn btn-primary btn-sm" onclick="openInvoiceModal(event)"
-                    id="invoice">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openInvoiceModal(event)" id="invoice">
                     <i class="fas fa-file-invoice me-1"></i> Create Invoice
                 </button>
             </div>
@@ -620,65 +628,66 @@ $types = ['All', 'Retail', 'Wholesale'];
             <script>
 
 
-        document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("DOMContentLoaded", () => {
 
-            // 🔍 Live Search Function
-            document.querySelectorAll(".table-search").forEach(input => {
-                input.addEventListener("input", () => {
-                    const tableId = input.dataset.table;
-                    const value = input.value.toLowerCase();
-                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-                    rows.forEach(row => {
-                        const text = row.textContent.toLowerCase();
-                        row.style.display = text.includes(value) ? "" : "none";
-                    });
-                });
-            });
-
-            // 🧾 GST Filter Buttons
-            document.querySelectorAll(".gst-filter").forEach(button => {
-                button.addEventListener("click", () => {
-                    const type = button.dataset.type.toLowerCase();
-                    const tableId = button.dataset.table;
-                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-                    rows.forEach(row => {
-                        const docType = row.children[4]?.innerText.trim().toLowerCase();
-                        row.style.display = docType === type ? "" : "none";
-                    });
-                });
-            });
-
-            // ❌ Remove Filters Button
-            document.querySelectorAll(".reset-filters").forEach(button => {
-                button.addEventListener("click", () => {
-                    const tableId = button.dataset.table;
-                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-                    rows.forEach(row => {
-                        row.style.display = "";
+                    // 🔍 Live Search Function
+                    document.querySelectorAll(".table-search").forEach(input => {
+                        input.addEventListener("input", () => {
+                            const tableId = input.dataset.table;
+                            const value = input.value.toLowerCase();
+                            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                            rows.forEach(row => {
+                                const text = row.textContent.toLowerCase();
+                                row.style.display = text.includes(value) ? "" : "none";
+                            });
+                        });
                     });
 
-                    // Also clear search inputs for that table
-                    document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
-                        input.value = "";
+                    // 🧾 GST Filter Buttons
+                    document.querySelectorAll(".gst-filter").forEach(button => {
+                        button.addEventListener("click", () => {
+                            const type = button.dataset.type.toLowerCase();
+                            const tableId = button.dataset.table;
+                            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                            rows.forEach(row => {
+                                const docType = row.children[4]?.innerText.trim().toLowerCase();
+                                row.style.display = docType === type ? "" : "none";
+                            });
+                        });
                     });
-                });
-            });
 
-            // ✅ Filter Helper Function
-            function filterTable(tableId, conditionFn) {
-                const rows = document.querySelectorAll(`#${tableId} tbody tr`);
-                rows.forEach(row => {
-                    row.style.display = conditionFn(row) ? "" : "none";
+                    // ❌ Remove Filters Button
+                    document.querySelectorAll(".reset-filters").forEach(button => {
+                        button.addEventListener("click", () => {
+                            const tableId = button.dataset.table;
+                            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                            rows.forEach(row => {
+                                row.style.display = "";
+                            });
+
+                            // Also clear search inputs for that table
+                            document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
+                                input.value = "";
+                            });
+                        });
+                    });
+
+                    // ✅ Filter Helper Function
+                    function filterTable(tableId, conditionFn) {
+                        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                        rows.forEach(row => {
+                            row.style.display = conditionFn(row) ? "" : "none";
+                        });
+                    }
                 });
-            }
-        });
-    </script>
+            </script>
 
             <!-- Quick Actions -->
             <div class="row row-cols-1 row-cols-md-4 g-3 mb-4">
                 <div class="col">
-                    <button type="button" class="btn btn-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2" onclick="openInvoiceModal(event)"
-                        id="invoice">
+                    <button type="button"
+                        class="btn btn-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2"
+                        onclick="openInvoiceModal(event)" id="invoice">
                         <i class="fas fa-file-invoice fa-2x"></i>
                         <span>Create Store Invoice</span>
                     </button>
@@ -686,7 +695,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                 <div class="col">
                     <form method="POST" action="?page=billing">
                         <input type="hidden" name="action" value="generate_receipt">
-                        <button type="submit" class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2">
+                        <button type="submit"
+                            class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2">
                             <i class="fas fa-receipt fa-2x"></i>
                             <span>Generate Receipt</span>
                         </button>
@@ -694,17 +704,19 @@ $types = ['All', 'Retail', 'Wholesale'];
                 </div>
                 <div class="col">
                     <!-- <form method="POST" action="?page=billing"> -->
-                        <!-- <input type="hidden" name="action" value="export_records"> -->
-                        <button type="button" data-bs-toggle="modal" data-bs-target="#exportRecords" class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2">
-                            <i class="fas fa-download fa-2x"></i>
-                            <span>Export Records</span>
-                        </button>
+                    <!-- <input type="hidden" name="action" value="export_records"> -->
+                    <button type="button" data-bs-toggle="modal" data-bs-target="#exportRecords"
+                        class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2">
+                        <i class="fas fa-download fa-2x"></i>
+                        <span>Export Records</span>
+                    </button>
                     <!-- </form> -->
                 </div>
                 <div class="col">
                     <form method="POST" action="?page=billing">
                         <input type="hidden" name="action" value="record_payment">
-                        <button type="submit" class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2">
+                        <button type="submit"
+                            class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2">
                             <i class="fas fa-check-circle fa-2x"></i>
                             <span>Record Payment</span>
                         </button>
@@ -719,7 +731,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                         <h5 class="mb-0">Store Invoices</h5>
                         <div class="d-flex gap-2">
                             <form action="billing.php" method="get">
-                                <button type="submit" name="loadData" value="<?php echo $loadDataValue ?>" class="btn btn-outline-primary btn-sm"><?php echo $loadDataText ?></button>
+                                <button type="submit" name="loadData" value="<?php echo $loadDataValue ?>"
+                                    class="btn btn-outline-primary btn-sm"><?php echo $loadDataText ?></button>
                             </form>
                         </div>
                     </div>
@@ -787,8 +800,7 @@ $types = ['All', 'Retail', 'Wholesale'];
         <div class="tab-pane fade" id="quotations" role="tabpanel" aria-labelledby="quotations-tab">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5>Manage Quotations</h5>
-                <button type="button" class="btn btn-primary btn-sm" onclick="openInvoiceModal(event)"
-                id="quotation">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openInvoiceModal(event)" id="quotation">
                     <i class="fas fa-plus me-1"></i> Create Quotation
                 </button>
             </div>
@@ -797,7 +809,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead>
-                            <tr>
+                                <tr>
                                     <th>ID</th>
                                     <th>Customer</th>
                                     <th>Date</th>
@@ -813,32 +825,32 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 </tr>
                             </thead>
                             <tbody>
-                            <?php
+                                <?php
 
-// Fetch transactions from the database
-$result = $conn->query("SELECT * FROM quotation ORDER BY invoice_id DESC");
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT * FROM quotation ORDER BY invoice_id DESC");
 
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        echo "<tr>";
-        echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
-        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
-        echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
-        echo "<td>" . htmlspecialchars($row['document_type']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
-        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
-        echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
-        echo "</tr>";
-    }
-} else {
-    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
-}
-?>
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<tr>";
+                                        echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                                        echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['document_type']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                                        echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                                        echo "</tr>";
+                                    }
+                                } else {
+                                    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
+                                }
+                                ?>
                             </tbody>
                         </table>
                     </div>
@@ -859,7 +871,7 @@ if ($result->num_rows > 0) {
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead>
-                            <tr>
+                                <tr>
                                     <th>ID</th>
                                     <th>Customer</th>
                                     <th>Date</th>
@@ -873,30 +885,30 @@ if ($result->num_rows > 0) {
                                 </tr>
                             </thead>
                             <tbody>
-                            <?php
+                                <?php
 
-// Fetch transactions from the database
-$result = $conn->query("SELECT * FROM credit_note ORDER BY sales_return_id DESC");
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT * FROM credit_note ORDER BY sales_return_id DESC");
 
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        echo "<tr>";
-        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
-        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
-        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
-        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
-        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
-        echo "</tr>";
-    }
-} else {
-    echo "<tr><td colspan='10' class='text-center'>No transactions found</td></tr>";
-}
-?>
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<tr>";
+                                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                                        echo "</tr>";
+                                    }
+                                } else {
+                                    echo "<tr><td colspan='10' class='text-center'>No transactions found</td></tr>";
+                                }
+                                ?>
                             </tbody>
                         </table>
                     </div>
@@ -917,7 +929,7 @@ if ($result->num_rows > 0) {
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead>
-                            <tr>
+                                <tr>
                                     <th>ID</th>
                                     <th>Customer</th>
                                     <th>Date</th>
@@ -931,30 +943,30 @@ if ($result->num_rows > 0) {
                                 </tr>
                             </thead>
                             <tbody>
-                            <?php
+                                <?php
 
-// Fetch transactions from the database
-$result = $conn->query("SELECT * FROM sales_return ORDER BY sales_return_id DESC");
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT * FROM sales_return ORDER BY sales_return_id DESC");
 
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        echo "<tr>";
-        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
-        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
-        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
-        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
-        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
-        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
-        echo "</tr>";
-    }
-} else {
-    echo "<tr><td colspan='10' class='text-center'>No transactions found</td></tr>";
-}
-?>
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<tr>";
+                                        echo "<td>" . htmlspecialchars($row['sales_return_id']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['item']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                                        echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                                        echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                                        echo "</tr>";
+                                    }
+                                } else {
+                                    echo "<tr><td colspan='10' class='text-center'>No transactions found</td></tr>";
+                                }
+                                ?>
                             </tbody>
                         </table>
                     </div>
@@ -970,7 +982,8 @@ if ($result->num_rows > 0) {
                     <div class="col">
                         <div class="card shadow-sm">
                             <div class="card-body">
-                                <h6 class="card-title"><i class="fas fa-credit-card text-primary me-2"></i> Payment Gateway</h6>
+                                <h6 class="card-title"><i class="fas fa-credit-card text-primary me-2"></i> Payment
+                                    Gateway</h6>
                                 <p class="text-muted small">Accept credit/debit cards via payment gateway</p>
                                 <button type="button" class="btn btn-outline-primary btn-sm">Configure</button>
                             </div>
@@ -979,7 +992,8 @@ if ($result->num_rows > 0) {
                     <div class="col">
                         <div class="card shadow-sm">
                             <div class="card-body">
-                                <h6 class="card-title"><i class="fas fa-mobile text-primary me-2"></i> Digital Payment</h6>
+                                <h6 class="card-title"><i class="fas fa-mobile text-primary me-2"></i> Digital Payment
+                                </h6>
                                 <p class="text-muted small">UPI, mobile wallets and other digital options</p>
                                 <button type="button" class="btn btn-outline-primary btn-sm">Configure</button>
                             </div>
@@ -988,7 +1002,8 @@ if ($result->num_rows > 0) {
                     <div class="col">
                         <div class="card shadow-sm">
                             <div class="card-body">
-                                <h6 class="card-title"><i class="fas fa-money-bill text-primary me-2"></i> Cash in Hand</h6>
+                                <h6 class="card-title"><i class="fas fa-money-bill text-primary me-2"></i> Cash in Hand
+                                </h6>
                                 <p class="text-muted small">Track cash payments and manage cash drawer</p>
                                 <button type="button" class="btn btn-outline-primary btn-sm">Configure</button>
                             </div>
@@ -997,7 +1012,8 @@ if ($result->num_rows > 0) {
                     <div class="col">
                         <div class="card shadow-sm">
                             <div class="card-body">
-                                <h6 class="card-title"><i class="fas fa-receipt text-primary me-2"></i> Payment Reports</h6>
+                                <h6 class="card-title"><i class="fas fa-receipt text-primary me-2"></i> Payment Reports
+                                </h6>
                                 <p class="text-muted small">Generate reports on all payment methods</p>
                                 <button type="button" class="btn btn-outline-primary btn-sm">View Reports</button>
                             </div>
@@ -1031,9 +1047,9 @@ if ($result->num_rows > 0) {
                                         <td>
                                             <div class="d-flex align-items-center gap-1">
                                                 <i class="fas <?php
-                                                                echo $transaction['method'] === 'UPI' ? 'fa-mobile text-blue' : ($transaction['method'] === 'Cash' ? 'fa-money-bill text-green' : ($transaction['method'] === 'Card' ? 'fa-credit-card text-purple' :
-                                                                            'fa-credit-card text-amber'));
-                                                                ?>"></i>
+                                                echo $transaction['method'] === 'UPI' ? 'fa-mobile text-blue' : ($transaction['method'] === 'Cash' ? 'fa-money-bill text-green' : ($transaction['method'] === 'Card' ? 'fa-credit-card text-purple' :
+                                                    'fa-credit-card text-amber'));
+                                                ?>"></i>
                                                 <span><?php echo htmlspecialchars($transaction['method']); ?></span>
                                             </div>
                                         </td>
@@ -1044,7 +1060,8 @@ if ($result->num_rows > 0) {
                                             ?>
                                         </td>
                                         <td>
-                                            <span class="badge bg-success text-white"><?php echo htmlspecialchars($transaction['status']); ?></span>
+                                            <span
+                                                class="badge bg-success text-white"><?php echo htmlspecialchars($transaction['status']); ?></span>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -1124,7 +1141,8 @@ if ($result->num_rows > 0) {
         <div class="col-md-6 mb-3">
             <div class="card shadow-sm bg-amber-50 border-amber-200">
                 <div class="card-body">
-                    <h5 class="card-title text-amber-800"><i class="fas fa-exclamation-circle me-2"></i> Payment Reminders</h5>
+                    <h5 class="card-title text-amber-800"><i class="fas fa-exclamation-circle me-2"></i> Payment
+                        Reminders</h5>
                     <p class="text-amber-700 mb-3">3 store invoices are overdue and require immediate attention</p>
                     <button type="button" class="btn btn-outline-primary btn-sm">Send Reminders</button>
                 </div>
@@ -1133,7 +1151,8 @@ if ($result->num_rows > 0) {
         <div class="col-md-6 mb-3">
             <div class="card shadow-sm bg-blue-50 border-blue-200">
                 <div class="card-body">
-                    <h5 class="card-title text-blue-800"><i class="fas fa-check-circle me-2"></i> Today's Store Collection</h5>
+                    <h5 class="card-title text-blue-800"><i class="fas fa-check-circle me-2"></i> Today's Store
+                        Collection</h5>
                     <p class="text-blue-700 mb-3">₹42,850 collected today from 5 retail customers</p>
                     <button type="button" class="btn btn-outline-primary btn-sm">View Details</button>
                 </div>
@@ -1142,7 +1161,8 @@ if ($result->num_rows > 0) {
     </div>
 
     <!-- Placeholder Modals for Quotations, Credit Notes, Sales Returns -->
-    <div class="modal fade" id="createQuotationModal" tabindex="-1" aria-labelledby="createQuotationModalLabel" aria-hidden="true">
+    <div class="modal fade" id="createQuotationModal" tabindex="-1" aria-labelledby="createQuotationModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1160,7 +1180,8 @@ if ($result->num_rows > 0) {
         </div>
     </div>
 
-    <div class="modal fade" id="issueCreditNoteModal" tabindex="-1" aria-labelledby="issueCreditNoteModalLabel" aria-hidden="true">
+    <div class="modal fade" id="issueCreditNoteModal" tabindex="-1" aria-labelledby="issueCreditNoteModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1178,7 +1199,8 @@ if ($result->num_rows > 0) {
         </div>
     </div>
 
-    <div class="modal fade" id="processReturnModal" tabindex="-1" aria-labelledby="processReturnModalLabel" aria-hidden="true">
+    <div class="modal fade" id="processReturnModal" tabindex="-1" aria-labelledby="processReturnModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1309,25 +1331,25 @@ if ($result->num_rows > 0) {
             },
             body: JSON.stringify(data)
         })
-        .then(response => response.text())
-        .then(html => {
-            // Create a temporary div to execute the returned script
-            const div = document.createElement('div');
-            div.innerHTML = html;
-            document.body.appendChild(div);
-            
-            // Close the modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('exportRecords'));
-            modal.hide();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Export failed. Please try again.');
-        });
+            .then(response => response.text())
+            .then(html => {
+                // Create a temporary div to execute the returned script
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                document.body.appendChild(div);
+
+                // Close the modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('exportRecords'));
+                modal.hide();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Export failed. Please try again.');
+            });
     }
 
     let activeInvoiceButtonId = null;
-    
+
     let activeSalesButtonId = null;
 
     // To open form
@@ -1414,7 +1436,7 @@ if ($result->num_rows > 0) {
     }
 
     // Close form when clicking outside of it
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         const modal = document.getElementById('invoiceModal');
         if (event.target === modal) {
             closeInvoiceModal();
@@ -1466,12 +1488,12 @@ if ($result->num_rows > 0) {
         };
 
         fetch("billing.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
-            })
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
             .then(res => res.text())
             .then(msg => {
                 activeInvoiceButtonId = null;
@@ -1515,7 +1537,7 @@ if ($result->num_rows > 0) {
     }
 
     function closeSalesModal() {
-        document.getElementById('salesModal').style.display='none';
+        document.getElementById('salesModal').style.display = 'none';
         document.querySelector('#itemTable tbody').innerHTML = '';
         activeSalesButtonId = null;
         calculateSalesTotals();
@@ -1555,7 +1577,7 @@ if ($result->num_rows > 0) {
             prices = [],
             totals = [];
 
-        document.querySelectorAll("#itemTable tbody tr").forEach(row => {
+        document.querySelectorAll("#salesItemTable tbody tr").forEach(row => {
             item_names.push(row.children[0].querySelector("select").value);
             descriptions.push(row.children[1].querySelector("input").value);
             let qty = row.children[2].querySelector("input").value;
@@ -1567,8 +1589,8 @@ if ($result->num_rows > 0) {
 
         const data = {
             table: activeSalesButtonId,
-            customer_name: document.getElementById("customer").value,
-            date: document.getElementById("invoiceDate").value,
+            customer_name: document.getElementById("salesCustomer").value,
+            date: document.getElementById("salesDate").value,
             tax_rate: document.getElementById("taxRate").value,
             notes: document.getElementById("salestextarea").value,
             subtotal: document.getElementById("subtotal").innerText,
@@ -1589,12 +1611,12 @@ if ($result->num_rows > 0) {
             },
             body: JSON.stringify(data)
         })
-        .then(res => res.text())
-        .then(msg => {
-            alert(msg);
-            activeSalesButtonId = null;
-            // location.reload();
-        })
-        .catch(err => alert("Error submitting invoice."));
+            .then(res => res.text())
+            .then(msg => {
+                // alert(msg);
+                activeSalesButtonId = null;
+                location.reload();
+            })
+            .catch(err => alert("Error submitting invoice."));
     }
 </script>
