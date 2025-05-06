@@ -4,8 +4,8 @@ include '../../_conn.php';
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $whatAction = $data['whatAction'];
-    echo "<script>console.log('What action: ". $whatAction ."') </script>";
+    $whatAction = $data['whatAction'] ?? '';
+    // echo "<script>console.log('What action: ". $whatAction ."') </script>";
 
     if ($whatAction === 'createInvoice') {
         $table = $data['table'];
@@ -126,116 +126,49 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             echo "Error: " . $stmt->error;
         }
     } else if ($whatAction === 'exportRecords') {
-        $exportFormat = $data['export_format'];
-        $startDate = $data['start_date'];
-        $endDate = $data['end_date'];
-    
-        // Fetch records from the database
-        $query = "SELECT * FROM invoice WHERE date BETWEEN '$startDate' AND '$endDate' ORDER BY invoice_id";
+        $exportFormat = $data['export_format'] ?? '';
+        $startDate = $data['start_date'] ?? '';
+        $endDate = $data['end_date'] ?? '';
+
+        // Validate inputs
+        if (!in_array($exportFormat, ['csv', 'pdf']) || empty($startDate) || empty($endDate)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Invalid input parameters']);
+            exit;
+        }
+
+        // Sanitize dates
+        $startDate = $conn->real_escape_string($startDate);
+        $endDate = $conn->real_escape_string($endDate);
+
+        // Fetch records
+        $query = "SELECT invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total, item_name, description, quantity, price, total 
+                  FROM invoice 
+                  WHERE date BETWEEN '$startDate' AND '$endDate' 
+                  ORDER BY invoice_id";
         $result = $conn->query($query);
-    
+
         if ($result->num_rows > 0) {
             $rows = [];
-            $headers = array_keys($result->fetch_assoc());
-            $result->data_seek(0);
+            $headers = ['invoice_id', 'customer_name', 'document_type', 'date', 'due_date', 'tax_rate', 'notes', 'subtotal', 'GST_amount', 'grand_total', 'item_name', 'description', 'quantity', 'price', 'total'];
             while ($row = $result->fetch_assoc()) {
                 $rows[] = $row;
             }
-    
-            // Convert data to JSON for JavaScript
-            $jsonData = json_encode(['headers' => $headers, 'rows' => $rows]);
-    
-            // Output JavaScript code that handles both CSV and PDF export
-            echo "<script>
-                // Data from PHP
-                const exportData = $jsonData;
-                const exportFormat = '$exportFormat';
-                
-                if (exportFormat === 'csv') {
-                    // CSV Export
-                    let csvContent = '';
-                    
-                    // Add headers
-                    csvContent += exportData.headers.join(',') + '\\n';
-                    
-                    // Add data rows
-                    exportData.rows.forEach(row => {
-                        let rowData = exportData.headers.map(header => {
-                            // Escape quotes and wrap in quotes
-                            let cell = row[header] || '';
-                            cell = cell.toString().replace(/\"/g, '\"\"');
-                            return `\"${cell}\"`;
-                        });
-                        csvContent += rowData.join(',') + '\\n';
-                    });
-                    
-                    // Create and trigger download
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.setAttribute('download', 'invoice_report.csv');
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } else {
-                    // PDF Export using jsPDF
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                    script.onload = function() {
-                        const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF('l', 'mm', 'a4');
-                        
-                        // Add title
-                        doc.setFontSize(16);
-                        doc.text('Invoice Report', 14, 15);
-                        doc.setFontSize(12);
-                        doc.text('Period: $startDate to $endDate', 14, 25);
-                        
-                        // Add table headers
-                        doc.setFontSize(10);
-                        let y = 35;
-                        let x = 10;
-                        
-                        exportData.headers.forEach((header, index) => {
-                            doc.text(header.toUpperCase(), x, y);
-                            x += 25;
-                        });
-                        
-                        // Add table content
-                        y = 45;
-                        exportData.rows.forEach(row => {
-                            if (y > 180) { // New page if near bottom
-                                doc.addPage();
-                                y = 35;
-                            }
-                            x = 10;
-                            exportData.headers.forEach(header => {
-                                let text = row[header] ? row[header].toString() : '';
-                                doc.text(text, x, y);
-                                x += 25;
-                            });
-                            y += 10;
-                        });
-                        
-                        // Save PDF
-                        doc.save('invoice_report.pdf');
-                    };
-                    document.head.appendChild(script);
-                }
-                
-                // Redirect after download
-                setTimeout(() => {
-                    window.location.href = 'store_dashboard.php?page=billing';
-                }, 1000);
-            </script>";
-            exit;
+
+            // Return JSON response
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'headers' => $headers,
+                'rows' => $rows,
+                'start_date' => $startDate,
+                'end_date' => $endDate
+            ]);
         } else {
-            echo "<script>
-                alert('No records found for the selected date range.');
-                window.location.href = 'store_dashboard.php?page=billing';
-            </script>";
-            exit;
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'No records found for the selected date range']);
         }
+        exit;
     }
 }
 
@@ -1295,37 +1228,104 @@ if ($result->num_rows > 0) {
     function submitExport() {
         const form = document.getElementById('exportForm');
         const formData = new FormData(form);
+        const startDate = formData.get('start_date');
+        const endDate = formData.get('end_date');
+
+        // Validate date range
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates.');
+            return;
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date cannot be later than end date.');
+            return;
+        }
+
         const data = {
             whatAction: 'exportRecords',
             export_format: formData.get('export_format'),
-            start_date: formData.get('start_date'),
-            end_date: formData.get('end_date')
+            start_date: startDate,
+            end_date: endDate
         };
 
-        fetch('./billing.php', {
+        fetch('billing.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data)
         })
-        .then(response => response.text())
-        .then(html => {
-            // Create a temporary div to execute the returned script
-            const div = document.createElement('div');
-            div.innerHTML = html;
-            document.body.appendChild(div);
-            
-            // Close the modal
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            if (!data.success) {
+                alert(data.message);
+                window.location.href = 'store_dashboard.php?page=billing';
+                return;
+            }
+
+            const exportFormat = formData.get('export_format');
+            const exportData = data;
+
+            if (exportFormat === 'csv') {
+                // Generate CSV
+                let csvContent = exportData.headers.join(',') + '\n';
+                exportData.rows.forEach(row => {
+                    let rowData = exportData.headers.map(header => {
+                        let cell = row[header] || '';
+                        cell = cell.toString().replace(/"/g, '""');
+                        return `"${cell}"`;
+                    });
+                    csvContent += rowData.join(',') + '\n';
+                });
+
+                const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.setAttribute('download', 'invoice_report.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                // Generate PDF with jsPDF and autoTable
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                const autoTableScript = document.createElement('script');
+                autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                autoTableScript.onload = function() {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                    doc.setFontSize(16);
+                    doc.text('Invoice Report', 14, 15);
+                    doc.setFontSize(12);
+                    doc.text(`Period: ${exportData.start_date} to ${exportData.end_date}`, 14, 25);
+                    doc.autoTable({
+                        head: [exportData.headers.map(h => h.toUpperCase())],
+                        body: exportData.rows.map(row => exportData.headers.map(h => row[h] || '')),
+                        startY: 35,
+                        theme: 'grid',
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        headStyles: { fillColor: [0, 123, 255], textColor: [255, 255, 255] },
+                        alternateRowStyles: { fillColor: [240, 240, 240] }
+                    });
+                    doc.save('invoice_report.pdf');
+                };
+                script.onload = function() { document.head.appendChild(autoTableScript); };
+                document.head.appendChild(script);
+            }
+
+            // Close modal and redirect
             const modal = bootstrap.Modal.getInstance(document.getElementById('exportRecords'));
             modal.hide();
+            setTimeout(() => {
+                window.location.href = 'store_dashboard.php?page=billing';
+            }, 1000);
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Export failed. Please try again.');
         });
     }
-
     let activeInvoiceButtonId = null;
     
     let activeSalesButtonId = null;
