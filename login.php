@@ -155,6 +155,7 @@ include './_conn.php';
 
                 $user_type = $row['user_type'];
                 $email = $row["email"];
+                $user_name = $row["user_name"];
                     
                 $charset = "QAZWSXEDCRFVTGBYHNUJMIKLOPqwertyuiopasdfghjklmnbvcxz1234567890";
                 $session_id = "";
@@ -164,6 +165,7 @@ include './_conn.php';
                 }
                 $_SESSION["user_type"] = $user_type;
                 $_SESSION["uid"] = $row['email'];
+                $_SESSION["user_name"] = $row['user_name'];
                 $_SESSION["session_id"] = $session_id;
                 header("Location:./Dashboard/");
                 exit;

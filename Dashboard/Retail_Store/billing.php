@@ -1,4 +1,7 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include '../../_conn.php';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -20,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $currentYear = date("Y");
 
         // Fetch latest invoice ID for the current document type and current or previous year
-        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' ORDER BY invoice_id DESC LIMIT 1";
+        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' ORDER BY invoice_id DESC LIMIT 1 FOR UPDATE";
         $result = $conn->query($query);
 
         if ($row = $result->fetch_assoc()) {
@@ -37,14 +40,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $newInvoiceId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
 
+        // Fetch latest sales ID current or previous year
+        $result = $conn->query("SELECT Sales_Id FROM $table ORDER BY CAST(SUBSTRING(Sales_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['Sales_Id']; // e.g. SL-005
+            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        $create_by = $_SESSION["user_name"];
+        $created_for = $_SESSION["user_name"];
+
         // Prepare and insert
         $stmt = $conn->prepare("INSERT INTO $table (
             invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total,
-            item_name, description, quantity, price, total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            item_name, description, quantity, price, total, Sales_Id, payment_method, created_by, created_for
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param(
-            "sssssssdddsssss",
+            "sssssssdddsssssssss",
             $newInvoiceId,
             $data['customer_name'],
             $data['document_type'],
@@ -59,7 +78,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $data['descriptions'],
             $data['quantities'],
             $data['prices'],
-            $data['totals']
+            $data['totals'],
+            $newSalesId,
+            $data['payment_method'],
+            $create_by,
+            $created_for
+
         );
 
         if ($stmt->execute()) {
@@ -97,14 +121,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $newSalesId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
 
+        // Fetch latest sales ID current or previous year
+        $result = $conn->query("SELECT Sales_Id FROM $table ORDER BY CAST(SUBSTRING(Sales_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['Sales_Id']; // e.g. SL-005
+            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        $create_by = $_SESSION['user_name'];
+        $created_for = $_SESSION['user_name'];
+
         // Prepare and insert
         $stmt = $conn->prepare("INSERT INTO $table (
             sales_return_id, customer_name, date, tax_rate, notes, subtotal, GST_amount, Grand_total,
-            item, description, quantity, price, total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            item, description, quantity, price, total, Sales_Id, payment_method, created_by, created_for
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param(
-            "sssssdddsssss",
+            "sssssdddsssssssss",
             $newSalesId,
             $data['customer_name'],
             $data['date'],
@@ -117,7 +157,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $data['descriptions'],
             $data['quantities'],
             $data['prices'],
-            $data['totals']
+            $data['totals'],
+            $newSalesId,
+            $data['payment_method'],
+            $create_by,
+            $created_for
         );
 
         if ($stmt->execute()) {
@@ -320,22 +364,34 @@ $types = ['All', 'Retail', 'Wholesale'];
                 </div>
 
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Customer:</label>
-                        <select class="form-select" id="customer" name="customer" required>
-                            <option>Select customer</option>
-                            <?php
-
-                            // Fetch transactions from the database
-                            $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
-
-                            if ($result->num_rows > 0) {
-                                while ($row = $result->fetch_assoc()) {
-                                    echo "<option>" . $row['name'] . "</option>";
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer:</label>
+                            <select class="form-select" id="customer" name="customer" required>
+                                <option>Select customer</option>
+                                <?php
+    
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
+    
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option>" . $row['name'] . "</option>";
+                                    }
                                 }
-                            }
-                            ?>
-                        </select>
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Payment Method:</label>
+                            <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod" required>
+                                <option>Select payment method</option>
+                                <option>Digital payment</option>
+                                <option>Cash</option>
+                                <option>BNPL</option>
+                                <option>Payment gateway</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -405,7 +461,7 @@ $types = ['All', 'Retail', 'Wholesale'];
 
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
-                    <button class="btn btn-primary">Create Invoice</button>
+                    <button class="btn btn-primary" onclick="collectInvoiceData()">Create Invoice</button>
                 </div>
             </div>
         </div>
@@ -421,22 +477,34 @@ $types = ['All', 'Retail', 'Wholesale'];
                 </div>
 
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Customer:</label>
-                        <select class="form-select" id="salesCustomer" name="salesCustomer" required>
-                            <option>Select customer</option>
-                            <?php
-
-                            // Fetch transactions from the database
-                            $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
-
-                            if ($result->num_rows > 0) {
-                                while ($row = $result->fetch_assoc()) {
-                                    echo "<option>" . $row['name'] . "</option>";
+                <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer:</label>
+                            <select class="form-select" id="salesCustomer" name="salesCustomer" required>
+                                <option>Select customer</option>
+                                <?php
+    
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
+    
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option>" . $row['name'] . "</option>";
+                                    }
                                 }
-                            }
-                            ?>
-                        </select>
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Payment Method:</label>
+                            <select class="form-select" id="salesPaymentMethod" name="salesPaymentMethod" required>
+                                <option>Select payment method</option>
+                                <option>Digital payment</option>
+                                <option>Cash</option>
+                                <option>BNPL</option>
+                                <option>Payment gateway</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -1471,6 +1539,7 @@ $types = ['All', 'Retail', 'Wholesale'];
         const data = {
             table: activeInvoiceButtonId,
             customer_name: document.getElementById("customer").value,
+            payment_method: document.getElementById("invoicePaymentMethod").value,
             document_type: gstEnabled ? "with GST" : "without GST",
             date: document.getElementById("invoiceDate").value,
             due_date: document.getElementById("dueDate").value,
@@ -1496,6 +1565,8 @@ $types = ['All', 'Retail', 'Wholesale'];
         })
             .then(res => res.text())
             .then(msg => {
+                // alert(msg);
+                // console.log(msg);
                 activeInvoiceButtonId = null;
                 location.reload();
             })
@@ -1590,6 +1661,7 @@ $types = ['All', 'Retail', 'Wholesale'];
         const data = {
             table: activeSalesButtonId,
             customer_name: document.getElementById("salesCustomer").value,
+            payment_method: document.getElementById("salesPaymentMethod").value,
             date: document.getElementById("salesDate").value,
             tax_rate: document.getElementById("taxRate").value,
             notes: document.getElementById("salestextarea").value,
@@ -1614,6 +1686,7 @@ $types = ['All', 'Retail', 'Wholesale'];
             .then(res => res.text())
             .then(msg => {
                 // alert(msg);
+                // console.log(msg);
                 activeSalesButtonId = null;
                 location.reload();
             })
