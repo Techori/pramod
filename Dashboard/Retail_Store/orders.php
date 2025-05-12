@@ -1,4 +1,67 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
+$user_name = $_SESSION['user_name'];
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+    if ($_POST['whatAction'] === 'addOrder') {
+        // Collect data for transaction
+        $customer_name = clean($_POST['customer_name']);
+        $date = clean($_POST['date']);
+        $deliveryDate = clean($_POST['deliveryDate']);
+        $item_Name = clean($_POST['item_Name']);
+        $quantity = clean($_POST['quantity']);
+        $amount = clean($_POST['amount']);
+        $paymentMethod = clean($_POST['paymentMethod']);
+        $paymentStatus = clean($_POST['paymentStatus']);
+        $status = clean($_POST['status']);
+        
+
+        try {
+            // Generate a new order ID
+            $result = $conn->query("SELECT order_id FROM retail_store_orders WHERE created_for = '$user_name' ORDER BY CAST(SUBSTRING(order_id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+            if ($result && $row = $result->fetch_assoc()) {
+                $lastId = $row['order_id']; // e.g. SL-005
+                $num = (int) substr($lastId, 4);   // get "005" → 5
+                $newNum = $num + 1;
+            } else {
+                $newNum = 1;
+            }
+
+            $newOrderId = 'ORD-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+            // Insert the transaction record
+            $stmt = $conn->prepare("INSERT INTO retail_store_orders 
+                (date, request_id, tracking_id, request_to, shop_name, item_name, category, quantity, location, requested_by, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->bind_param("sssssssisss", $today, $newRequestId, $newTrackId, $requestTo, $shopName, $itemName, $category, $quantity, $location, $user_name, $status);
+            $stmt->execute();
+
+            $conn->commit();
+            $stmt->close();
+
+            header("Location: store_dashboard.php?page=inventory");
+            exit;
+
+        } catch (Exception $e) {
+            $conn->rollback();
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Sale entry failed: " . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+}
+
+
 // Include mock database
 require_once 'database.php';
 
@@ -105,6 +168,115 @@ function get_payment_badge($status) {
     </div>
     <?php endif; ?>
 
+        <!-- Add order Form -->
+    <div class="modal fade" id="newOrder" tabindex="-1" aria-labelledby="newOrderLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="supply.php" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="newOrderLabel">Add Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="customer_name" class="form-label">Customer Name</label>
+                            <select class="form-select" id="customer_name" name="customer_name" required>
+                                <option>Select Customer</option>
+                                <?php
+
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT name FROM customer WHERE created_for = '$user_name'");
+
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option>" . $row['name'] . "</option>";
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="deliveryDate" class="form-label">Delivery Date</label>
+                            <input type="date" class="form-control" id="deliveryDate" name="deliveryDate" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="item_Name" class="form-label">Item Name</label>
+                            <select class="form-select" id="item_Name" name="item_Name" required>
+                                <option>Select Item</option>
+                                <?php
+
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT item_name FROM retail_invetory  WHERE inventory_of = '$user_name'");
+
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option>" . $row['item_name'] . "</option>";
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="amount" name="amount" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="paymentMethod" class="form-label">Payment Method</label>
+                            <select class="form-select" id="paymentMethod" name="paymentMethod" required>
+                                <option>Select payment method</option>
+                                <option>Digital payment</option>
+                                <option>Cash</option>
+                                <option>BNPL</option>
+                                <option>Payment gateway</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="paymentStatus" class="form-label">Payment Status</label>
+                            <select class="form-select" id="paymentStatus" name="paymentStatus" required>
+                                <option>Select payment status</option>
+                                <option>Paid</option>
+                                <option>Pending</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option>Select status</option>
+                                <option>Processing</option>
+                                <option>Ready for Pickup</option>
+                                <option>Delivered</option>
+                            </select>
+                        </div>
+
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" name="whatAction" value="addOrder">Add Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Search and Actions -->
     <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between mb-4">
         <div class="flex-grow-1">
@@ -126,12 +298,9 @@ function get_payment_badge($status) {
             </form>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <form method="POST" action="?page=orders" class="d-inline">
-                <input type="hidden" name="action" value="create_order">
-                <button type="submit" class="btn btn-primary btn-sm">
+                <button type="submit" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newOrder">
                     <i class="fas fa-plus me-1"></i> New Order
                 </button>
-            </form>
             <form method="GET" action="?page=orders" class="d-inline">
                 <input type="hidden" name="page" value="orders">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -220,88 +389,89 @@ function get_payment_badge($status) {
                             <th>Order ID</th>
                             <th>Customer</th>
                             <th>Date</th>
-                            <th>Items</th>
+                            <th>Delivery Date</th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
                             <th>Amount</th>
+                            <th>Payment Mthod</th>
+                            <th>Payment Status</th>
                             <th>Status</th>
-                            <th>Payment</th>
-                            <th class="text-end">Actions</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($filtered_orders)): ?>
-                            <tr>
-                                <td colspan="8" class="text-center py-4">
-                                    <i class="fas fa-shopping-cart fa-2x text-muted"></i>
-                                    <p class="mt-2 text-muted">No orders found matching your criteria.</p>
-                                    <a href="?page=orders" class="btn btn-outline-primary btn-sm">Clear Filters</a>
-                                </td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($filtered_orders as $order): ?>
-                            <tr>
-                                <td class="font-medium"><?php echo htmlspecialchars($order['id']); ?></td>
-                                <td><?php echo htmlspecialchars($order['customer']); ?></td>
-                                <td>
-                                    <?php
-                                        $date = new DateTime($order['date']);
-                                        echo $date->format('M j, Y');
-                                    ?>
-                                </td>
-                                <td><?php echo htmlspecialchars($order['items']); ?></td>
-                                <td>₹<?php echo number_format($order['amount'], 0); ?></td>
-                                <td><?php echo get_status_badge($order['status']); ?></td>
-                                <td><?php echo get_payment_badge($order['paymentStatus']); ?></td>
-                                <td class="text-end">
-                                    <div class="dropdown">
-                                        <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-h"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <form method="POST" action="?page=orders" class="d-inline">
-                                                    <input type="hidden" name="action" value="view_details">
-                                                    <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>">
-                                                    <button type="submit" class="dropdown-item">
-                                                        <i class="fas fa-search me-2"></i> View Details
-                                                    </button>
+                        <?php
+
+                        // Fetch transactions from the database
+                        $result = $conn->query("SELECT * FROM retail_store_orders WHERE created_for = '$user_name' ORDER BY order_id DESC");
+
+                        if ($result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
+                                $status = htmlspecialchars($row['status']);
+                                $id = $row['invoice_id'];
+
+                                echo "<tr>";
+                                echo "<td>" . htmlspecialchars($row['order_id']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                                echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                                echo "<td>" . date('d-M-Y', strtotime($row['delivery_date'])) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                                echo '<td>' . htmlspecialchars($row['quantity']) . "</td>";
+                                echo "<td>₹" . number_format($row['amount'], 2) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['payment_status']) . "</td>";
+                                echo "<td>" . $status . "</td>";
+
+                                    echo "<td>";
+                                    if ($status === 'Processing' || $status === 'Ready for Pickup') {
+                                        echo '<button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
+                            <i class="fa-regular fa-pen-to-square"></i>
+                          </button>';
+                                    } else {
+                                        echo '<button class="btn btn-outline-secondary btn-sm" disabled>
+                            <i class="fa-regular fa-pen-to-square"></i>
+                          </button>';
+                                    }
+                                    echo "</td>";
+                                    echo "</tr>";
+
+                                    // Modal only for pending rows
+                                    if ($status === 'Processing' || $status === 'Ready for Pickup') {
+                                        ?>
+                                        <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
+                                            aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <form method="POST" action="update_status.php">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                                aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <input type="hidden" name="invoice_id" value="<?= $id ?>">
+                                                            <select name="status" class="form-select" required>
+                                                                <option value="">Select Status</option>
+                                                                <option value="Completed">Completed</option>
+                                                                <option value="Refund">Refund</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="submit" class="btn btn-primary">Update</button>
+                                                            <button type="button" class="btn btn-secondary"
+                                                                data-bs-dismiss="modal">Cancel</button>
+                                                        </div>
+                                                    </div>
                                                 </form>
-                                            </li>
-                                            <li>
-                                                <form method="POST" action="?page=orders" class="d-inline">
-                                                    <input type="hidden" name="action" value="print_invoice">
-                                                    <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>">
-                                                    <button type="submit" class="dropdown-item">
-                                                        <i class="fas fa-print me-2"></i> Print Invoice
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form method="POST" action="?page=orders" class="d-inline">
-                                                    <input type="hidden" name="action" value="email_customer">
-                                                    <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>">
-                                                    <button type="submit" class="dropdown-item">
-                                                        <i class="fas fa-envelope me-2"></i> Email Customer
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <?php if ($order['status'] !== 'cancelled'): ?>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <form method="POST" action="?page=orders" class="d-inline">
-                                                    <input type="hidden" name="action" value="cancel_order">
-                                                    <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($order['id']); ?>">
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="fas fa-times me-2"></i> Cancel Order
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <?php endif; ?>
-                                        </ul>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <?php
+                                    }
+                                }
+                            } else {
+                                echo "<tr><td colspan='11' class='text-center'>No orders found</td></tr>";
+                            }
+                            ?>
                     </tbody>
                 </table>
             </div>

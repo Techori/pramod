@@ -4,11 +4,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 include '../../_conn.php';
 
+$user_name = $_SESSION['user_name'];
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $data = json_decode(file_get_contents("php://input"), true);
 
     $whatAction = $data['whatAction'] ?? '';
     // echo "<script>console.log('What action: ". $whatAction ."') </script>";
+
+    $create_by = $_SESSION['user_name'];
+    $created_for = $_SESSION['user_name'];
 
     if ($whatAction === 'createInvoice') {
         $table = $data['table'];
@@ -23,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $currentYear = date("Y");
 
         // Fetch latest invoice ID for the current document type and current or previous year
-        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' ORDER BY invoice_id DESC LIMIT 1 FOR UPDATE";
+        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' AND created_for = '$created_for' ORDER BY invoice_id DESC LIMIT 1 FOR UPDATE";
         $result = $conn->query($query);
 
         if ($row = $result->fetch_assoc()) {
@@ -40,51 +45,139 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $newInvoiceId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
 
-        // Fetch latest sales ID current or previous year
-        $result = $conn->query("SELECT Sales_Id FROM $table ORDER BY CAST(SUBSTRING(Sales_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+        if ($table === 'invoice') {
 
-        if ($result && $row = $result->fetch_assoc()) {
-            $lastId = $row['Sales_Id']; // e.g. SL-005
-            $num = (int) substr($lastId, 4);   // get "005" → 5
-            $newNum = $num + 1;
-        } else {
-            $newNum = 1;
+            // // Get negative stock setting (default = 0)
+            // $allowNegativeStock = 0;
+            // $settingsResult = $conn->query("SELECT value FROM settings WHERE name = 'negative_stock' LIMIT 1");
+
+            // if ($settingsResult && $row = $settingsResult->fetch_assoc()) {
+            //     $allowNegativeStock = (int) $row['value'];
+            // }
+
+            // // Prepare item arrays
+            // $itemNames = explode(',', $data['item_names']);
+            // $quantities = explode(',', $data['quantities']);
+
+            // // Validate stock before inserting invoice
+            // for ($i = 0; $i < count($itemNames); $i++) {
+            //     $item = trim($itemNames[$i]);
+            //     $qty = (int) trim($quantities[$i]);
+
+            //     $stockResult = $conn->query("SELECT quantity FROM inventory WHERE item = '$item' LIMIT 1");
+
+            //     if ($stockResult && $stockRow = $stockResult->fetch_assoc()) {
+            //         $currentStock = (int) $stockRow['quantity'];
+            //         if (!$allowNegativeStock && ($currentStock - $qty < 0)) {
+            //             echo "<script>alert('Error: Not enough stock for item \"$item\". Available: $currentStock, Requested: $qty');</script>";
+            //             exit;
+            //         }
+            //     } else {
+            //         echo "<script>alert('Error: Item \"$item\" not found in inventory.');</script>";
+            //         exit;
+            //     }
+            // }
+
+
+            // Fetch latest sales ID current or previous year
+            $result = $conn->query("SELECT Sales_Id FROM invoice ORDER BY CAST(SUBSTRING(Sales_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+            if ($result && $row = $result->fetch_assoc()) {
+                $lastId = $row['Sales_Id']; // e.g. SL-005
+                $num = (int) substr($lastId, 4);   // get "005" → 5
+                $newNum = $num + 1;
+            } else {
+                $newNum = 1;
+            }
+
+            $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+            // Fetch latest payment ID current or previous year
+            $result = $conn->query("SELECT payment_id FROM invoice WHERE created_for = '$created_for' ORDER BY CAST(SUBSTRING(payment_id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+            if ($result && $row = $result->fetch_assoc()) {
+                $lastId = $row['payment_id']; // e.g. SL-005
+                $num = (int) substr($lastId, 4);   // get "005" → 5
+                $newNum = $num + 1;
+            } else {
+                $newNum = 1;
+            }
+
+            $newPaymentId = 'PAY-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+
+            // Prepare and insert
+            $stmt = $conn->prepare("INSERT INTO $table (
+                invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total,
+                item_name, description, quantity, price, total, Sales_Id, payment_id, payment_method, created_by, created_for, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->bind_param(
+                "sssssssdddsssssssssss",
+                $newInvoiceId,
+                $data['customer_name'],
+                $data['document_type'],
+                $data['date'],
+                $data['due_date'],
+                $data['tax_rate'],
+                $data['notes'],
+                $data['subtotal'],
+                $data['GST_amount'],
+                $data['grand_total'],
+                $data['item_names'],
+                $data['descriptions'],
+                $data['quantities'],
+                $data['prices'],
+                $data['totals'],
+                $newSalesId,
+                $newPaymentId,
+                $data['payment_method'],
+                $create_by,
+                $created_for,
+                $data['status']
+
+            );
+
+            // // Subtract sold quantity from inventory
+            // for ($i = 0; $i < count($itemNames); $i++) {
+            //     $item = trim($itemNames[$i]);
+            //     $qty = (int) trim($quantities[$i]);
+
+            //     $updateInventory = $conn->query("UPDATE inventory SET quantity = quantity - $qty WHERE item = '$item'");
+            // }
+
+
+        } else if ($table === 'quotation') {
+            $stmt = $conn->prepare("INSERT INTO $table (
+                invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total,
+                item_name, description, quantity, price, total, payment_method, created_by, created_for, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->bind_param(
+                "sssssssdddsssssssss",
+                $newInvoiceId,
+                $data['customer_name'],
+                $data['document_type'],
+                $data['date'],
+                $data['due_date'],
+                $data['tax_rate'],
+                $data['notes'],
+                $data['subtotal'],
+                $data['GST_amount'],
+                $data['grand_total'],
+                $data['item_names'],
+                $data['descriptions'],
+                $data['quantities'],
+                $data['prices'],
+                $data['totals'],
+                $data['payment_method'],
+                $create_by,
+                $created_for,
+                $data['status']
+
+            );
+
         }
-
-        $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
-
-        $create_by = $_SESSION["user_name"];
-        $created_for = $_SESSION["user_name"];
-
-        // Prepare and insert
-        $stmt = $conn->prepare("INSERT INTO $table (
-            invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total,
-            item_name, description, quantity, price, total, Sales_Id, payment_method, created_by, created_for
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-        $stmt->bind_param(
-            "sssssssdddsssssssss",
-            $newInvoiceId,
-            $data['customer_name'],
-            $data['document_type'],
-            $data['date'],
-            $data['due_date'],
-            $data['tax_rate'],
-            $data['notes'],
-            $data['subtotal'],
-            $data['GST_amount'],
-            $data['grand_total'],
-            $data['item_names'],
-            $data['descriptions'],
-            $data['quantities'],
-            $data['prices'],
-            $data['totals'],
-            $newSalesId,
-            $data['payment_method'],
-            $create_by,
-            $created_for
-
-        );
 
         if ($stmt->execute()) {
             echo "Invoice inserted successfully!";
@@ -104,7 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $currentYear = date("Y");
 
         // Fetch latest invoice ID for the current document type and current or previous year
-        $query = "SELECT sales_return_id FROM $table WHERE sales_return_id LIKE '$prefix-%' ORDER BY sales_return_id DESC LIMIT 1";
+        $query = "SELECT sales_return_id FROM $table WHERE sales_return_id LIKE '$prefix-%' AND created_for = '$created_for'  ORDER BY sales_return_id DESC LIMIT 1";
         $result = $conn->query($query);
 
         if ($row = $result->fetch_assoc()) {
@@ -121,30 +214,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $newSalesId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
 
-        // Fetch latest sales ID current or previous year
-        $result = $conn->query("SELECT Sales_Id FROM $table ORDER BY CAST(SUBSTRING(Sales_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
-
-        if ($result && $row = $result->fetch_assoc()) {
-            $lastId = $row['Sales_Id']; // e.g. SL-005
-            $num = (int) substr($lastId, 4);   // get "005" → 5
-            $newNum = $num + 1;
-        } else {
-            $newNum = 1;
-        }
-
-        $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
-
-        $create_by = $_SESSION['user_name'];
-        $created_for = $_SESSION['user_name'];
 
         // Prepare and insert
         $stmt = $conn->prepare("INSERT INTO $table (
             sales_return_id, customer_name, date, tax_rate, notes, subtotal, GST_amount, Grand_total,
-            item, description, quantity, price, total, Sales_Id, payment_method, created_by, created_for
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            item, description, quantity, price, total, payment_method, created_by, created_for
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param(
-            "sssssdddsssssssss",
+            "sssssdddssssssss",
             $newSalesId,
             $data['customer_name'],
             $data['date'],
@@ -158,7 +236,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $data['quantities'],
             $data['prices'],
             $data['totals'],
-            $newSalesId,
             $data['payment_method'],
             $create_by,
             $created_for
@@ -213,21 +290,101 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             echo json_encode(['success' => false, 'message' => 'No records found for the selected date range']);
         }
         exit;
+    } else if ($_POST['whatAction'] === 'bankDepositEntry') {
+
+        function clean($input)
+        {
+            return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+        }
+
+        // Collect data for transaction
+        $date = clean($_POST['date']);
+        $transferTo = clean($_POST['transferTO']);
+        $amount = clean($_POST['amount']);
+        $user_id = $_SESSION['uid'];
+
+        // Start database transaction
+        $conn->begin_transaction();
+
+        try {
+
+            // Insert the transaction record
+            $stmt = $conn->prepare("INSERT INTO retail_store_cash 
+                (date, cash_deposit, cash_deposit_amount, user_id) 
+                VALUES (?, ?, ?, ?)");
+
+            $stmt->bind_param("ssds", $date, $transferTo, $amount, $user_id);
+            $stmt->execute();
+
+            $conn->commit();
+            $stmt->close();
+            @header("Location: store_dashboard.php?page=billing");
+
+        } catch (Exception $e) {
+            $conn->rollback();
+            http_response_code(500);
+            echo json_encode([
+                "success" => false,
+                "message" => "Customer entry failed: " . $e->getMessage()
+            ]);
+            exit;
+        }
+    } else if ($_POST['whatAction'] === 'generateReceiving') {
+
+        function clean($input)
+        {
+            return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+        }
+
+        $deliveryId = clean($_POST['deliveryId']);
+        $trackingId = clean($_POST['trackingId']);
+        $requestId = clean($_POST['requestId']);
+        $receivedDate = clean($_POST['receivedDate']);
+        $receivedBy = clean($_POST['Received_by']);
+        $received = "Received";
+
+        // Verify Delivery ID and Tracking ID match with the given Request ID
+        $stmt = $conn->prepare("SELECT * FROM retail_store_stock_request WHERE request_id = ? AND delivery_id = ? AND tracking_id = ?");
+        $stmt->bind_param("sss", $requestId, $deliveryId, $trackingId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        //If not matching, alert and exit
+        if ($result->num_rows === 0) {
+            echo "<script>alert('Delivery ID or Tracking ID does not match the given Request ID.'); window.location.href='store_dashboard.php?page=billing';</script>";
+            $stmt->close();
+            exit;
+        }
+
+        //If matched, update received data
+        $updateStmt = $conn->prepare("UPDATE retail_store_stock_request SET received_date = ?, received_by = ?, status = ? WHERE request_id  = ?");
+        $updateStmt->bind_param("ssss", $receivedDate, $receivedBy, $requestId, $received);
+
+        if ($updateStmt->execute()) {
+            echo "<script>alert('Receiving info successfully updated.'); window.location.href='store_dashboard.php?page=billing';</script>";
+        } else {
+            echo "<script>alert('Error updating receiving info.'); window.location.href='store_dashboard.php?page=billing';</script>";
+        }
+
+        // Close connections
+        $stmt->close();
+        $updateStmt->close();
     }
 }
 
-$query = "SELECT * FROM invoice ORDER BY invoice_id DESC LIMIT 10";
+$created_for = $_SESSION['user_name'];
+$query = "SELECT * FROM invoice WHERE created_for = '$created_for' ORDER BY invoice_id DESC LIMIT 10";
 $loadDataValue = "All";
 $loadDataText = "Show All";
 if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET['loadData'])) {
     $loadData = $_GET['loadData'];
     if ($loadData === 'All') {
-        $query = "SELECT * FROM invoice ORDER BY invoice_id DESC";
-        header("Location: store_dashboard.php?page=billing&loadData=All");
+        $query = "SELECT * FROM invoice WHERE created_for = '$created_for' ORDER BY invoice_id DESC";
+        @header("Location: store_dashboard.php?page=billing&loadData=All");
         $loadDataValue = "Less";
         $loadDataText = "Show Less";
     } else {
-        header("Location: store_dashboard.php?page=billing");
+        @header("Location: store_dashboard.php?page=billing");
     }
 }
 ?>
@@ -365,15 +522,15 @@ $types = ['All', 'Retail', 'Wholesale'];
 
                 <div class="modal-body">
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Customer:</label>
                             <select class="form-select" id="customer" name="customer" required>
                                 <option>Select customer</option>
                                 <?php
-    
+
                                 // Fetch transactions from the database
-                                $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
-    
+                                $result = $conn->query("SELECT name FROM customer WHERE created_for = '$user_name' ORDER BY customer_Id DESC");
+
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
                                         echo "<option>" . $row['name'] . "</option>";
@@ -382,7 +539,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 ?>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Payment Method:</label>
                             <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod" required>
                                 <option>Select payment method</option>
@@ -390,6 +547,15 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 <option>Cash</option>
                                 <option>BNPL</option>
                                 <option>Payment gateway</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="status_section">
+                            <label class="form-label">Status:</label>
+                            <select class="form-select" id="invoiceStatus" name="invoiceStatus" required>
+                                <option>Select status</option>
+                                <option>Completed</option>
+                                <option>Pending</option>
+                                <option>Refund</option>
                             </select>
                         </div>
                     </div>
@@ -477,16 +643,16 @@ $types = ['All', 'Retail', 'Wholesale'];
                 </div>
 
                 <div class="modal-body">
-                <div class="row g-3 mb-3">
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Customer:</label>
                             <select class="form-select" id="salesCustomer" name="salesCustomer" required>
                                 <option>Select customer</option>
                                 <?php
-    
+
                                 // Fetch transactions from the database
-                                $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
-    
+                                $result = $conn->query("SELECT name FROM customer WHERE created_for = '$user_name' ORDER BY customer_Id DESC");
+
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
                                         echo "<option>" . $row['name'] . "</option>";
@@ -561,6 +727,143 @@ $types = ['All', 'Retail', 'Wholesale'];
             </div>
         </div>
     </div>
+
+    <!-- Generate Receiving Form -->
+    <div class="modal fade" id="generateReceiving" tabindex="-1" aria-labelledby="generateReceivingLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="store_dashboard.php?page=billing" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="generateReceivingLabel">Generate Receiving</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label for="deliveryId" class="form-label">Delivery ID</label>
+                            <input type="text" class="form-control" id="deliveryId" name="deliveryId" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="trackingId" class="form-label">Tracking ID</label>
+                            <input type="text" class="form-control" id="trackingId" name="trackingId" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="requestId" class="form-label">Request ID</label>
+                            <input type="text" class="form-control" id="requestId" name="requestId" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="receivedDate" class="form-label">Date Received</label>
+                            <input type="date" class="form-control" id="receivedDate" name="receivedDate" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Received_by" class="form-label">Received By</label>
+                            <input type="text" class="form-control" id="Received_by" name="Received_by" required>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" name="whatAction"
+                            value="generateReceiving">Generate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bank Deposit Entry Form -->
+    <div class="modal fade" id="bankDepositEntry" tabindex="-1" aria-labelledby="bankDepositEntryLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="store_dashboard.php?page=billing" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="bankDepositEntryLabel">Generate Receiving</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="transferTO" class="form-label">Transfer To</label>
+                            <input type="text" class="form-control" id="transferTO" name="transferTO" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="amount" name="amount" required>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" name="whatAction"
+                            value="bankDepositEntry">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <?php
+    $user_id = $_SESSION['uid'];
+
+    $today = date("Y-m-d");
+    $yesterday = date("Y-m-d", strtotime("-1 day"));
+
+    // Opening Balance (Yesterday's Closing Balance)
+    $sql1 = "SELECT opening_balance AS opening_balance 
+         FROM retail_store_cash 
+         WHERE user_id = ? AND date = ?";
+    $stmt1 = $conn->prepare($sql1);
+    $stmt1->bind_param("is", $user_id, $yesterday);
+    $stmt1->execute();
+    $result1 = $stmt1->get_result();
+    $opening = $result1->fetch_assoc()['opening_balance'] ?? 0;
+
+    // Cash Sales Today
+    $sql2 = "SELECT SUM(grand_total) AS cash_sales 
+         FROM invoice 
+         WHERE created_for = ? AND date = ? AND payment_method = 'Cash'";
+    $stmt2 = $conn->prepare($sql2);
+    $stmt2->bind_param("is", $created_for, $today);
+    $stmt2->execute();
+    $result2 = $stmt2->get_result();
+    $cash_sales = $result2->fetch_assoc()['cash_sales'] ?? 0;
+
+    // Cash Refunds Today
+    $sql3 = "SELECT SUM(grand_total) AS cash_refund 
+         FROM invoice 
+         WHERE created_for = ? AND date = ? AND status = 'Refund'";
+    $stmt3 = $conn->prepare($sql3);
+    $stmt3->bind_param("is", $created_for, $today);
+    $stmt3->execute();
+    $result3 = $stmt3->get_result();
+    $cash_refund = $result3->fetch_assoc()['cash_refund'] ?? 0;
+
+    // Cash Deposits Today
+    $sql4 = "SELECT SUM(cash_deposit_amount) AS cash_deposit 
+         FROM retail_store_cash 
+         WHERE user_id = ? AND date = ?";
+    $stmt4 = $conn->prepare($sql4);
+    $stmt4->bind_param("is", $user_id, $today);
+    $stmt4->execute();
+    $result4 = $stmt4->get_result();
+    $cash_deposit = $result4->fetch_assoc()['cash_deposit'] ?? 0;
+
+    // Final Cash in Hand
+    $current_cash_in_hand = $opening + $cash_sales - $cash_refund - $cash_deposit;
+    ?>
 
     <!-- Tabs -->
     <ul class="nav nav-tabs mb-4" id="billingTabs" role="tablist">
@@ -684,7 +987,7 @@ $types = ['All', 'Retail', 'Wholesale'];
             </script>
 
             <!-- Quick Actions -->
-            <div class="row row-cols-1 row-cols-md-4 g-3 mb-4">
+            <div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
                 <div class="col">
                     <button type="button"
                         class="btn btn-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2"
@@ -694,14 +997,12 @@ $types = ['All', 'Retail', 'Wholesale'];
                     </button>
                 </div>
                 <div class="col">
-                    <form method="POST" action="?page=billing">
-                        <input type="hidden" name="action" value="generate_receipt">
-                        <button type="submit"
-                            class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2">
-                            <i class="fas fa-receipt fa-2x"></i>
-                            <span>Generate Receipt</span>
-                        </button>
-                    </form>
+                    <button type="submit"
+                        class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2"
+                        data-bs-toggle="modal" data-bs-target="#generateReceiving">
+                        <i class="fas fa-receipt fa-2x"></i>
+                        <span>Generate Receiving</span>
+                    </button>
                 </div>
                 <div class="col">
                     <!-- <form method="POST" action="?page=billing"> -->
@@ -713,7 +1014,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                     </button>
                     <!-- </form> -->
                 </div>
-                <div class="col">
+                <!-- <div class="col">
                     <form method="POST" action="?page=billing">
                         <input type="hidden" name="action" value="record_payment">
                         <button type="submit"
@@ -722,7 +1023,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                             <span>Record Payment</span>
                         </button>
                     </form>
-                </div>
+                </div> -->
             </div>
 
             <!-- Invoices Table -->
@@ -741,7 +1042,9 @@ $types = ['All', 'Retail', 'Wholesale'];
                         <table class="table table-bordered table-hover" id="invoice_table">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th>Invoice ID</th>
+                                    <th>Sales ID</th>
+                                    <th>Payment ID</th>
                                     <th>Customer</th>
                                     <th>Date</th>
                                     <th>Due Date</th>
@@ -753,6 +1056,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     <th>Notes</th>
                                     <th>GST Amount</th>
                                     <th>Grand Total</th>
+                                    <th>Created By</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -766,6 +1070,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     while ($row = $result->fetch_assoc()) {
                                         echo "<tr>";
                                         echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['Sales_Id']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['payment_id']) . "</td>";
                                         echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
                                         echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
                                         echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
@@ -777,6 +1083,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                                         echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
                                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                                         echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
                                         echo '<td>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
@@ -823,13 +1130,15 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     <th>Notes</th>
                                     <th>GST Amount</th>
                                     <th>Grand Total</th>
+                                    <th>Payment Method</th>
+                                    <th>Created By</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
 
                                 // Fetch transactions from the database
-                                $result = $conn->query("SELECT * FROM quotation ORDER BY invoice_id DESC");
+                                $result = $conn->query("SELECT * FROM quotation WHERE created_for = '$created_for' ORDER BY invoice_id DESC");
 
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
@@ -846,6 +1155,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                                         echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
                                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                                         echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
                                         echo "</tr>";
                                     }
                                 } else {
@@ -883,13 +1194,15 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     <th>Notes</th>
                                     <th>GST Amount</th>
                                     <th>Grand Total</th>
+                                    <th>Payment Method</th>
+                                    <th>Created By</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
 
                                 // Fetch transactions from the database
-                                $result = $conn->query("SELECT * FROM credit_note ORDER BY sales_return_id DESC");
+                                $result = $conn->query("SELECT * FROM credit_note WHERE created_for = '$created_for' ORDER BY sales_return_id DESC");
 
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
@@ -904,6 +1217,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                                         echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
                                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                                         echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
                                         echo "</tr>";
                                     }
                                 } else {
@@ -941,13 +1256,15 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     <th>Notes</th>
                                     <th>GST Amount</th>
                                     <th>Grand Total</th>
+                                    <th>Payment Method</th>
+                                    <th>Created By</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
 
                                 // Fetch transactions from the database
-                                $result = $conn->query("SELECT * FROM sales_return ORDER BY sales_return_id DESC");
+                                $result = $conn->query("SELECT * FROM sales_return WHERE created_for = '$created_for' ORDER BY sales_return_id DESC");
 
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
@@ -962,10 +1279,12 @@ $types = ['All', 'Retail', 'Wholesale'];
                                         echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
                                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                                         echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
                                         echo "</tr>";
                                     }
                                 } else {
-                                    echo "<tr><td colspan='10' class='text-center'>No transactions found</td></tr>";
+                                    echo "<tr><td colspan='12' class='text-center'>No transactions found</td></tr>";
                                 }
                                 ?>
                             </tbody>
@@ -1006,7 +1325,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 <h6 class="card-title"><i class="fas fa-money-bill text-primary me-2"></i> Cash in Hand
                                 </h6>
                                 <p class="text-muted small">Track cash payments and manage cash drawer</p>
-                                <button type="button" class="btn btn-outline-primary btn-sm">Configure</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm">Generate Report</button>
                             </div>
                         </div>
                     </div>
@@ -1029,43 +1348,37 @@ $types = ['All', 'Retail', 'Wholesale'];
                         <table class="table table-bordered table-hover">
                             <thead>
                                 <tr>
-                                    <th>Transaction ID</th>
-                                    <th>Invoice</th>
+                                    <th>Payment ID</th>
+                                    <th>Invoice ID</th>
                                     <th>Customer</th>
+                                    <th>Date</th>
                                     <th>Amount</th>
                                     <th>Method</th>
-                                    <th>Date</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($transactions as $transaction): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($transaction['id']); ?></td>
-                                        <td><?php echo htmlspecialchars($transaction['invoice_id']); ?></td>
-                                        <td><?php echo htmlspecialchars($transaction['customer']); ?></td>
-                                        <td>₹<?php echo number_format($transaction['amount'], 0); ?></td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-1">
-                                                <i class="fas <?php
-                                                echo $transaction['method'] === 'UPI' ? 'fa-mobile text-blue' : ($transaction['method'] === 'Cash' ? 'fa-money-bill text-green' : ($transaction['method'] === 'Card' ? 'fa-credit-card text-purple' :
-                                                    'fa-credit-card text-amber'));
-                                                ?>"></i>
-                                                <span><?php echo htmlspecialchars($transaction['method']); ?></span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <?php
-                                            $date = new DateTime($transaction['date']);
-                                            echo $date->format('M j, Y');
-                                            ?>
-                                        </td>
-                                        <td>
-                                            <span
-                                                class="badge bg-success text-white"><?php echo htmlspecialchars($transaction['status']); ?></span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
+                                <?php
+
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT * FROM invoice WHERE created_for = '$created_for' ORDER BY invoice_id DESC");
+
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<tr>";
+                                        echo "<td>" . htmlspecialchars($row['payment_id']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                                        echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                                        echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['status']) . "</td>";
+                                        echo "</tr>";
+                                    }
+                                } else {
+                                    echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                                }
+                                ?>
                             </tbody>
                         </table>
                     </div>
@@ -1109,33 +1422,72 @@ $types = ['All', 'Retail', 'Wholesale'];
             </div>
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h5>Cash in Hand Report</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5>Cash in Hand Report</h5>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#bankDepositEntry">Bank Deposit Entry
+                        </button>
+                    </div>
                     <div class="mt-3">
                         <div class="d-flex justify-content-between p-3 bg-light rounded mb-2">
                             <span class="fw-bold">Opening Balance (Today)</span>
-                            <span class="fw-bold">₹15,000</span>
+                            <span class="fw-bold">₹<?= number_format($opening) ?></span>
                         </div>
                         <div class="d-flex justify-content-between p-3 bg-light rounded mb-2">
                             <span class="fw-bold">Cash Sales</span>
-                            <span class="text-success">+₹28,500</span>
+                            <span class="text-success">+₹<?= number_format($cash_sales) ?></span>
                         </div>
                         <div class="d-flex justify-content-between p-3 bg-light rounded mb-2">
                             <span class="fw-bold">Cash Refunds</span>
-                            <span class="text-danger">-₹3,200</span>
+                            <span class="text-danger">-₹<?= number_format($cash_refund) ?></span>
                         </div>
                         <div class="d-flex justify-content-between p-3 bg-light rounded mb-2">
                             <span class="fw-bold">Cash Deposits to Bank</span>
-                            <span class="text-danger">-₹20,000</span>
+                            <span class="text-danger">-₹<?= number_format($cash_deposit) ?></span>
                         </div>
                         <div class="d-flex justify-content-between p-3 bg-light rounded border border-primary">
                             <span class="fw-bold">Current Cash in Hand</span>
-                            <span class="fw-bold text-lg">₹20,300</span>
+                            <span class="fw-bold text-lg">₹<?= number_format($current_cash_in_hand) ?></span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <?php
+
+    // Get current date
+    $today = date("Y-m-d");
+
+    // Query to count overdue invoices
+    $sql = "SELECT COUNT(*) AS overdue_count FROM invoice WHERE due_date < ? AND created_for = '$created_for'";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $today);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+
+    $overdueCount = $row['overdue_count'];
+
+    $stmt->close();
+    ?>
+
+    <?php
+
+    // Prepare and execute the query
+    $stmt = $conn->prepare("SELECT COUNT(*) as overdue_count 
+        FROM invoice 
+        WHERE created_for = ? 
+        AND due_date IS NOT NULL 
+        AND STR_TO_DATE(due_date, '%Y-%m-%d') < CURDATE()");
+    $stmt->bind_param("s", $user_name);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $overdueCount = $row['overdue_count'];
+    ?>
+
 
     <!-- Payment Reminders & Collections -->
     <div class="row mt-4">
@@ -1144,80 +1496,23 @@ $types = ['All', 'Retail', 'Wholesale'];
                 <div class="card-body">
                     <h5 class="card-title text-amber-800"><i class="fas fa-exclamation-circle me-2"></i> Payment
                         Reminders</h5>
-                    <p class="text-amber-700 mb-3">3 store invoices are overdue and require immediate attention</p>
+                    <p class="text-amber-700 mb-3">
+                        <?php
+                        if ($overdueCount > 0) {
+                            echo "$overdueCount store invoices are overdue and require immediate attention.";
+                        } else {
+                            echo "No overdue invoices at the moment.";
+                        }
+                        ?>
+                    </p>
+
+                    </p>
                     <button type="button" class="btn btn-outline-primary btn-sm">Send Reminders</button>
                 </div>
             </div>
         </div>
-        <div class="col-md-6 mb-3">
-            <div class="card shadow-sm bg-blue-50 border-blue-200">
-                <div class="card-body">
-                    <h5 class="card-title text-blue-800"><i class="fas fa-check-circle me-2"></i> Today's Store
-                        Collection</h5>
-                    <p class="text-blue-700 mb-3">₹42,850 collected today from 5 retail customers</p>
-                    <button type="button" class="btn btn-outline-primary btn-sm">View Details</button>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Placeholder Modals for Quotations, Credit Notes, Sales Returns -->
-    <div class="modal fade" id="createQuotationModal" tabindex="-1" aria-labelledby="createQuotationModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="createQuotationModalLabel">Create New Quotation</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Quotation form will be implemented here.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Save Quotation</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="issueCreditNoteModal" tabindex="-1" aria-labelledby="issueCreditNoteModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="issueCreditNoteModalLabel">Issue Credit Note</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Credit note form will be implemented here.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Issue Credit Note</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="processReturnModal" tabindex="-1" aria-labelledby="processReturnModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="processReturnModalLabel">Process Sales Return</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Sales return form will be implemented here.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Process Return</button>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <style>
@@ -1345,76 +1640,76 @@ $types = ['All', 'Retail', 'Wholesale'];
             },
             body: JSON.stringify(data)
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log(data)
-            if (!data.success) {
-                alert(data.message);
-                window.location.href = 'store_dashboard.php?page=billing';
-                return;
-            }
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                if (!data.success) {
+                    alert(data.message);
+                    window.location.href = 'store_dashboard.php?page=billing';
+                    return;
+                }
 
-            const exportFormat = formData.get('export_format');
-            const exportData = data;
+                const exportFormat = formData.get('export_format');
+                const exportData = data;
 
-            if (exportFormat === 'csv') {
-                // Generate CSV
-                let csvContent = exportData.headers.join(',') + '\n';
-                exportData.rows.forEach(row => {
-                    let rowData = exportData.headers.map(header => {
-                        let cell = row[header] || '';
-                        cell = cell.toString().replace(/"/g, '""');
-                        return `"${cell}"`;
+                if (exportFormat === 'csv') {
+                    // Generate CSV
+                    let csvContent = exportData.headers.join(',') + '\n';
+                    exportData.rows.forEach(row => {
+                        let rowData = exportData.headers.map(header => {
+                            let cell = row[header] || '';
+                            cell = cell.toString().replace(/"/g, '""');
+                            return `"${cell}"`;
+                        });
+                        csvContent += rowData.join(',') + '\n';
                     });
-                    csvContent += rowData.join(',') + '\n';
-                });
 
-                const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.setAttribute('download', 'invoice_report.csv');
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } else {
-                // Generate PDF with jsPDF and autoTable
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                const autoTableScript = document.createElement('script');
-                autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
-                autoTableScript.onload = function() {
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                    doc.setFontSize(16);
-                    doc.text('Invoice Report', 14, 15);
-                    doc.setFontSize(12);
-                    doc.text(`Period: ${exportData.start_date} to ${exportData.end_date}`, 14, 25);
-                    doc.autoTable({
-                        head: [exportData.headers.map(h => h.toUpperCase())],
-                        body: exportData.rows.map(row => exportData.headers.map(h => row[h] || '')),
-                        startY: 35,
-                        theme: 'grid',
-                        styles: { fontSize: 8, cellPadding: 2 },
-                        headStyles: { fillColor: [0, 123, 255], textColor: [255, 255, 255] },
-                        alternateRowStyles: { fillColor: [240, 240, 240] }
-                    });
-                    doc.save('invoice_report.pdf');
-                };
-                script.onload = function() { document.head.appendChild(autoTableScript); };
-                document.head.appendChild(script);
-            }
+                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.setAttribute('download', 'invoice_report.csv');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    // Generate PDF with jsPDF and autoTable
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                    const autoTableScript = document.createElement('script');
+                    autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+                    autoTableScript.onload = function () {
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                        doc.setFontSize(16);
+                        doc.text('Invoice Report', 14, 15);
+                        doc.setFontSize(12);
+                        doc.text(`Period: ${exportData.start_date} to ${exportData.end_date}`, 14, 25);
+                        doc.autoTable({
+                            head: [exportData.headers.map(h => h.toUpperCase())],
+                            body: exportData.rows.map(row => exportData.headers.map(h => row[h] || '')),
+                            startY: 35,
+                            theme: 'grid',
+                            styles: { fontSize: 8, cellPadding: 2 },
+                            headStyles: { fillColor: [0, 123, 255], textColor: [255, 255, 255] },
+                            alternateRowStyles: { fillColor: [240, 240, 240] }
+                        });
+                        doc.save('invoice_report.pdf');
+                    };
+                    script.onload = function () { document.head.appendChild(autoTableScript); };
+                    document.head.appendChild(script);
+                }
 
-            // Close modal and redirect
-            const modal = bootstrap.Modal.getInstance(document.getElementById('exportRecords'));
-            modal.hide();
-            setTimeout(() => {
-                window.location.href = 'store_dashboard.php?page=billing';
-            }, 1000);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Export failed. Please try again.');
-        });
+                // Close modal and redirect
+                const modal = bootstrap.Modal.getInstance(document.getElementById('exportRecords'));
+                modal.hide();
+                setTimeout(() => {
+                    window.location.href = 'store_dashboard.php?page=billing';
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Export failed. Please try again.');
+            });
     }
     let activeInvoiceButtonId = null;
 
@@ -1428,9 +1723,18 @@ $types = ['All', 'Retail', 'Wholesale'];
         modal.style.display = 'block';
         modal.classList.add('show');
 
+        const status = document.getElementById('status_section');
+        if (activeInvoiceButtonId === 'invoice') {
+            status.style.display = 'block';
+            status.classList.add('show');
+        } else {
+            status.style.display = 'none';
+            status.classList.remove('show');
+        }
         if (document.querySelectorAll("#itemTable tbody tr").length === 0) {
             addItem();
         }
+
     }
 
     // To close form
@@ -1452,14 +1756,22 @@ $types = ['All', 'Retail', 'Wholesale'];
         <td>
             <select onchange="updateTotals()">
                 <option value="">Select Product</option>
-                <option value="Product A">Product A</option> // Dynamic data from database
-                <option value="Product B">Product B</option> // Dynamic data from database
-                <option value="Product C">Product C</option> // Dynamic data from database
+                <?php
+
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT item_name FROM retail_invetory  WHERE inventory_of = '$user_name'");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<option>" . $row['item_name'] . "</option>";
+                    }
+                }
+                ?>
             </select>
         </td>
-        <td><input placeholder="Description"/></td>
-        <td><input type="number" value="1" min="1" oninput="updateTotals()" /></td>
-        <td><input type="number" value="0" step="0.01" oninput="updateTotals()" /></td>
+        <td><input placeholder="Description"></td>
+        <td><input type="number" value="1" min="1" oninput="updateTotals()"></td>
+        <td><input type="number" value="0" step="0.01" oninput="updateTotals()" class="price"></td>
         <td class="itemTotal">₹0.00</td>
         <td><button class="btn btn-sm btn-outline-danger" onclick="removeItem(this)">Delete</button></td>
     `;
@@ -1540,6 +1852,7 @@ $types = ['All', 'Retail', 'Wholesale'];
             table: activeInvoiceButtonId,
             customer_name: document.getElementById("customer").value,
             payment_method: document.getElementById("invoicePaymentMethod").value,
+            status: document.getElementById("invoiceStatus").value,
             document_type: gstEnabled ? "with GST" : "without GST",
             date: document.getElementById("invoiceDate").value,
             due_date: document.getElementById("dueDate").value,
@@ -1565,7 +1878,7 @@ $types = ['All', 'Retail', 'Wholesale'];
         })
             .then(res => res.text())
             .then(msg => {
-                // alert(msg);
+                // alert(msg);  
                 // console.log(msg);
                 activeInvoiceButtonId = null;
                 location.reload();
@@ -1592,14 +1905,22 @@ $types = ['All', 'Retail', 'Wholesale'];
         <td>
             <select onchange="calculateSalesTotals()">
                 <option value="">Select Product</option>
-                <option value="Product A">Product A</option> // Dynamic data from database
-                <option value="Product B">Product B</option> // Dynamic data from database
-                <option value="Product C">Product C</option> // Dynamic data from database
+                <?php
+
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT item_name FROM retail_invetory  WHERE inventory_of = '$user_name'");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<option>" . $row['item_name'] . "</option>";
+                    }
+                }
+                ?>
             </select>
         </td>
         <td><input type="text" placeholder="Description"></td>
         <td><input type="number" class="qty" value="1" min="1" oninput="calculateSalesTotals()"></td>
-        <td><input type="number" class="price" value="0" min="0" oninput="calculateSalesTotals()"></td>
+        <td><input type="number" class="price" value="0" min="0" oninput="calculateSalesTotals()" class="price"></td>
         <td class="itemTotal">₹0.00</td>
         <td><button class="btn btn-sm btn-outline-danger" onclick="deleteSalesRow(this)">Delete</button></td>
         `;
