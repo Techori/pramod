@@ -253,7 +253,6 @@ $stmt->bind_param("ssssids", $newSupplierId, $name, $type, $items, $orders, $spe
   </div>
   <div>
     <input type="text" placeholder="Search..." class="form-control d-inline-block w-auto me-2" id="searchInput">
-    <button class="btn btn-outline-secondary me-2" id="filterBtn"><i class="bi bi-funnel"></i></button>
     <button id="modalTriggerButton" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#purchaseModal">
       <i class="bi bi-plus-circle"></i> <span id="actionLabel">New Order</span>
     </button>

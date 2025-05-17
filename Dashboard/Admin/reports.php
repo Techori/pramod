@@ -90,29 +90,10 @@
   </div>
 
   <div>
-    <button class="btn btn-outline-secondary me-2" id="exportBtn" data-bs-toggle="modal"
+    <button class="btn btn-outline-secondary me-2"  onclick="exportTableToCSV()" id="exportBtn" data-bs-toggle="modal"
       data-bs-target="#exportSuccessModal">
       Export
     </button>
-    <!-- Export Success Modal -->
-    <div class="modal fade" id="exportSuccessModal" tabindex="-1" aria-labelledby="exportSuccessLabel"
-      aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content text-center">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exportSuccessLabel">Export Complete</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            ✅ Your table has been successfully exported as CSV!
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
 
     <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#shareModal">Share</button>
 
@@ -139,12 +120,6 @@
 <!-- Filters -->
 <div class="d-flex flex-wrap gap-2 mb-4">
   <input type="search" class="form-control w-auto" id="searchInput" placeholder="Search..." />
-  <button class="btn btn-outline-secondary">₹</button>
-  <select class="form-select w-auto">
-    <option>Last 6 Months</option>
-  </select>
-  <button class="btn btn-outline-secondary"><i class="bi bi-calendar"></i></button>
-  <button class="btn btn-outline-secondary"><i class="bi bi-funnel"></i></button>
 </div>
 
 <!-- Metrics Cards -->
@@ -569,6 +544,32 @@
               </tr>
             </tbody>
           </table>
+          <script>
+           // Export table data to CSV
+function exportTableToCSV(filename = 'table-data.csv') {
+  const rows = document.querySelectorAll("#supplyTable tr");
+  let csv = [];
+
+  rows.forEach(row => {
+    let cols = Array.from(row.querySelectorAll("th, td"))
+      .map(col => `"${col.innerText.trim()}"`);
+    csv.push(cols.join(","));
+  });
+
+  // Create a Blob from the CSV string
+  let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+  // Create a temporary link to trigger download
+  let downloadLink = document.createElement("a");
+  downloadLink.download = filename;
+  downloadLink.href = window.URL.createObjectURL(csvFile);
+  downloadLink.style.display = "none";
+  document.body.appendChild(downloadLink);
+
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
+    </script>
         </div>
       </div>
     </div>

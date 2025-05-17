@@ -518,13 +518,12 @@ $ticket_result = $conn->query($ticket_query);
                     <div class="d-flex justify-content-start">
                         <div class="input-group w-100 me-2">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+                            <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search..." />
                         </div>
-                        <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
                         <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#serviceTicket"><i class="fa-solid fa-plus"></i> New Ticket</button>
                     </div>
                 </div>
-                <table id="Table" class="table table-bordered table-hover">
+                <table id="supplyTable" class="table table-bordered table-hover">
                     <thead>
                         <tr>
                             <th>Ticket ID</th>
@@ -571,6 +570,25 @@ $ticket_result = $conn->query($ticket_query);
                         <?php $ticket_result->free(); ?>
                     </tbody>
                 </table>
+                <script>
+        // Search Functionality
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchText = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#supplyTable tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName('td');
+                let match = false;
+                for (let i = 0; i < cells.length; i++) {
+                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                        match = true;
+                        break;
+                    }
+                }
+                row.style.display = match ? '' : 'none';
+            });
+        });
+                </script>
             </div>
         </div>
 

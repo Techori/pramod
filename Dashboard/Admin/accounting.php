@@ -267,7 +267,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             Accounts</button>
     </div>
     <div class="col-md-3 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-download"></i> Export
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="exportTableToCSV()"><i class="fa-solid fa-download"></i> Export
             Data</button>
     </div>
 </div>
@@ -408,16 +408,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                     <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search..." />
                 </div>
-                <div class="d-flex mb-3">
-                    <select class="form-select me-2 w-50">
-                        <option value="">Select Categories</option>
-                        <option value="Metals">Complete</option>
-                        <option value="Polymers">Pending</option>
-                    </select>
-                    <button class="btn btn-outline-primary me-2" id="categoryFilter"><i
-                            class="fa-solid fa-filter"></i></button>
-                </div>
-                <button class="btn btn-outline-primary"><i class="fa-regular fa-calendar"></i></button>
             </div>
         </div>
         <table class="table table-bordered table-hover" id="supplyTable">
@@ -588,6 +578,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 }
             });
         });
+
+         // Export table data to CSV
+function exportTableToCSV(filename = 'table-data.csv') {
+  const rows = document.querySelectorAll("#supplyTable tr");
+  let csv = [];
+
+  rows.forEach(row => {
+    let cols = Array.from(row.querySelectorAll("th, td"))
+      .map(col => `"${col.innerText.trim()}"`);
+    csv.push(cols.join(","));
+  });
+
+  // Create a Blob from the CSV string
+  let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+  // Create a temporary link to trigger download
+  let downloadLink = document.createElement("a");
+  downloadLink.download = filename;
+  downloadLink.href = window.URL.createObjectURL(csvFile);
+  downloadLink.style.display = "none";
+  document.body.appendChild(downloadLink);
+
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
     </script>
 </div>
 

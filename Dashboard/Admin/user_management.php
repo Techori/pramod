@@ -83,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       $stmt->execute();
       $stmt->close();
 
-      echo "Permissions updated successfully!";
+      header("Location: admin_dashboard.php?page=user_management");
     } catch (Exception $e) {
       echo "Error updating permissions: " . $e->getMessage();
     }
@@ -410,10 +410,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                   <td><?php echo $row['Last_Login']; ?></td>
                   <td>
                     <!-- Permission button -->
-                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#permissionModal"
-                      data-userid="<?php echo $row['User_ID']; ?>" data-username="<?php echo $row['User_Name']; ?>"
-                      data-permissions='<?php echo htmlspecialchars(json_encode($permissions)); ?>'
-                      id="permissionBtn_<?php echo $row['User_ID']; ?>">Set Permissions</button>
+                    <button class="btn btn-info btn-sm permissionBtn" data-bs-toggle="modal"
+                      data-bs-target="#permissionModal" data-userid="<?php echo $row['User_ID']; ?>"
+                      data-username="<?php echo $row['User_Name']; ?>"
+                      data-permissions='<?php echo htmlspecialchars(json_encode($permissions), ENT_QUOTES, 'UTF-8'); ?>'>
+                      Set Permissions
+                    </button>
                   </td>
                   <td><?php echo $permissionList; ?></td>
                 </tr>
@@ -494,69 +496,71 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         </div>
       </div>
     </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-  // Get all permission buttons
-  const permissionBtns = document.querySelectorAll('[id^="permissionBtn_"]');
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Get all permission buttons
+        const permissionBtns = document.querySelectorAll('.permissionBtn');
 
-  permissionBtns.forEach(button => {
-    button.addEventListener('click', function() {
-      // Retrieve the user data
-      const userId = this.getAttribute('data-userid');
-      const userName = this.getAttribute('data-username');
-      const permissions = JSON.parse(this.getAttribute('data-permissions'));
+        permissionBtns.forEach(button => {
+          button.addEventListener('click', function () {
+            // Retrieve the user data
+            const userId = this.getAttribute('data-userid');
+            const userName = this.getAttribute('data-username');
+            const permissions = JSON.parse(this.getAttribute('data-permissions'));
 
-      // Set modal title
-      document.getElementById('permissionModalLabel').textContent = `Set Permissions for ${userName}`;
+            // Set modal title
+            document.getElementById('permissionModalLabel').textContent = `Set Permissions for ${userName}`;
 
-      // Reset all checkboxes
-      const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]');
-      checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
+            // Reset all checkboxes
+            const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+              checkbox.checked = false;
+            });
+
+            // Pre-check the checkboxes based on the user's permissions
+            permissions.forEach(permission => {
+              const checkbox = document.querySelector(`#permissionForm input[value="${permission}"]`);
+              if (checkbox) {
+                checkbox.checked = true;
+              }
+            });
+
+            // Attach the userId to the save button for later use
+            document.getElementById('savePermissionBtn').setAttribute('data-userid', userId);
+          });
+        });
+
+        // Handle saving updated permissions
+        document.getElementById('savePermissionBtn').addEventListener('click', function () {
+          const userId = this.getAttribute('data-userid');
+          const selectedPermissions = [];
+          const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]:checked');
+
+          checkboxes.forEach(checkbox => {
+            selectedPermissions.push(checkbox.value);
+          });
+//           console.log('User ID:', userId);
+// console.log('Selected Permissions:', selectedPermissions);
+
+
+          // Send the selected permissions to the server via AJAX or a simple form submission
+          const formData = new FormData();
+          formData.append('whatAction', 'UpdatePermissions');
+          formData.append('userId', userId);
+          formData.append('permissions', JSON.stringify(selectedPermissions));
+
+          fetch('user_management.php', {
+            method: 'POST',
+            body: formData
+          })
+            .then(response => response.text())
+            .then(data => {
+              location.reload();  // Reload the page to see changes
+            })
+            .catch(error => console.error('Error:', error));
+        });
       });
-
-      // Pre-check the checkboxes based on the user's permissions
-      permissions.forEach(permission => {
-        const checkbox = document.querySelector(`#permissionForm input[value="${permission}"]`);
-        if (checkbox) {
-          checkbox.checked = true;
-        }
-      });
-
-      // Attach the userId to the save button for later use
-      document.getElementById('savePermissionBtn').setAttribute('data-userid', userId);
-    });
-  });
-
-  // Handle saving updated permissions
-  document.getElementById('savePermissionBtn').addEventListener('click', function() {
-    const userId = this.getAttribute('data-userid');
-    const selectedPermissions = [];
-    const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]:checked');
-    
-    checkboxes.forEach(checkbox => {
-      selectedPermissions.push(checkbox.value);
-    });
-
-    // Send the selected permissions to the server via AJAX or a simple form submission
-    const formData = new FormData();
-    formData.append('whatAction', 'UpdatePermissions');
-    formData.append('userId', userId);
-    formData.append('permissions', JSON.stringify(selectedPermissions));
-
-    fetch('update_permissions.php', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.text())
-    .then(data => {
-      alert(data);  // You can display success or failure messages
-      $('#permissionModal').modal('hide');  // Hide the modal after saving
-    })
-    .catch(error => console.error('Error:', error));
-  });
-});
-</script>
+    </script>
     <script>
 
       // Search Functionality
@@ -576,6 +580,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
           row.style.display = match ? '' : 'none';
         });
       });
+      // Export table data to CSV
+function exportTableToCSV(filename = 'table-data.csv') {
+  const rows = document.querySelectorAll("#supplyTable tr");
+  let csv = [];
+
+  rows.forEach(row => {
+    let cols = Array.from(row.querySelectorAll("th, td"))
+      .map(col => `"${col.innerText.trim()}"`);
+    csv.push(cols.join(","));
+  });
+
+  // Create a Blob from the CSV string
+  let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+  // Create a temporary link to trigger download
+  let downloadLink = document.createElement("a");
+  downloadLink.download = filename;
+  downloadLink.href = window.URL.createObjectURL(csvFile);
+  downloadLink.style.display = "none";
+  document.body.appendChild(downloadLink);
+
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
+
       // Refresh Button (Reload page)
       document.getElementById('refreshBtn').addEventListener('click', function () {
         location.reload();
@@ -641,16 +670,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     const modal = bootstrap.Modal.getInstance(document.getElementById('permissionModal'));
     modal.hide();
   });
-  // export btn ke liye
-  function exportTableToCSV(filename = 'table-data.csv') {
-    const rows = document.querySelectorAll("#supplyTable tr");
-    let csv = [];
-
-    rows.forEach(row => {
-      let cols = Array.from(row.querySelectorAll("th, td"))
-        .map(col => `"${col.innerText.trim()}"`);
-      csv.push(cols.join(","));
-    });
+ 
 
     const csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
     const downloadLink = document.createElement("a");
