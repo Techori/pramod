@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['form_type'] === 'service_re
 }
 
 // Fetch old data if exists
-$prefill = [
+$service_prefill  = [
     'customer_name' => '',
     'contact_number' => '',
     'product_name' => '',
@@ -47,30 +47,28 @@ $prefill = [
     'description' => ''
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && $active_tab === 'service') {
-    $prefill_stmt = $conn->prepare("SELECT * FROM store_service_requests WHERE created_by = ? ORDER BY id DESC LIMIT 1");
-    $prefill_stmt->bind_param("s", $user_name);
-    $prefill_stmt->execute();
-    $result = $prefill_stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
-        $prefill = [
-            'customer_name' => $row['customer_name'],
-            'contact_number' => $row['contact_number'],
-            'product_name' => $row['product_name'],
-            'purchase_date' => $row['purchase_date'],
-            'issue_type' => $row['issue_type'],
-            'description' => $row['description']
-        ];
-    }
+$prefill_stmt = $conn->prepare("SELECT * FROM store_service_requests WHERE created_by = ? ORDER BY id DESC LIMIT 1");
+$prefill_stmt->bind_param("s", $user_name);
+$prefill_stmt->execute();
+$result = $prefill_stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $service_prefill  = [
+        'customer_name' => $row['customer_name'],
+        'contact_number' => $row['contact_number'],
+        'product_name' => $row['product_name'],
+        'purchase_date' => $row['purchase_date'],
+        'issue_type' => $row['issue_type'],
+        'description' => $row['description']
+    ];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['form_type'] === 'warranty_claim') {
-    $customerName     = $_POST['warrantyCustomerName'];
-    $warrantyNumber   = $_POST['warrantyNumber'];
-    $productName      = $_POST['warrantyProduct'];
-    $serialNumber     = $_POST['serialNumber'];
-    $claimType        = $_POST['claimType'];
-    $claimDetails     = $_POST['claimDetails'];
+    $customerName = $_POST['warrantyCustomerName'];
+    $warrantyNumber = $_POST['warrantyNumber'];
+    $productName = $_POST['warrantyProduct'];
+    $serialNumber = $_POST['serialNumber'];
+    $claimType = $_POST['claimType'];
+    $claimDetails = $_POST['claimDetails'];
 
     // Check if a warranty claim already exists for this warranty number
     $check_stmt = $conn->prepare("SELECT id FROM store_warranty_claims WHERE warranty_number = ?");
@@ -98,29 +96,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['form_type'] === 'warranty_c
 
 // Prefill data if it exists
 $prefill = [
-    'customer_name'   => '',
+    'customer_name' => '',
     'warranty_number' => '',
-    'product_name'    => '',
-    'serial_number'   => '',
-    'claim_type'      => '',
-    'claim_details'   => ''
+    'product_name' => '',
+    'serial_number' => '',
+    'claim_type' => '',
+    'claim_details' => ''
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['tab'] === 'warranty') {
-    $prefill_stmt = $conn->prepare("SELECT * FROM store_warranty_claims WHERE created_by = ? ORDER BY id DESC LIMIT 1");
-    $prefill_stmt->bind_param("s", $user_name);
-    $prefill_stmt->execute();
-    $result = $prefill_stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
-        $prefill = [
-            'customer_name'   => $row['customer_name'],
-            'warranty_number' => $row['warranty_number'],
-            'product_name'    => $row['product_name'],
-            'serial_number'   => $row['serial_number'],
-            'claim_type'      => $row['claim_type'],
-            'claim_details'   => $row['claim_details']
-        ];
-    }
+$prefill_stmt = $conn->prepare("SELECT * FROM store_warranty_claims WHERE created_by = ? ORDER BY id DESC LIMIT 1");
+$prefill_stmt->bind_param("s", $user_name);
+$prefill_stmt->execute();
+$result = $prefill_stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $prefill = [
+        'customer_name' => $row['customer_name'],
+        'warranty_number' => $row['warranty_number'],
+        'product_name' => $row['product_name'],
+        'serial_number' => $row['serial_number'],
+        'claim_type' => $row['claim_type'],
+        'claim_details' => $row['claim_details']
+    ];
 }
 
 
@@ -159,40 +155,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['tab'] === 'warranty') {
                             <div class="col-md-6">
                                 <label for="customerName" class="form-label">Customer Name</label>
                                 <input type="text" class="form-control" id="customerName" name="customerName"
-                                    value="<?php echo htmlspecialchars($prefill['customer_name']); ?>"
+                                    value="<?php echo htmlspecialchars($service_prefill ['customer_name']); ?>"
                                     placeholder="Enter customer name">
                             </div>
                             <div class="col-md-6">
                                 <label for="contactNumber" class="form-label">Contact Number</label>
                                 <input type="text" class="form-control" id="contactNumber" name="contactNumber"
-                                    value="<?php echo htmlspecialchars($prefill['contact_number']); ?>"
+                                    value="<?php echo htmlspecialchars($service_prefill ['contact_number']); ?>"
                                     placeholder="Enter contact number">
                             </div>
                             <div class="col-md-6">
                                 <label for="productName" class="form-label">Product Name</label>
                                 <input type="text" class="form-control" id="productName" name="productName"
-                                    value="<?php echo htmlspecialchars($prefill['product_name']); ?>"
+                                    value="<?php echo htmlspecialchars($service_prefill ['product_name']); ?>"
                                     placeholder="Enter product name">
                             </div>
                             <div class="col-md-6">
                                 <label for="purchaseDate" class="form-label">Purchase Date</label>
                                 <input type="date" class="form-control" id="purchaseDate" name="purchaseDate"
-                                    value="<?php echo htmlspecialchars($prefill['purchase_date']); ?>">
+                                    value="<?php echo htmlspecialchars($service_prefill ['purchase_date']); ?>">
                             </div>
                             <div class="col-12">
                                 <label for="issueType" class="form-label">Type of Issue</label>
                                 <select class="form-select" id="issueType" name="issueType">
-                                    <option value="" disabled <?php echo empty($prefill['issue_type']) ? 'selected' : ''; ?>>Select issue type</option>
-                                    <option value="repair" <?php echo ($prefill['issue_type'] == 'repair') ? 'selected' : ''; ?>>Repair</option>
-                                    <option value="maintenance" <?php echo ($prefill['issue_type'] == 'maintenance') ? 'selected' : ''; ?>>Maintenance</option>
-                                    <option value="replacement" <?php echo ($prefill['issue_type'] == 'replacement') ? 'selected' : ''; ?>>Replacement</option>
-                                    <option value="installation" <?php echo ($prefill['issue_type'] == 'installation') ? 'selected' : ''; ?>>Installation</option>
+                                    <option value="" disabled <?php echo empty($service_prefill ['issue_type']) ? 'selected' : ''; ?>>Select issue type</option>
+                                    <option value="repair" <?php echo ($service_prefill ['issue_type'] == 'repair') ? 'selected' : ''; ?>>Repair</option>
+                                    <option value="maintenance" <?php echo ($service_prefill ['issue_type'] == 'maintenance') ? 'selected' : ''; ?>>Maintenance</option>
+                                    <option value="replacement" <?php echo ($service_prefill ['issue_type'] == 'replacement') ? 'selected' : ''; ?>>Replacement</option>
+                                    <option value="installation" <?php echo ($service_prefill ['issue_type'] == 'installation') ? 'selected' : ''; ?>>Installation</option>
                                 </select>
                             </div>
                             <div class="col-12">
                                 <label for="description" class="form-label">Issue Description</label>
                                 <textarea class="form-control" id="description" name="description" rows="4"
-                                    placeholder="Describe the issue in detail"><?php echo htmlspecialchars($prefill['description']); ?></textarea>
+                                    placeholder="Describe the issue in detail"><?php echo htmlspecialchars($service_prefill ['description']); ?></textarea>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Submit Service Request</button>

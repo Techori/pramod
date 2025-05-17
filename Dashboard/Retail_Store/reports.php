@@ -1,4 +1,11 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
+$user_name = $_SESSION['user_name'];
+
 // Include mock database
 require_once 'database.php';
 
@@ -65,20 +72,7 @@ $filtered_reports = array_filter($reports, function ($report) use ($period) {
     return $report['date'] === ($month_map[$period] ?? 'Apr 2025');
 });
 
-// Report type badge function
-function get_type_badge($type) {
-    return "<span class='badge bg-light border text-dark'>$type</span>";
-}
 
-// Status badge function
-function get_status_badge($status) {
-    $status_config = [
-        'Generated' => ['class' => 'bg-green-subtle text-green', 'label' => 'Generated'],
-        'Pending' => ['class' => 'bg-secondary-subtle text-secondary', 'label' => 'Pending']
-    ];
-    $config = isset($status_config[$status]) ? $status_config[$status] : $status_config['Pending'];
-    return "<span class='badge {$config['class']}'>{$config['label']}</span>";
-}
 ?>
 
 <div class="main-content">
@@ -86,38 +80,27 @@ function get_status_badge($status) {
     <p class="text-muted">Generate and view comprehensive store reports</p>
 
     <?php if ($success_message): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <?php echo htmlspecialchars($success_message); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($success_message); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     <?php endif; ?>
 
     <?php if ($error_message): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <?php echo htmlspecialchars($error_message); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($error_message); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     <?php endif; ?>
+
+    <?php
+    $period = $_GET['period'] ?? date('M Y'); // e.g., 'May 2025'
+    $currentMonth = new DateTime(); // Current month
+    ?>
 
     <!-- Report Actions -->
     <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between mb-4">
-        <div class="d-flex align-items-center gap-2">
-            <form method="GET" action="?page=reports" class="d-inline">
-                <input type="hidden" name="page" value="reports">
-                <select
-                    name="period"
-                    class="form-select form-select-sm"
-                    style="width: 180px;"
-                    onchange="this.form.submit()"
-                >
-                    <option value="apr2025" <?php echo $period === 'apr2025' ? 'selected' : ''; ?>>April 2025</option>
-                    <option value="mar2025" <?php echo $period === 'mar2025' ? 'selected' : ''; ?>>March 2025</option>
-                    <option value="feb2025" <?php echo $period === 'feb2025' ? 'selected' : ''; ?>>February 2025</option>
-                    <option value="jan2025" <?php echo $period === 'jan2025' ? 'selected' : ''; ?>>January 2025</option>
-                    <option value="q12025" <?php echo $period === 'q12025' ? 'selected' : ''; ?>>Q1 2025</option>
-                </select>
-            </form>
-        </div>
+        
         <div class="d-flex flex-wrap gap-2">
             <form method="POST" action="?page=reports" class="d-inline">
                 <input type="hidden" name="action" value="generate_new_report">
@@ -137,8 +120,7 @@ function get_status_badge($status) {
                         <i class="fas fa-chart-line text-primary"></i> Monthly Sales Trend
                     </h5>
                     <div class="bg-light rounded py-5 text-center">
-                        <i class="fas fa-chart-bar fa-2x text-muted me-2"></i>
-                        <span class="text-muted">Monthly Sales Bar Chart Placeholder</span>
+                        <canvas id="monthlySalesChart" height="105"></canvas>
                     </div>
                 </div>
             </div>
@@ -147,27 +129,25 @@ function get_status_badge($status) {
             <div class="card card-border shadow-sm">
                 <div class="card-body p-4">
                     <h5 class="mb-3 d-flex align-items-center gap-2">
-                        <i class="fas fa-chart-pie text-primary"></i> Sales by Product Category
+                        <i class="fas fa-chart-pie text-primary"></i> Sales by Payment Method
                     </h5>
-                    <div class="bg-light rounded py-5 text-center">
-                        <i class="fas fa-chart-pie fa-2x text-muted me-2"></i>
-                        <span class="text-muted">Product Category Pie Chart Placeholder</span>
+                    <div style="position: relative; width: 100%; max-width: 300px; margin: 0 auto;">
+                        <canvas id="salesByCategory"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-lg-2 g-4 mb-4">
+    <!-- <div class="row row-cols-1 row-cols-lg-2 g-4 mb-4">
         <div class="col">
             <div class="card card-border shadow-sm">
                 <div class="card-body p-4">
                     <h5 class="mb-3 d-flex align-items-center gap-2">
                         <i class="fas fa-credit-card text-primary"></i> Payment Methods
                     </h5>
-                    <div class="bg-light rounded py-5 text-center">
-                        <i class="fas fa-chart-pie fa-2x text-muted me-2"></i>
-                        <span class="text-muted">Payment Methods Pie Chart Placeholder</span>
+                    <div style="position: relative; width: 100%; max-width: 300px; margin: 0 auto;">
+                        <canvas id="salesByCategory"></canvas>
                     </div>
                 </div>
             </div>
@@ -185,9 +165,9 @@ function get_status_badge($status) {
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
-    <!-- Report Templates -->
+    <!-- Report Templates
     <div class="card card-border shadow-sm mb-4">
         <div class="card-body p-4">
             <h5 class="mb-3">Report Templates</h5>
@@ -247,33 +227,152 @@ function get_status_badge($status) {
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 </div>
 
+<!-- Monthly Sales Trend -->
+<?php
+
+$salesLabels = [];
+$monthlySales = [];
+
+for ($i = 5; $i >= 0; $i--) {
+    $month = date('Y-m', strtotime("-$i months"));
+    $salesLabels[] = date('M', strtotime($month)); // eg. 'Jan'
+
+    $sql = "SELECT SUM(grand_total) as total_sales FROM invoice 
+            WHERE created_for = '$user_name' AND DATE_FORMAT(date, '%Y-%m') = ?";
+    $params = [$month];
+    $paramTypes = "s";
+
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param($paramTypes, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $monthlySales[] = $result['total_sales'] ?? 0;
+    $stmt->close();
+}
+?>
+
+<!-- Sales by payment method -->
+<?php
+$paymentLabels = [];
+$paymentCounts = [];
+
+$stmt = $conn->prepare("
+    SELECT payment_method, SUM(grand_total) as total
+    FROM invoice
+    WHERE created_for = ?
+    GROUP BY payment_method
+");
+$stmt->bind_param("s", $user_name);
+$stmt->execute();
+$result = $stmt->get_result();
+
+while ($row = $result->fetch_assoc()) {
+    $paymentLabels[] = $row['payment_method'];
+    $paymentCounts[] = (float)$row['total'];
+}
+$stmt->close();
+?>
+
+
+
+
+
+<script>
+
+    // monthly chartadded
+    const monthlyCtx = document.getElementById('monthlySalesChart').getContext('2d');
+    new Chart(monthlyCtx, {
+        type: 'bar',
+        data: {
+            labels: <?= json_encode($salesLabels) ?>,
+            datasets: [{
+                label: 'Sales (₹)',
+                data: <?= json_encode($monthlySales) ?>,
+                backgroundColor: '#36A2EB'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    const pieCtx = document.getElementById('salesByCategory').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: <?php echo json_encode($paymentLabels); ?>,
+            datasets: [{
+                data: <?php echo json_encode($paymentCounts); ?>,
+                backgroundColor: [
+                    '#0d6efd',
+                    '#20c997',
+                    '#ffc107',
+                    '#fd7e14'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#333',
+                        font: { size: 14 }
+                    }
+                }
+            }
+        }
+    });
+
+
+</script>
+
 <style>
-.w-120px {
-    width: 120px;
-}
-.text-sm {
-    font-size: 0.875rem;
-}
-.font-medium {
-    font-weight: 500;
-}
-.bg-green-subtle {
-    background-color: #d4edda !important;
-}
-.text-green {
-    color: #155724 !important;
-}
-.bg-secondary-subtle {
-    background-color: #e2e3e5 !important;
-}
-.text-secondary {
-    color: #41464b !important;
-}
-.border-primary-hover:hover {
-    border-color: #0d6efd !important;
-    background-color: rgba(13, 110, 253, 0.05) !important;
-}
+    .w-120px {
+        width: 120px;
+    }
+
+    .text-sm {
+        font-size: 0.875rem;
+    }
+
+    .font-medium {
+        font-weight: 500;
+    }
+
+    .bg-green-subtle {
+        background-color: #d4edda !important;
+    }
+
+    .text-green {
+        color: #155724 !important;
+    }
+
+    .bg-secondary-subtle {
+        background-color: #e2e3e5 !important;
+    }
+
+    .text-secondary {
+        color: #41464b !important;
+    }
+
+    .border-primary-hover:hover {
+        border-color: #0d6efd !important;
+        background-color: rgba(13, 110, 253, 0.05) !important;
+    }
 </style>

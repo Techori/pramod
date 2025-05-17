@@ -170,102 +170,153 @@ $settings['hardware'] = [
     'cash_drawer' => 0
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && $_GET['tab'] === 'hardware') {
-    $prefill_stmt = $conn->prepare("SELECT * FROM store_hardware_settings WHERE created_by = ? ORDER BY id DESC LIMIT 1");
-    $prefill_stmt->bind_param("s", $user_name);
-    $prefill_stmt->execute();
-    $result = $prefill_stmt->get_result();
+$prefill_stmt = $conn->prepare("SELECT * FROM store_hardware_settings WHERE created_by = ? ORDER BY id DESC LIMIT 1");
+$prefill_stmt->bind_param("s", $user_name);
+$prefill_stmt->execute();
+$result = $prefill_stmt->get_result();
 
-    if ($row = $result->fetch_assoc()) {
-        $settings['hardware'] = [
-            'receipt_printer' => $row['receipt_printer'],
-            'printer_model' => $row['printer_model'],
-            'barcode_scanner' => $row['barcode_scanner'],
-            'scanner_model' => $row['scanner_model'],
-            'customer_display' => $row['customer_display'],
-            'payment_terminal' => $row['payment_terminal'],
-            'cash_drawer' => $row['cash_drawer']
-        ];
-    }
-}
-
-
-// Include mock database
-require_once 'database.php';
-
-// Get settings data
-$settings = get_store_settings();
-
-// Handle form submissions
-$success_message = '';
-$error_message = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['section'])) {
-        $section = $_POST['section'];
-        $success_message = "$section settings have been saved successfully.";
-    } elseif (isset($_POST['action'])) {
-        $action = $_POST['action'];
-        switch ($action) {
-            case 'test_printer':
-                $success_message = 'Receipt printer test initiated successfully.';
-                break;
-            case 'test_scanner':
-                $success_message = 'Barcode scanner test initiated successfully.';
-                break;
-            case 'test_display':
-                $success_message = 'Customer display test initiated successfully.';
-                break;
-            case 'test_terminal':
-                $success_message = 'Payment terminal test initiated successfully.';
-                break;
-            case 'open_drawer':
-                $success_message = 'Cash drawer opened successfully.';
-                break;
-            case 'edit_user':
-                $success_message = 'Edit user operation initiated successfully.';
-                break;
-            case 'add_user':
-                $success_message = 'Add new user operation initiated successfully.';
-                break;
-            case 'edit_role':
-                $success_message = 'Edit role operation initiated successfully.';
-                break;
-            case 'add_role':
-                $success_message = 'Add new role operation initiated successfully.';
-                break;
-        }
-    }
-}
-
-
-// Status badge function
-function get_status_badge($status)
-{
-    $status_config = [
-        'Active' => ['class' => 'bg-green-subtle text-green', 'label' => 'Active'],
-        'On Leave' => ['class' => 'bg-yellow-subtle text-yellow', 'label' => 'On Leave']
+if ($row = $result->fetch_assoc()) {
+    $settings['hardware'] = [
+        'receipt_printer' => $row['receipt_printer'],
+        'printer_model' => $row['printer_model'],
+        'barcode_scanner' => $row['barcode_scanner'],
+        'scanner_model' => $row['scanner_model'],
+        'customer_display' => $row['customer_display'],
+        'payment_terminal' => $row['payment_terminal'],
+        'cash_drawer' => $row['cash_drawer']
     ];
-    $config = isset($status_config[$status]) ? $status_config[$status] : ['class' => 'bg-secondary-subtle text-secondary', 'label' => $status];
-    return "<span class='badge {$config['class']}'>{$config['label']}</span>";
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['section'] === 'After-Sales Service') {
+    $defaultWarranty = intval($_POST['default_warranty']);
+    $extendedWarranty = intval($_POST['extended_warranty']);
+    $warrantyTracking = isset($_POST['warranty_tracking']) ? 1 : 0;
+
+    $returnPeriod = intval($_POST['return_period']);
+    $returnPolicy = $_POST['return_policy'];
+    $returnsConditions = $_POST['returns_conditions'];
+
+    $serviceCenters = $_POST['service_centers'];
+    $doorstepService = isset($_POST['doorstep_service']) ? 1 : 0;
+    $expressService = isset($_POST['express_service']) ? 1 : 0;
+
+    $supportPhone = $_POST['support_phone'];
+    $supportEmail = $_POST['support_email'];
+    $customerPortal = isset($_POST['customer_portal']) ? 1 : 0;
+
+    // Check if entry exists for this user
+    $check_stmt = $conn->prepare("SELECT id FROM store_after_sales_settings WHERE created_by = ?");
+    $check_stmt->bind_param("s", $user_name);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
+
+    if ($check_result->num_rows > 0) {
+        // Update existing entry
+        $row = $check_result->fetch_assoc();
+        $update_stmt = $conn->prepare("UPDATE store_after_sales_settings SET 
+            default_warranty = ?, 
+            extended_warranty = ?, 
+            warranty_tracking = ?, 
+            return_period = ?, 
+            return_policy = ?, 
+            returns_conditions = ?, 
+            service_centers = ?, 
+            doorstep_service = ?, 
+            express_service = ?, 
+            support_phone = ?, 
+            support_email = ?, 
+            customer_portal = ?, 
+            updated_at = NOW() 
+            WHERE id = ?");
+        $update_stmt->bind_param(
+            "iiiisssiissii",
+            $defaultWarranty,
+            $extendedWarranty,
+            $warrantyTracking,
+            $returnPeriod,
+            $returnPolicy,
+            $returnsConditions,
+            $serviceCenters,
+            $doorstepService,
+            $expressService,
+            $supportPhone,
+            $supportEmail,
+            $customerPortal,
+            $row['id']
+        );
+        $update_stmt->execute();
+    } else {
+        // Insert new entry
+        $insert_stmt = $conn->prepare("INSERT INTO store_after_sales_settings (
+            default_warranty, extended_warranty, warranty_tracking, 
+            return_period, return_policy, returns_conditions, 
+            service_centers, doorstep_service, express_service, 
+            support_phone, support_email, customer_portal, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insert_stmt->bind_param(
+            "iiiisssiissis",
+            $defaultWarranty,
+            $extendedWarranty,
+            $warrantyTracking,
+            $returnPeriod,
+            $returnPolicy,
+            $returnsConditions,
+            $serviceCenters,
+            $doorstepService,
+            $expressService,
+            $supportPhone,
+            $supportEmail,
+            $customerPortal,
+            $user_name
+        );
+        $insert_stmt->execute();
+    }
+}
+
+$settings['after_sales'] = [
+    'default_warranty' => '',
+    'extended_warranty' => '',
+    'warranty_tracking' => 0,
+    'return_period' => '',
+    'return_policy' => '',
+    'returns_conditions' => '',
+    'service_centers' => '',
+    'doorstep_service' => 0,
+    'express_service' => 0,
+    'support_phone' => '',
+    'support_email' => '',
+    'customer_portal' => 0
+];
+
+$prefill_stmt = $conn->prepare("SELECT * FROM store_after_sales_settings WHERE created_by = ? ORDER BY id DESC LIMIT 1");
+$prefill_stmt->bind_param("s", $user_name);
+$prefill_stmt->execute();
+$result = $prefill_stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+    $settings['after_sales'] = [
+        'default_warranty' => $row['default_warranty'],
+        'extended_warranty' => $row['extended_warranty'],
+        'warranty_tracking' => $row['warranty_tracking'],
+        'return_period' => $row['return_period'],
+        'return_policy' => $row['return_policy'],
+        'returns_conditions' => $row['returns_conditions'],
+        'service_centers' => $row['service_centers'],
+        'doorstep_service' => $row['doorstep_service'],
+        'express_service' => $row['express_service'],
+        'support_phone' => $row['support_phone'],
+        'support_email' => $row['support_email'],
+        'customer_portal' => $row['customer_portal']
+    ];
+}
+
+
+
+
 ?>
 
 <div class="main-content">
     <h1><i class="fas fa-cog text-primary me-2"></i> Store Settings</h1>
 
-    <?php if ($success_message): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?php echo htmlspecialchars($success_message); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($error_message): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?php echo htmlspecialchars($error_message); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <?php endif; ?>
 
     <!-- Tabs Navigation -->
     <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
@@ -574,7 +625,7 @@ function get_status_badge($status)
                                                     </div>
                                                 </td>
                                                 <td class="px-4 py-3"><?php echo htmlspecialchars($user['role']); ?></td>
-                                                <td class="px-4 py-3"><?php echo get_status_badge($user['status']); ?></td>
+                                                <td class="px-4 py-3"><?php echo htmlspecialchars($user['status']); ?></td>
                                                 <td class="px-4 py-3"><?php echo htmlspecialchars($user['last_login']); ?>
                                                 </td>
                                                 <td class="px-4 py-3 text-end">
@@ -665,14 +716,14 @@ function get_status_badge($status)
                                             (months)</label>
                                         <input type="number" class="form-control" id="default_warranty"
                                             name="default_warranty"
-                                            value="<?php echo htmlspecialchars($settings['after_sales']['warranty']['default_warranty']); ?>">
+                                            value="<?php echo htmlspecialchars($settings['after_sales']['default_warranty']); ?>">
                                     </div>
                                     <div class="col-md-6">
                                         <label for="extended_warranty" class="form-label">Extended Warranty Period
                                             (months)</label>
                                         <input type="number" class="form-control" id="extended_warranty"
                                             name="extended_warranty"
-                                            value="<?php echo htmlspecialchars($settings['after_sales']['warranty']['extended_warranty']); ?>">
+                                            value="<?php echo htmlspecialchars($settings['after_sales']['extended_warranty']); ?>">
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
@@ -684,7 +735,7 @@ function get_status_badge($status)
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="warranty_tracking"
-                                            name="warranty_tracking" <?php echo $settings['after_sales']['warranty']['warranty_tracking'] ? 'checked' : ''; ?>>
+                                            name="warranty_tracking" <?php echo $settings['after_sales']['warranty_tracking'] ? 'checked' : ''; ?>>
                                     </div>
                                 </div>
                             </div>
@@ -697,22 +748,22 @@ function get_status_badge($status)
                                         <label for="return_period" class="form-label">Return Period (days)</label>
                                         <input type="number" class="form-control" id="return_period"
                                             name="return_period"
-                                            value="<?php echo htmlspecialchars($settings['after_sales']['returns']['return_period']); ?>">
+                                            value="<?php echo htmlspecialchars($settings['after_sales']['return_period']); ?>">
                                     </div>
                                     <div class="col-md-6">
                                         <label for="return_policy" class="form-label">Return Processing Method</label>
                                         <select class="form-select" id="return_policy" name="return_policy">
-                                            <option value="exchange" <?php echo $settings['after_sales']['returns']['return_policy'] === 'exchange' ? 'selected' : ''; ?>>Exchange Only</option>
-                                            <option value="refund" <?php echo $settings['after_sales']['returns']['return_policy'] === 'refund' ? 'selected' : ''; ?>>Refund Only</option>
-                                            <option value="both" <?php echo $settings['after_sales']['returns']['return_policy'] === 'both' ? 'selected' : ''; ?>>Exchange or Refund</option>
-                                            <option value="credit" <?php echo $settings['after_sales']['returns']['return_policy'] === 'credit' ? 'selected' : ''; ?>>Store Credit</option>
+                                            <option value="exchange" <?php echo $settings['after_sales']['return_policy'] === 'exchange' ? 'selected' : ''; ?>>Exchange Only</option>
+                                            <option value="refund" <?php echo $settings['after_sales']['return_policy'] === 'refund' ? 'selected' : ''; ?>>Refund Only</option>
+                                            <option value="both" <?php echo $settings['after_sales']['return_policy'] === 'both' ? 'selected' : ''; ?>>Exchange or Refund</option>
+                                            <option value="credit" <?php echo $settings['after_sales']['return_policy'] === 'credit' ? 'selected' : ''; ?>>Store Credit</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <label for="returns_conditions" class="form-label">Returns Conditions</label>
                                     <textarea class="form-control" id="returns_conditions" name="returns_conditions"
-                                        rows="4"><?php echo htmlspecialchars($settings['after_sales']['returns']['returns_conditions']); ?></textarea>
+                                        rows="4"><?php echo htmlspecialchars($settings['after_sales']['returns_conditions']); ?></textarea>
                                 </div>
                             </div>
 
@@ -722,7 +773,7 @@ function get_status_badge($status)
                                 <div class="mb-3">
                                     <label for="service_centers" class="form-label">Authorized Service Centers</label>
                                     <textarea class="form-control" id="service_centers" name="service_centers"
-                                        rows="4"><?php echo htmlspecialchars($settings['after_sales']['service_centers']['centers']); ?></textarea>
+                                        rows="4"><?php echo htmlspecialchars($settings['after_sales']['service_centers']); ?></textarea>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <div>
@@ -731,7 +782,7 @@ function get_status_badge($status)
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="doorstep_service"
-                                            name="doorstep_service" <?php echo $settings['after_sales']['service_centers']['doorstep_service'] ? 'checked' : ''; ?>>
+                                            name="doorstep_service" <?php echo $settings['after_sales']['doorstep_service'] ? 'checked' : ''; ?>>
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
@@ -741,7 +792,7 @@ function get_status_badge($status)
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="express_service"
-                                            name="express_service" <?php echo $settings['after_sales']['service_centers']['express_service'] ? 'checked' : ''; ?>>
+                                            name="express_service" <?php echo $settings['after_sales']['express_service'] ? 'checked' : ''; ?>>
                                     </div>
                                 </div>
                             </div>
@@ -753,12 +804,12 @@ function get_status_badge($status)
                                     <div class="col-md-6">
                                         <label for="support_phone" class="form-label">Support Phone Number</label>
                                         <input type="text" class="form-control" id="support_phone" name="support_phone"
-                                            value="<?php echo htmlspecialchars($settings['after_sales']['customer_support']['support_phone']); ?>">
+                                            value="<?php echo htmlspecialchars($settings['after_sales']['support_phone']); ?>">
                                     </div>
                                     <div class="col-md-6">
                                         <label for="support_email" class="form-label">Support Email</label>
                                         <input type="email" class="form-control" id="support_email" name="support_email"
-                                            value="<?php echo htmlspecialchars($settings['after_sales']['customer_support']['support_email']); ?>">
+                                            value="<?php echo htmlspecialchars($settings['after_sales']['support_email']); ?>">
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
@@ -770,7 +821,7 @@ function get_status_badge($status)
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="customer_portal"
-                                            name="customer_portal" <?php echo $settings['after_sales']['customer_support']['customer_portal'] ? 'checked' : ''; ?>>
+                                            name="customer_portal" <?php echo $settings['after_sales']['customer_portal'] ? 'checked' : ''; ?>>
                                     </div>
                                 </div>
                             </div>
