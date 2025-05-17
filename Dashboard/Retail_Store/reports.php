@@ -117,12 +117,6 @@ function get_status_badge($status) {
                     <option value="q12025" <?php echo $period === 'q12025' ? 'selected' : ''; ?>>Q1 2025</option>
                 </select>
             </form>
-            <form method="POST" action="?page=reports" class="d-inline">
-                <input type="hidden" name="action" value="filter_reports">
-                <button type="submit" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-filter me-1"></i> Filter
-                </button>
-            </form>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <form method="POST" action="?page=reports" class="d-inline">
@@ -131,71 +125,6 @@ function get_status_badge($status) {
                     <i class="fas fa-file-alt me-1"></i> Generate Report
                 </button>
             </form>
-            <form method="POST" action="?page=reports" class="d-inline">
-                <input type="hidden" name="action" value="schedule_reports">
-                <button type="submit" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-calendar-alt me-1"></i> Schedule
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Available Reports -->
-    <div class="card card-border shadow-sm mb-4">
-        <div class="card-body p-4">
-            <h5 class="mb-3">Available Reports</h5>
-            <p class="text-muted mb-3">Recently generated store reports</p>
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th class="w-120px">Report ID</th>
-                            <th>Report Name</th>
-                            <th>Period</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($filtered_reports)): ?>
-                            <tr>
-                                <td colspan="6" class="text-center py-4">
-                                    <i class="fas fa-chart-bar fa-2x text-muted"></i>
-                                    <p class="mt-2 text-muted">No reports found for the selected period.</p>
-                                    <a href="?page=reports" class="btn btn-outline-primary btn-sm">Clear Filters</a>
-                                </td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($filtered_reports as $report): ?>
-                            <tr>
-                                <td class="font-medium"><?php echo htmlspecialchars($report['id']); ?></td>
-                                <td><?php echo htmlspecialchars($report['name']); ?></td>
-                                <td><?php echo htmlspecialchars($report['date']); ?></td>
-                                <td><?php echo get_type_badge($report['type']); ?></td>
-                                <td><?php echo get_status_badge($report['status']); ?></td>
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <form method="POST" action="?page=reports" class="d-inline">
-                                            <input type="hidden" name="action" value="view_report">
-                                            <input type="hidden" name="report_id" value="<?php echo htmlspecialchars($report['id']); ?>">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">View</button>
-                                        </form>
-                                        <form method="POST" action="?page=reports" class="d-inline">
-                                            <input type="hidden" name="action" value="download_report">
-                                            <input type="hidden" name="report_id" value="<?php echo htmlspecialchars($report['id']); ?>">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-download"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
 

@@ -8,6 +8,11 @@ $user_name = $_SESSION['user_name'];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
+    function clean($input)
+    {
+        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    }
+
     if ($_POST['whatAction'] === 'requestStock') {
         // Collect data for transaction
         $itemName = clean($_POST['item_Name']);

@@ -699,4 +699,3 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
 </body>
 
 </html>
-<?php $conn->close(); ?>

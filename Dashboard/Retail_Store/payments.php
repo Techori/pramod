@@ -6,6 +6,36 @@ if (session_status() === PHP_SESSION_NONE) {
 include '../../_conn.php';
 
 $user_name = $_SESSION['user_name'];
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+    if ($_POST['whatAction'] === 'update') {
+        // Get data from the form
+        $invoice_id = $_POST['invoice_id'] ?? '';
+        $status = $_POST['status'] ?? '';
+
+        // Basic validation
+        if (!empty($invoice_id) && !empty($status)) {
+            // Prepare and execute the update query
+            $stmt = $conn->prepare("UPDATE invoice SET status = ? WHERE invoice_id = ?");
+            $stmt->bind_param("ss", $status, $invoice_id);
+
+            if ($stmt->execute()) {
+                // Redirect or show success message
+                header("Location: store_dashboard.php?page=payments"); // Replace with your actual page
+                exit();
+            } else {
+                echo "Error updating status: " . $conn->error;
+            }
+
+            $stmt->close();
+        } else {
+            echo "Invalid input.";
+        }
+    }
+}
+
+
 // Include mock database
 require_once 'database.php';
 
@@ -353,7 +383,7 @@ function get_status_badge($status)
                                         <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
                                             aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
                                             <div class="modal-dialog">
-                                                <form method="POST" action="update_status.php">
+                                                <form method="POST" action="payments.php">
                                                     <div class="modal-content">
                                                         <div class="modal-header">
                                                             <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
@@ -989,7 +1019,7 @@ while ($row = $result->fetch_assoc()) {
                 <?php
 
                 // Fetch transactions from the database
-                $result = $conn->query("SELECT item_name FROM reatail_invetory  WHERE inventory_of = '$user_name'");
+                $result = $conn->query("SELECT item_name FROM retail_invetory  WHERE inventory_of = '$user_name'");
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {

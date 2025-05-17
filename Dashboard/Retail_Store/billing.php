@@ -12,9 +12,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $whatAction = $data['whatAction'] ?? '';
     // echo "<script>console.log('What action: ". $whatAction ."') </script>";
 
-    $create_by = $_SESSION['user_name'];
-    $created_for = $_SESSION['user_name'];
-
     if ($whatAction === 'createInvoice') {
         $table = $data['table'];
 
@@ -27,56 +24,57 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $currentYear = date("Y");
 
-        // Fetch latest invoice ID for the current document type and current or previous year
-        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' AND created_for = '$created_for' ORDER BY invoice_id DESC LIMIT 1 FOR UPDATE";
-        $result = $conn->query($query);
-
-        if ($row = $result->fetch_assoc()) {
-            $parts = explode('-', $row['invoice_id']);
-            $yearInId = $parts[1];
-            if ($yearInId === $currentYear) {
-                $lastNumber = intval($parts[2]) + 1;
-            } else {
-                $lastNumber = 1; // New year, start from 1
-            }
-        } else {
-            $lastNumber = 1;
-        }
-
-        $newInvoiceId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
 
         if ($table === 'invoice') {
 
-            // // Get negative stock setting (default = 0)
-            // $allowNegativeStock = 0;
-            // $settingsResult = $conn->query("SELECT value FROM settings WHERE name = 'negative_stock' LIMIT 1");
+            // Fetch latest invoice ID for the current document type and current or previous year
+            $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' AND created_for = '$user_name' ORDER BY invoice_id DESC LIMIT 1 FOR UPDATE";
+            $result = $conn->query($query);
 
-            // if ($settingsResult && $row = $settingsResult->fetch_assoc()) {
-            //     $allowNegativeStock = (int) $row['value'];
-            // }
+            if ($row = $result->fetch_assoc()) {
+                $parts = explode('-', $row['invoice_id']);
+                $yearInId = $parts[1];
+                if ($yearInId === $currentYear) {
+                    $lastNumber = intval($parts[2]) + 1;
+                } else {
+                    $lastNumber = 1; // New year, start from 1
+                }
+            } else {
+                $lastNumber = 1;
+            }
 
-            // // Prepare item arrays
-            // $itemNames = explode(',', $data['item_names']);
-            // $quantities = explode(',', $data['quantities']);
+            $newInvoiceId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
 
-            // // Validate stock before inserting invoice
-            // for ($i = 0; $i < count($itemNames); $i++) {
-            //     $item = trim($itemNames[$i]);
-            //     $qty = (int) trim($quantities[$i]);
+            // Get negative stock setting (default = 0)
+            $allowNegativeStock = 0;
+            $settingsResult = $conn->query("SELECT allow_negative_stock FROM store_inventory_settings WHERE created_by = '$user_name' LIMIT 1");
 
-            //     $stockResult = $conn->query("SELECT quantity FROM inventory WHERE item = '$item' LIMIT 1");
+            if ($settingsResult && $row = $settingsResult->fetch_assoc()) {
+                $allowNegativeStock = (int) $row['allow_negative_stock'];
+            }
 
-            //     if ($stockResult && $stockRow = $stockResult->fetch_assoc()) {
-            //         $currentStock = (int) $stockRow['quantity'];
-            //         if (!$allowNegativeStock && ($currentStock - $qty < 0)) {
-            //             echo "<script>alert('Error: Not enough stock for item \"$item\". Available: $currentStock, Requested: $qty');</script>";
-            //             exit;
-            //         }
-            //     } else {
-            //         echo "<script>alert('Error: Item \"$item\" not found in inventory.');</script>";
-            //         exit;
-            //     }
-            // }
+            // Prepare item arrays
+            $itemNames = explode(',', $data['item_names']);
+            $quantities = explode(',', $data['quantities']);
+
+            // Validate stock before inserting invoice
+            for ($i = 0; $i < count($itemNames); $i++) {
+                $item = trim($itemNames[$i]);
+                $qty = (int) trim($quantities[$i]);
+
+                $stockResult = $conn->query("SELECT stock FROM retail_invetory WHERE item_name = '$item' LIMIT 1");
+
+                if ($stockResult && $stockRow = $stockResult->fetch_assoc()) {
+                    $currentStock = (int) $stockRow['stock'];
+                    if (!$allowNegativeStock && ($currentStock - $qty < 0)) {
+                        echo "<script>alert('Error: Not enough stock for item \"$item\". Available: $currentStock, Requested: $qty');</script>";
+                        exit;
+                    }
+                } else {
+                    echo "<script>alert('Error: Item \"$item\" not found in inventory.');</script>";
+                    exit;
+                }
+            }
 
 
             // Fetch latest sales ID current or previous year
@@ -93,7 +91,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
             // Fetch latest payment ID current or previous year
-            $result = $conn->query("SELECT payment_id FROM invoice WHERE created_for = '$created_for' ORDER BY CAST(SUBSTRING(payment_id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+            $result = $conn->query("SELECT payment_id FROM invoice WHERE created_for = '$user_name' ORDER BY CAST(SUBSTRING(payment_id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
             if ($result && $row = $result->fetch_assoc()) {
                 $lastId = $row['payment_id']; // e.g. SL-005
@@ -132,29 +130,54 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $newSalesId,
                 $newPaymentId,
                 $data['payment_method'],
-                $create_by,
-                $created_for,
+                $user_name,
+                $user_name,
                 $data['status']
 
             );
 
-            // // Subtract sold quantity from inventory
-            // for ($i = 0; $i < count($itemNames); $i++) {
-            //     $item = trim($itemNames[$i]);
-            //     $qty = (int) trim($quantities[$i]);
+            // Subtract sold quantity from inventory
+            for ($i = 0; $i < count($itemNames); $i++) {
+                $item = trim($itemNames[$i]);
+                $qty = (int) trim($quantities[$i]);
 
-            //     $updateInventory = $conn->query("UPDATE inventory SET quantity = quantity - $qty WHERE item = '$item'");
-            // }
+                $updateInventory = $conn->query("UPDATE retail_invetory SET stock = stock - $qty WHERE item_name = '$item'");
+            }
+
+            if ($stmt->execute()) {
+                echo "Invoice inserted successfully!";
+            } else {
+                echo "Error: " . $stmt->error;
+            }
 
 
         } else if ($table === 'quotation') {
+
+            // Fetch latest invoice ID for the current document type and current or previous year
+            $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' ORDER BY invoice_id DESC LIMIT 1 FOR UPDATE";
+            $result = $conn->query($query);
+
+            if ($row = $result->fetch_assoc()) {
+                $parts = explode('-', $row['invoice_id']);
+                $yearInId = $parts[1];
+                if ($yearInId === $currentYear) {
+                    $lastNumber = intval($parts[2]) + 1;
+                } else {
+                    $lastNumber = 1; // New year, start from 1
+                }
+            } else {
+                $lastNumber = 1;
+            }
+
+            $newInvoiceId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
+
             $stmt = $conn->prepare("INSERT INTO $table (
                 invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total,
-                item_name, description, quantity, price, total, payment_method, created_by, created_for, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                item_name, description, quantity, price, total, payment_method, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             $stmt->bind_param(
-                "sssssssdddsssssssss",
+                "sssssssdddsssssss",
                 $newInvoiceId,
                 $data['customer_name'],
                 $data['document_type'],
@@ -171,19 +194,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $data['prices'],
                 $data['totals'],
                 $data['payment_method'],
-                $create_by,
-                $created_for,
                 $data['status']
 
             );
 
+            if ($stmt->execute()) {
+                echo "Invoice inserted successfully!";
+            } else {
+                echo "Error: " . $stmt->error;
+            }
+
         }
 
-        if ($stmt->execute()) {
-            echo "Invoice inserted successfully!";
-        } else {
-            echo "Error: " . $stmt->error;
-        }
 
     } else if ($whatAction === 'createSales') {
         $table = $data['table'];
@@ -197,7 +219,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $currentYear = date("Y");
 
         // Fetch latest invoice ID for the current document type and current or previous year
-        $query = "SELECT sales_return_id FROM $table WHERE sales_return_id LIKE '$prefix-%' AND created_for = '$created_for'  ORDER BY sales_return_id DESC LIMIT 1";
+        $query = "SELECT sales_return_id FROM $table WHERE sales_return_id LIKE '$prefix-%' ORDER BY sales_return_id DESC LIMIT 1";
         $result = $conn->query($query);
 
         if ($row = $result->fetch_assoc()) {
@@ -218,11 +240,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         // Prepare and insert
         $stmt = $conn->prepare("INSERT INTO $table (
             sales_return_id, customer_name, date, tax_rate, notes, subtotal, GST_amount, Grand_total,
-            item, description, quantity, price, total, payment_method, created_by, created_for
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            item, description, quantity, price, total, payment_method
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param(
-            "sssssdddssssssss",
+            "sssssdddssssss",
             $newSalesId,
             $data['customer_name'],
             $data['date'],
@@ -236,9 +258,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $data['quantities'],
             $data['prices'],
             $data['totals'],
-            $data['payment_method'],
-            $create_by,
-            $created_for
+            $data['payment_method']
         );
 
         if ($stmt->execute()) {
@@ -954,7 +974,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                             const tableId = button.dataset.table;
                             const rows = document.querySelectorAll(`#${tableId} tbody tr`);
                             rows.forEach(row => {
-                                const docType = row.children[4]?.innerText.trim().toLowerCase();
+                                const docType = row.children[6]?.innerText.trim().toLowerCase();
                                 row.style.display = docType === type ? "" : "none";
                             });
                         });
@@ -990,7 +1010,7 @@ $types = ['All', 'Retail', 'Wholesale'];
             <div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
                 <div class="col">
                     <button type="button"
-                        class="btn btn-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2"
+                        class="btn btn-outline-primary w-100 h-100 py-4 d-flex flex-column align-items-center gap-2"
                         onclick="openInvoiceModal(event)" id="invoice">
                         <i class="fas fa-file-invoice fa-2x"></i>
                         <span>Create Store Invoice</span>
@@ -1131,14 +1151,13 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     <th>GST Amount</th>
                                     <th>Grand Total</th>
                                     <th>Payment Method</th>
-                                    <th>Created By</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
 
                                 // Fetch transactions from the database
-                                $result = $conn->query("SELECT * FROM quotation WHERE created_for = '$created_for' ORDER BY invoice_id DESC");
+                                $result = $conn->query("SELECT * FROM quotation ORDER BY invoice_id DESC");
 
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
@@ -1156,11 +1175,10 @@ $types = ['All', 'Retail', 'Wholesale'];
                                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                                         echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
                                         echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
-                                        echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
                                         echo "</tr>";
                                     }
                                 } else {
-                                    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
+                                    echo "<tr><td colspan='13' class='text-center'>No transactions found</td></tr>";
                                 }
                                 ?>
                             </tbody>
@@ -1257,14 +1275,13 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     <th>GST Amount</th>
                                     <th>Grand Total</th>
                                     <th>Payment Method</th>
-                                    <th>Created By</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php
 
                                 // Fetch transactions from the database
-                                $result = $conn->query("SELECT * FROM sales_return WHERE created_for = '$created_for' ORDER BY sales_return_id DESC");
+                                $result = $conn->query("SELECT * FROM sales_return ORDER BY sales_return_id DESC");
 
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
@@ -1280,11 +1297,10 @@ $types = ['All', 'Retail', 'Wholesale'];
                                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                                         echo "<td>₹" . number_format($row['Grand_total'], 2) . "</td>";
                                         echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
-                                        echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
                                         echo "</tr>";
                                     }
                                 } else {
-                                    echo "<tr><td colspan='12' class='text-center'>No transactions found</td></tr>";
+                                    echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
                                 }
                                 ?>
                             </tbody>
@@ -1878,7 +1894,7 @@ $types = ['All', 'Retail', 'Wholesale'];
         })
             .then(res => res.text())
             .then(msg => {
-                // alert(msg);  
+                // alert(msg);
                 // console.log(msg);
                 activeInvoiceButtonId = null;
                 location.reload();

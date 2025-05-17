@@ -111,34 +111,10 @@ require_once 'database.php';
 
                 <!-- Bar chart & alerts -->
                 <div class="row mb-4" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);">
-                    <div class="col-md-8 col-sm-12 mb-4">
+                    <div class="col-md-8 col-sm-12 mb-4 text-center">
                         <h3>Sales Performance (Last 7 Days)</h3>
                         <p>Daily revenue breakdown</p>
                         <canvas id="barChart"></canvas>
-                    </div>
-                    <div class="col-md-4 col-sm-12 mb-4">
-                        <h3>Alerts & Notifications</h3>
-                        <div class="card stat-card shadow-sm mb-2" style="background-color:rgb(251, 243, 215);">
-                            <div class="card-body">
-                                <h5 class="text-muted">Low Stock Alert</h5>
-                                <p>5 products below reorder level</p>
-                                <a href="?page=inventory" class="text-dark">View Items</a>
-                            </div>
-                        </div>
-                        <div class="card stat-card shadow-sm mb-2" style="background-color:rgb(212, 255, 233);">
-                            <div class="card-body">
-                                <h5 class="text-muted">Supply Arrival</h5>
-                                <p>New inventory arriving today</p>
-                                <a href="?page=supply" class="text-dark">Track Delivery</a>
-                            </div>
-                        </div>
-                        <div class="card stat-card shadow-sm mb-2" style="background-color:rgb(192, 214, 247);">
-                            <div class="card-body">
-                                <h5 class="text-muted">Customer Feedback</h5>
-                                <p>3 new customer reviews received</p>
-                                <a href="?page=customers" class="text-dark">View Reviews</a>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -189,7 +165,7 @@ require_once 'database.php';
                 </div>
 
                 <!-- Quick Access -->
-                <div class="row justify-content-center p-2 bg-body rounded-3 mb-4 m-2" style="box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);">
+                <div class="row justify-content-center p-3 bg-body rounded-3 mb-4 m-2" style="box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);">
                     <h5>Quick Access</h5>
                     <div class="col-md-2 col-sm-6 mb-4">
                         <a href="?page=billing" class="btn btn-outline-primary btn-lg w-100"><i class="fa-regular fa-file-lines"></i> Create Invoice</a>
@@ -205,9 +181,6 @@ require_once 'database.php';
                     </div>
                     <div class="col-md-2 col-sm-6 mb-4">
                         <a href="?page=reports" class="btn btn-outline-primary btn-lg w-100"><i class="fa-regular fa-file"></i> View Reports</a>
-                    </div>
-                    <div class="col-md-2 col-sm-6 mb-4">
-                        <a href="?page=payments" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-credit-card"></i> Process Payments</a>
                     </div>
                 </div>
 

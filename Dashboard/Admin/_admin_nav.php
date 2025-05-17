@@ -21,18 +21,34 @@
             <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
         </div>
         <nav class="nav flex-column mt-2">
-          <a href="?page=admin_dashboard" class="nav-link <?php echo $page === 'admin_dashboard' ? 'active' : '' ?>"><i class="fas fa-table-cells-large"></i> Main Dashboard</a>
-          <a href="?page=billing_desk" class="nav-link <?php echo $page === 'billing_desk' ? 'active' : '' ?>"><i class="fas fa-file-invoice"></i> Billing Desk</a>
-          <a href="?page=accounting" class="nav-link <?php echo $page === 'accounting' ? 'active' : '' ?>"><i class="fas fa-dollar-sign"></i> Accounting</a>
-          <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : '' ?>"><i class="fas fa-box-open"></i> Inventory</a>
-          <a href="?page=expenses_dashboard" class="nav-link <?php echo $page === 'expenses_dashboard' ? 'active' : '' ?>"><i class="fas fa-chart-line"></i> Expenses</a>
-          <a href="?page=factory_stock" class="nav-link <?php echo $page === 'factory_stock' ? 'active' : '' ?>"><i class="fas fa-warehouse"></i> Factory Stock</a>
-          <a href="?page=retail_store" class="nav-link <?php echo $page === 'retail_store' ? 'active' : '' ?>"><i class="fas fa-store"></i> Retail Store</a>
-          <a href="?page=After_sales_service" class="nav-link <?php echo $page === 'After_sales_service' ? 'active' : '' ?>"><i class="fas fa-headset"></i> After-Sales Service</a>
-          <a href="?page=suppliers" class="nav-link <?php echo $page === 'suppliers' ? 'active' : '' ?>"><i class="fas fa-truck-moving"></i> Suppliers</a>
-          <a href="?page=reports" class="nav-link <?php echo $page === './reports' ? 'active' : '' ?>"><i class="fas fa-chart-bar"></i> Reports</a>
-          <a href="?page=user_management" class="nav-link <?php echo $page === 'user_management' ? 'active' : '' ?>"><i class="fas fa-users-gear"></i> User Management</a>
-          <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : '' ?>"><i class="fas fa-gear"></i> Settings</a>
+            <a href="?page=admin_dashboard"
+                class="nav-link <?php echo $page === 'admin_dashboard' ? 'active' : '' ?>"><i
+                    class="fas fa-table-cells-large"></i> Main Dashboard</a>
+            <a href="?page=billing_desk" class="nav-link <?php echo $page === 'billing_desk' ? 'active' : '' ?>"><i
+                    class="fas fa-file-invoice"></i> Billing Desk</a>
+            <a href="?page=accounting" class="nav-link <?php echo $page === 'accounting' ? 'active' : '' ?>"><i
+                    class="fas fa-dollar-sign"></i> Accounting</a>
+            <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : '' ?>"><i
+                    class="fas fa-box-open"></i> Inventory</a>
+            <a href="?page=expenses_dashboard"
+                class="nav-link <?php echo $page === 'expenses_dashboard' ? 'active' : '' ?>"><i
+                    class="fas fa-chart-line"></i> Expenses</a>
+            <a href="?page=factory_stock" class="nav-link <?php echo $page === 'factory_stock' ? 'active' : '' ?>"><i
+                    class="fas fa-warehouse"></i> Factory Stock</a>
+            <a href="?page=retail_store" class="nav-link <?php echo $page === 'retail_store' ? 'active' : '' ?>"><i
+                    class="fas fa-store"></i> Retail Store</a>
+            <a href="?page=After_sales_service"
+                class="nav-link <?php echo $page === 'After_sales_service' ? 'active' : '' ?>"><i
+                    class="fas fa-headset"></i> After-Sales Service</a>
+            <a href="?page=suppliers" class="nav-link <?php echo $page === 'suppliers' ? 'active' : '' ?>"><i
+                    class="fas fa-truck-moving"></i> Suppliers</a>
+            <a href="?page=reports" class="nav-link <?php echo $page === './reports' ? 'active' : '' ?>"><i
+                    class="fas fa-chart-bar"></i> Reports</a>
+            <a href="?page=user_management"
+                class="nav-link <?php echo $page === 'user_management' ? 'active' : '' ?>"><i
+                    class="fas fa-users-gear"></i> User Management</a>
+            <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : '' ?>"><i
+                    class="fas fa-gear"></i> Settings</a>
         </nav>
         <div class="footer">© 2025 Unnati Traders</div>
     </div>
@@ -54,98 +70,27 @@
             </div>
         </form>
         <div class="d-flex align-items-center">
-            <div class="dropdown me-2">
-                <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown">
-                    <i class="fas fa-bell"></i>
-                    <?php
-                    // Mock notifications data
-                    $notifications = [
-                        [
-                            'title' => 'New Order Received',
-                            'message' => 'Order #ORD-2854 has been placed.',
-                            'time' => '2 hours ago',
-                            'read' => false,
-                            'color' => 'primary',
-                            'icon' => 'fa-bell'
-                        ],
-                        [
-                            'title' => 'Payment Overdue',
-                            'message' => 'Invoice #INV-3845 payment is overdue.',
-                            'time' => '1 day ago',
-                            'read' => true,
-                            'color' => 'warning',
-                            'icon' => 'fa-exclamation-triangle'
-                        ],
-                        [
-                            'title' => 'Delivery Completed',
-                            'message' => 'Delivery #DEL-482 has been completed.',
-                            'time' => '3 hours ago',
-                            'read' => false,
-                            'color' => 'success',
-                            'icon' => 'fa-check-circle'
-                        ]
-                    ];
-
-                    $unread = array_filter($notifications, function ($n) {
-                        return !$n['read'];
-                    });
-
-                    if (count($unread) > 0):
-                        ?>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            <?php echo count($unread); ?>
-                            <span class="visually-hidden">unread notifications</span>
-                        </span>
-                    <?php endif; ?>
+            <!-- Notification Bell -->
+            <div style="position: relative;">
+                <button onclick="toggleDropdown()" style="background:none; border:none; position:relative;">
+                    🔔
+                    <span id="notif-count" style="color:red; position:absolute; top:0; right:0; font-size:12px;"></span>
                 </button>
-                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0"
-                    style="width: 320px; max-height: 400px; overflow-y: auto;">
-                    <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Notifications</h6>
-                        <?php if (count($unread) > 0): ?>
-                            <button class="btn btn-link btn-sm text-decoration-none">Mark all read</button>
-                        <?php endif; ?>
-                    </div>
-                    <div class="notifications-list">
-                        <?php foreach ($notifications as $notification): ?>
-                            <div
-                                class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <span class="fa-stack fa-sm">
-                                            <i
-                                                class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
-                                            <i
-                                                class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
-                                        </span>
-                                    </div>
-                                    <div class="flex-grow-1 ms-2">
-                                        <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?>
-                                        </h6>
-                                        <p class="mb-0 small"><?php echo htmlspecialchars($notification['message']); ?></p>
-                                        <small
-                                            class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
-                                    </div>
-                                    <?php if (!$notification['read']): ?>
-                                        <div class="flex-shrink-0 ms-2">
-                                            <span class="badge bg-primary rounded-pill">New</span>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="p-2 border-top text-center">
-                        <a href="#" class="text-decoration-none small">View all notifications</a>
-                    </div>
+
+                <!-- Notification Dropdown -->
+                <div id="notif-dropdown"
+                    style="display:none; position:absolute; top:30px; right:0; background:#fff; border:1px solid #ccc; width:300px; max-height:400px; overflow-y:auto; z-index:999;">
+                    <div id="notifications" style="padding:10px;"></div>
                 </div>
             </div>
+
             <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i
                         class="fas fa-user-circle"></i></button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <small class="text-muted text-center d-block"
-                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>  <!-- User email can be change according to dashboard -->
+                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>
+                    <!-- User email can be change according to dashboard -->
                     <li><a class="dropdown-item" href="?page=settings">Update Profile</a></li>
                     <form action="../../logout.php" method="POST" class="d-inline">
                         <input type="hidden" name="logout_btn" value="logout">
@@ -156,60 +101,115 @@
         </div>
     </header>
 
-     </body>
-     
+</body>
+
 </html>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const navbarSearch = document.querySelector('.input-group input[type="search"]');
+    document.addEventListener("DOMContentLoaded", function () {
+        const navbarSearch = document.querySelector('.input-group input[type="search"]');
 
-    if (navbarSearch) {
-        navbarSearch.addEventListener("input", function () {
-            const searchText = navbarSearch.value.trim().toLowerCase();
+        if (navbarSearch) {
+            navbarSearch.addEventListener("input", function () {
+                const searchText = navbarSearch.value.trim().toLowerCase();
 
-            // Remove old highlights
-            document.querySelectorAll("mark.navbar-search-highlight").forEach(mark => {
-                const parent = mark.parentNode;
-                parent.replaceChild(document.createTextNode(mark.textContent), mark);
-                parent.normalize();
-            });
+                // Remove old highlights
+                document.querySelectorAll("mark.navbar-search-highlight").forEach(mark => {
+                    const parent = mark.parentNode;
+                    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                    parent.normalize();
+                });
 
-            if (!searchText) return;
+                if (!searchText) return;
 
-            let firstMatchElement = null;
+                let firstMatchElement = null;
 
-            document.body.querySelectorAll("*:not(script):not(style)").forEach(el => {
-                if (el.children.length === 0 && el.textContent.toLowerCase().includes(searchText)) {
-                    const regex = new RegExp(`(${searchText})`, "i");
-                    el.innerHTML = el.textContent.replace(regex, '<mark class="navbar-search-highlight">$1</mark>');
+                document.body.querySelectorAll("*:not(script):not(style)").forEach(el => {
+                    if (el.children.length === 0 && el.textContent.toLowerCase().includes(searchText)) {
+                        const regex = new RegExp(`(${searchText})`, "i");
+                        el.innerHTML = el.textContent.replace(regex, '<mark class="navbar-search-highlight">$1</mark>');
 
-                    if (!firstMatchElement) {
-                        firstMatchElement = el;
+                        if (!firstMatchElement) {
+                            firstMatchElement = el;
+                        }
                     }
+                });
+
+                if (firstMatchElement) {
+                    const hiddenTab = firstMatchElement.closest(".billing-tab-content");
+                    if (hiddenTab && !hiddenTab.classList.contains("active")) {
+                        document.querySelectorAll(".billing-tab-content").forEach(tab => tab.classList.remove("active"));
+                        hiddenTab.classList.add("active");
+                    }
+
+                    setTimeout(() => {
+                        firstMatchElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }, 200);
                 }
             });
-
-            if (firstMatchElement) {
-                const hiddenTab = firstMatchElement.closest(".billing-tab-content");
-                if (hiddenTab && !hiddenTab.classList.contains("active")) {
-                    document.querySelectorAll(".billing-tab-content").forEach(tab => tab.classList.remove("active"));
-                    hiddenTab.classList.add("active");
-                }
-
-                setTimeout(() => {
-                    firstMatchElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                }, 200);
-            }
-        });
-    }
-});
+        }
+    });
 </script>
 
 <style>
-mark.navbar-search-highlight {
-    background-color: yellow;
-    color: black;
-    padding: 0 2px;
-    border-radius: 2px;
-}
+    mark.navbar-search-highlight {
+        background-color: yellow;
+        color: black;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
 </style>
+
+<script>
+function toggleDropdown() {
+    const dropdown = document.getElementById("notif-dropdown");
+    dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+}
+
+function loadNotifications() {
+    fetch("../../notifications.php")
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById("notifications");
+            const countSpan = document.getElementById("notif-count");
+
+            container.innerHTML = "";
+            let unreadCount = 0;
+
+            if (data.length === 0) {
+                container.innerHTML = "<p>No notifications</p>";
+                countSpan.textContent = "";
+                return;
+            }
+
+            data.forEach(n => {
+                const div = document.createElement("div");
+                div.style.borderBottom = "1px solid #eee";
+                div.style.padding = "5px";
+
+                div.innerHTML = `
+                    <strong>${n.title}</strong>
+                    <p>${n.message}</p>
+                    <small>${n.created_at}</small><br>
+                    ${n.is_read ? '<em style="color:gray;">Read</em>' :
+                    `<button onclick="markRead(${n.id})">Mark as Read</button>`}
+                `;
+
+                if (!n.is_read) unreadCount++;
+                container.appendChild(div);
+            });
+
+            countSpan.textContent = unreadCount > 0 ? unreadCount : '';
+        });
+}
+
+function markRead(id) {
+    fetch("../../notifications.php", {
+        method: "POST",
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `mark_read=1&id=${id}`
+    }).then(() => loadNotifications());
+}
+
+loadNotifications();
+setInterval(loadNotifications, 10000); // refresh every 10s
+</script>

@@ -317,7 +317,7 @@ $ticket_result = $conn->query($ticket_query);
             </div>
         </div>
 
-        <!-- Buttons -->
+        <!-- Buttons
         <div class="row justify-content-center">
             <div class="col-md-3 col-sm-6 mb-4">
                 <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal" data-bs-target="#serviceTicket"><i class="fa-regular fa-calendar-check"></i>
@@ -335,7 +335,7 @@ $ticket_result = $conn->query($ticket_query);
                 <button type="button" class="btn btn-outline-primary btn-lg w-100"><i class="fa-solid fa-file-lines"></i>
                     Service Reports</button>
             </div>
-        </div>
+        </div> -->
 
         <!-- Service Ticket Form -->
         <div class="modal fade" id="serviceTicket" tabindex="-1" aria-labelledby="serviceTicketLabel" aria-hidden="true">
@@ -448,54 +448,6 @@ $ticket_result = $conn->query($ticket_query);
             </div>
         </div>
 
-        <!-- Assign Technician Form -->
-        <div class="modal fade" id="asignTechnician" tabindex="-1" aria-labelledby="asignTechnicianLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <form>
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="asignTechnicianLabel">Assign Technician</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="ticketId" class="form-label">Ticket ID</label>
-                                <input type="text" class="form-control" id="ticketId">
-                            </div>
-                            <div class="mb-3">
-                                <label for="customer" class="form-label">Customer</label>
-                                <input type="text" class="form-control" id="customer">
-                            </div>
-                            <div class="mb-3">
-                                <label for="TechnicianName" class="form-label">Technician Name</label>
-                                <input type="text" class="form-control" id="TechnicianName">
-                            </div>
-                            <div class="mb-3">
-                                <label for="date" class="form-label">Date</label>
-                                <input type="date" class="form-control" id="date">
-                            </div>
-                            <div class="mb-3">
-                                <label for="issue" class="form-label">Issue</label>
-                                <input type="text" class="form-control" id="issue">
-                            </div>
-                            <div class="mb-3">
-                                <label for="product" class="form-label">Product</label>
-                                <input type="text" class="form-control" id="product">
-                            </div>
-                            <div class="mb-3">
-                                <label for="priority" class="form-label">Priority</label>
-                                <input type="text" class="form-control" id="priority">
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Assign Technician</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
         <!-- Charts -->
         <div class="chart-container">
             <div class="chart-box">
@@ -522,6 +474,7 @@ $ticket_result = $conn->query($ticket_query);
                         </div>
                         <button class="btn btn-outline-primary me-2"><i class="fa-solid fa-filter"></i></button>
                         <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#serviceTicket"><i class="fa-solid fa-plus"></i> New Ticket</button>
+                        <button type="button" class="btn btn-outline-primary me-2"><i class="fa-solid fa-file-lines"></i> Service Reports</button>
                     </div>
                 </div>
                 <table id="Table" class="table table-bordered table-hover">
@@ -558,7 +511,6 @@ $ticket_result = $conn->query($ticket_query);
                                                     data-status="<?php echo htmlspecialchars($ticket['status']); ?>">
                                                 <i class="fa-solid fa-edit"></i> Edit
                                             </button>
-                                            <button class="btn btn-outline-success btn-sm"><i class="fa-regular fa-circle-check"></i></button>
                                         </div>
                                     </td>
                                 </tr>

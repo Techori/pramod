@@ -210,41 +210,66 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 <h1>Accounting Dashboard</h1>
 <p>Monitor financial health and transactions</p>
 
+<?php
+// Monthly Revenue
+$currentMonth = date('m');
+$currentYear = date('Y');
+$revenue = $conn->query("SELECT IFNULL(SUM(grand_total), 0) AS total FROM invoice WHERE MONTH(date) = $currentMonth AND YEAR(date) = $currentYear")->fetch_assoc();
+
+// Last Month Revenue for % comparison
+$lastMonth = date('m', strtotime('-1 month'));
+$lastRevenue = $conn->query("SELECT IFNULL(SUM(grand_total), 0) AS total FROM invoice WHERE MONTH(date) = $lastMonth AND YEAR(date) = $currentYear")->fetch_assoc();
+$revenueChange = ($lastRevenue['total'] > 0) ? (($revenue['total'] - $lastRevenue['total']) / $lastRevenue['total']) * 100 : 0;
+
+// Monthly Expense
+$monthly_expenses_query = "SELECT SUM(amount) as total FROM expenses WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())";
+$monthly_expenses_result = $conn->query($monthly_expenses_query);
+$monthly_expenses = $monthly_expenses_result ? ($monthly_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
+$monthly_expenses_result->free();
+
+// Monthly Expenses comparison (last month)
+$last_month_expenses_query = "SELECT SUM(amount) as total FROM expenses WHERE MONTH(date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+$last_month_expenses_result = $conn->query($last_month_expenses_query);
+$last_month_expenses = $last_month_expenses_result ? ($last_month_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
+$last_month_expenses_result->free();
+$monthly_expenses_percent = $last_month_expenses > 0 ? round(($monthly_expenses - $last_month_expenses) / $last_month_expenses * 100, 1) : ($monthly_expenses > 0 ? 100 : 0);
+$monthly_expenses_text = $monthly_expenses_percent >= 0 ? "+{$monthly_expenses_percent}%" : "{$monthly_expenses_percent}%";
+$monthly_expenses_class = $monthly_expenses_percent >= 0 ? 'text-danger' : 'text-success';
+
+// Net Profit
+$profit = $revenue['total'] - $monthly_expenses;
+
+// Profit comparison
+$last_profit = $lastRevenue['total'] - $last_month_expenses;
+$profit_percent = ($last_profit > 0) ? ($profit - $last_profit) / $last_profit *100:0;
+?>
+
 <!-- Cards -->
 <div class="row">
-    <div class="col-md-3 col-sm-6 mb-4">
+    <div class="col-md-4 col-sm-6 mb-4">
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
             <div class="card-body">
                 <h6 class="text-muted">Monthly Revenue</h6>
-                <h3 class="fw-bold">₹4,80,000</h3> <!-- Dynamic data -->
-                <p class="text-success">+6.5% vs last month</p> <!-- Dynamic data -->
+                <h3 class="fw-bold">₹<?= number_format($revenue['total']) ?></h3>
+                <p class="<?= $revenueChange < 0 ? 'text-danger' : 'text-success' ?>"><?= round($revenueChange, 2) ?>% vs last month</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-4">
+    <div class="col-md-4 col-sm-6 mb-4">
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
             <div class="card-body">
                 <h6 class="text-muted">Monthly Expenses</h6>
-                <h3 class="fw-bold">₹4,25,000</h3> <!-- Dynamic data -->
-                <p class="text-danger">3.2% vs last month</p> <!-- Dynamic data --> <!-- Dynamic data -->
+                <h3 class="fw-bold">₹<?php echo number_format($monthly_expenses, 0); ?></h3>
+                <p class="<?php echo $monthly_expenses_class; ?>"><?php echo htmlspecialchars($monthly_expenses_text); ?> vs last month</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-4">
+    <div class="col-md-4 col-sm-6 mb-4">
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
             <div class="card-body">
                 <h6 class="text-muted">Net Profit</h6>
-                <h3 class="fw-bold">₹55,000</h3> <!-- Dynamic data --> <!-- Dynamic data -->
-                <p class="text-success">+12.8% vs last month</p> <!-- Dynamic data --> <!-- Dynamic data -->
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 col-sm-6 mb-4">
-        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #6f42c1;">
-            <div class="card-body">
-                <h6 class="text-muted">Profit Margin</h6>
-                <h3 class="fw-bold">11.5%</h3> <!-- Dynamic data -->
-                <p class="text-danger">0.7% vs last month</p> <!-- Dynamic data -->
+                <h3 class="fw-bold">₹<?php echo number_format($profit, 0); ?></h3>
+                <p class="<?= $profit_percent < 0 ? 'text-danger' : 'text-success' ?>"><?= round($profit_percent, 2) ?>% vs last month</p>
             </div>
         </div>
     </div>
@@ -375,17 +400,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 </div>
 
 
-<!-- Charts -->
-<div class="chart-container">
-    <div class="chart-box">
-        <h3>Revenue vs Expenses</h3>
-    </div>
-    <div class="chart-box">
-        <h3>Profit Margin Trend</h3>
-        <canvas id="lineChart"></canvas>
-    </div>
-</div>
-
 <!-- Tabels -->
 <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive table-responsive">
 
@@ -481,8 +495,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $savingAccount = 0;
         $cashAccount = 0;
     }
-
-    $conn->close();
     ?>
 
     <!-- Accounts -->
@@ -592,38 +604,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 </div>
 
 <script>
-    // Line Chart
-    const lineCtx = document.getElementById('lineChart').getContext('2d');
-    new Chart(lineCtx, {
-        type: 'line',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'Revenue',
-                data: [10.5, 16.5, 14.6, 11.6, 12.2, 11.5],
-                fill: false,
-                borderColor: '#0d6efd',
-                backgroundColor: '#0d6efd',
-                tension: 0.3,
-                pointRadius: 5,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 5
-                    }
-                }
-            }
-        }
-    });
 
     function showaccountingTab(id) {
         const tabs = document.querySelectorAll('.accountingTab');

@@ -713,7 +713,6 @@ if ($bar_result) {
                                             data-stock="<?php echo htmlspecialchars($product['stock_quantity']); ?>">
                                         <i class="fa-solid fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
                                     <button class="btn btn-outline-danger btn-sm delete-product-btn"
                                             data-bs-toggle="modal"
                                             data-bs-target="#deleteProductModal"
@@ -757,7 +756,6 @@ if ($bar_result) {
                     <th>Transaction Type</th>
                     <th>Status</th>
                     <th>Supplier</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -776,18 +774,11 @@ if ($bar_result) {
                                 ?>
                             </td>
                             <td><?php echo htmlspecialchars($inventory['Supplier']); ?></td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-file-lines"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                                </div>
-                            </td>
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="8">No inventory transactions found.</td>
+                        <td colspan="7">No inventory transactions found.</td>
                     </tr>
                 <?php endif; ?>
                 <?php $inventory_result->free(); ?>

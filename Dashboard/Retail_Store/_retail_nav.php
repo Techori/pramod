@@ -69,89 +69,17 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
         </form>
         <div class="d-flex align-items-center">
-            <div class="dropdown me-2">
-                <button class="btn btn-outline-primary btn-sm position-relative" data-bs-toggle="dropdown">
-                    <i class="fas fa-bell"></i>
-                    <?php
-                    $notifications = [
-                        [
-                            'title' => 'New Order Received',
-                            'message' => 'Order #ORD-2854 has been placed.',
-                            'time' => '2 hours ago',
-                            'read' => false,
-                            'color' => 'primary',
-                            'icon' => 'fa-bell'
-                        ],
-                        [
-                            'title' => 'Low Stock Alert',
-                            'message' => '5 products below reorder level.',
-                            'time' => '1 hour ago',
-                            'read' => false,
-                            'color' => 'warning',
-                            'icon' => 'fa-exclamation-triangle'
-                        ],
-                        [
-                            'title' => 'Customer Feedback',
-                            'message' => 'New review received from Raj Kumar.',
-                            'time' => '3 hours ago',
-                            'read' => true,
-                            'color' => 'success',
-                            'icon' => 'fa-check-circle'
-                        ]
-                    ];
-
-                    $unread = array_filter($notifications, function ($n) {
-                        return !$n['read'];
-                    });
-
-                    if (count($unread) > 0):
-                        ?>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                            <?php echo count($unread); ?>
-                            <span class="visually-hidden">unread notifications</span>
-                        </span>
-                    <?php endif; ?>
+            <!-- Notification Bell -->
+            <div style="position: relative;">
+                <button onclick="toggleDropdown()" style="background:none; border:none; position:relative;">
+                    🔔
+                    <span id="notif-count" style="color:red; position:absolute; top:0; right:0; font-size:12px;"></span>
                 </button>
-                <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0"
-                    style="width: 320px; max-height: 400px; overflow-y: auto;">
-                    <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Notifications</h6>
-                        <?php if (count($unread) > 0): ?>
-                            <button class="btn btn-link btn-sm text-decoration-none">Mark all read</button>
-                        <?php endif; ?>
-                    </div>
-                    <div class="notifications-list">
-                        <?php foreach ($notifications as $notification): ?>
-                            <div
-                                class="dropdown-item notification-item p-2 <?php echo $notification['read'] ? 'bg-light' : ''; ?>">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <span class="fa-stack fa-sm">
-                                            <i
-                                                class="fas fa-circle fa-stack-2x text-<?php echo $notification['color']; ?> opacity-25"></i>
-                                            <i
-                                                class="fas <?php echo $notification['icon']; ?> fa-stack-1x text-<?php echo $notification['color']; ?>"></i>
-                                        </span>
-                                    </div>
-                                    <div class="flex-grow-1 ms-2">
-                                        <h6 class="mb-0 fw-semibold"><?php echo htmlspecialchars($notification['title']); ?>
-                                        </h6>
-                                        <p class="mb-0 small"><?php echo htmlspecialchars($notification['message']); ?></p>
-                                        <small
-                                            class="text-muted"><?php echo htmlspecialchars($notification['time']); ?></small>
-                                    </div>
-                                    <?php if (!$notification['read']): ?>
-                                        <div class="flex-shrink-0 ms-2">
-                                            <span class="badge bg-primary rounded-pill">New</span>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="p-2 border-top text-center">
-                        <a href="?page=notifications" class="text-decoration-none small">View all notifications</a>
-                    </div>
+
+                <!-- Notification Dropdown -->
+                <div id="notif-dropdown"
+                    style="display:none; position:absolute; top:30px; right:0; background:#fff; border:1px solid #ccc; width:300px; max-height:400px; overflow-y:auto; z-index:999;">
+                    <div id="notifications" style="padding:10px;"></div>
                 </div>
             </div>
             <div class="dropdown">
@@ -227,3 +155,58 @@ if (session_status() === PHP_SESSION_NONE) {
         border-radius: 2px;
     }
 </style>
+
+<script>
+function toggleDropdown() {
+    const dropdown = document.getElementById("notif-dropdown");
+    dropdown.style.display = dropdown.style.display === "none" ? "block" : "none";
+}
+
+function loadNotifications() {
+    fetch("../../notifications.php")
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById("notifications");
+            const countSpan = document.getElementById("notif-count");
+
+            container.innerHTML = "";
+            let unreadCount = 0;
+
+            if (data.length === 0) {
+                container.innerHTML = "<p>No notifications</p>";
+                countSpan.textContent = "";
+                return;
+            }
+
+            data.forEach(n => {
+                const div = document.createElement("div");
+                div.style.borderBottom = "1px solid #eee";
+                div.style.padding = "5px";
+
+                div.innerHTML = `
+                    <strong>${n.title}</strong>
+                    <p>${n.message}</p>
+                    <small>${n.created_at}</small><br>
+                    ${n.is_read ? '<em style="color:gray;">Read</em>' :
+                    `<button onclick="markRead(${n.id})">Mark as Read</button>`}
+                `;
+
+                if (!n.is_read) unreadCount++;
+                container.appendChild(div);
+            });
+
+            countSpan.textContent = unreadCount > 0 ? unreadCount : '';
+        });
+}
+
+function markRead(id) {
+    fetch("../../notifications.php", {
+        method: "POST",
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `mark_read=1&id=${id}`
+    }).then(() => loadNotifications());
+}
+
+loadNotifications();
+setInterval(loadNotifications, 10000); // refresh every 10s
+</script>

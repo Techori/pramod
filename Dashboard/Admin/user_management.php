@@ -87,6 +87,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     } catch (Exception $e) {
       echo "Error updating permissions: " . $e->getMessage();
     }
+  } else if ($_POST['whatAction'] === 'deleteItem') {
+    $itemId = clean($_POST['itemId']);
+
+    $stmt = $conn->prepare("DELETE FROM user_management WHERE User_ID = ?");
+    $stmt->bind_param("s", $itemId);
+    $stmt->execute();
+    $stmt->close();
+
+    @header("Location: admin_dashboard.php?page=user_management");
+
   }
 
 } else {
@@ -218,61 +228,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
   </div>
 </div>
 
-<!-- Cards Row -->
-<div class="container-fluid d-flex flex-wrap gap-3">
-  <!-- Card 1 -->
-  <div class="card w-25">
-    <div class="card-body">
-      <h6 class="card-subtitle mb-2 text-muted">Total Users</h6>
-      <i class="fa-solid fa-user-group fa-lg mb-2"></i>
-      <h5 class="card-title">42</h5>
-      <p class="card-text">Active users</p>
-      <h5>36</h5>
-    </div>
-  </div>
 
-  <!-- Card 2 -->
-  <div class="card w-25">
-    <div class="card-body">
-      <h6 class="card-subtitle mb-2 text-muted">User Roles</h6>
-      <i class="fa-solid fa-user-large"></i>
-      <h5 class="card-title">8</h5>
-      <p class="card-text">Custom Roles</p>
-      <h5>3</h5>
-    </div>
-  </div>
-
-  <!-- Card 3 -->
-  <div class="card w-25">
-    <div class="card-body">
-      <h6 class="card-subtitle mb-2 text-muted">Recent Logins</h6>
-      <i class="fa-solid fa-dolly"></i>
-      <h5 class="card-title">26</h5>
-      <p class="card-text">Today</p>
-      <h5>12</h5>
-    </div>
-  </div>
-</div>
-
-<!-- Nav Tabs -->
-<ul class="nav nav-tabs mb-4" id="adminTab" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button"
-      role="tab">Users</button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab">Roles
-      & Permissions</button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button"
-      role="tab">User Activity</button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="access-tab" data-bs-toggle="tab" data-bs-target="#access" type="button"
-      role="tab">Access Control</button>
-  </li>
-</ul>
 
 <!-- Tab Content -->
 <div class="tab-content" id="adminTabContent">
@@ -281,7 +237,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     <div class="d-flex justify-content-between mb-3">
       <div>
         <button class="btn btn-outline-secondary" id="refreshBtn">Refresh</button>
-        <!-- Export Button -->
         <!-- Export Button -->
         <button class="btn btn-outline-secondary" onclick="exportTableToCSV()">Export</button>
 
@@ -360,14 +315,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       </div>
     </div>
 
-    <div class="mb-3">
-      <span>7 users selected</span>
-      <button class="btn btn-danger btn-sm float-end" onclick="alert('Delete Successful')">Delete Selected</button>
-    </div>
 
     <?php
-    // Include your DB connection file
-    include '../../_conn.php';
 
     // Query to fetch user data
     $query = "SELECT User_ID, User_Name, Email, Role, Status, Last_Login, Permission FROM user_management";
@@ -381,13 +330,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
           <table class="table align-middle" id="supplyTable">
             <thead>
               <tr>
-                <th><input type="checkbox" id="selectAll"></th>
                 <th>ID</th>
                 <th>User</th>
                 <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
-                <th>Last Login</th>
                 <th>Actions</th>
                 <th>Permission</th>
               </tr>
@@ -401,19 +348,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 $permissionList = $permissions ? implode(', ', $permissions) : 'No permissions set'; // Display permissions list
                 ?>
                 <tr>
-                  <td><input type="checkbox" class="selectUser" data-id="<?php echo $row['User_ID']; ?>"></td>
                   <td><?php echo $row['User_ID']; ?></td>
                   <td><?php echo $row['User_Name']; ?></td>
                   <td><?php echo $row['Email']; ?></td>
                   <td><?php echo $row['Role']; ?></td>
                   <td><?php echo $row['Status']; ?></td>
-                  <td><?php echo $row['Last_Login']; ?></td>
                   <td>
-                    <!-- Permission button -->
-                    <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#permissionModal"
-                      data-userid="<?php echo $row['User_ID']; ?>" data-username="<?php echo $row['User_Name']; ?>"
-                      data-permissions='<?php echo htmlspecialchars(json_encode($permissions)); ?>'
-                      id="permissionBtn_<?php echo $row['User_ID']; ?>">Set Permissions</button>
+                    <div class="d-flex gap-2">
+                      <!-- Permission button -->
+                      <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#permissionModal"
+                        data-userid="<?php echo $row['User_ID']; ?>" data-username="<?php echo $row['User_Name']; ?>"
+                        data-permissions='<?php echo htmlspecialchars(json_encode($permissions)); ?>'
+                        id="permissionBtn_<?php echo $row['User_ID']; ?>">Set Permissions</button>
+
+                      <form method="POST" action="user_management.php"
+                        onsubmit="return confirm('Are you sure you want to delete this user?');">
+                        <input type="hidden" name="whatAction" value="deleteItem">
+                        <input type="hidden" name="itemId" value="<?php echo $row['User_ID']; ?>">
+                        <button type="submit" class="btn btn-danger btn-sm ms-1">Delete</button>
+                      </form>
+                    </div>
                   </td>
                   <td><?php echo $permissionList; ?></td>
                 </tr>
@@ -494,69 +448,69 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         </div>
       </div>
     </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-  // Get all permission buttons
-  const permissionBtns = document.querySelectorAll('[id^="permissionBtn_"]');
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Get all permission buttons
+        const permissionBtns = document.querySelectorAll('[id^="permissionBtn_"]');
 
-  permissionBtns.forEach(button => {
-    button.addEventListener('click', function() {
-      // Retrieve the user data
-      const userId = this.getAttribute('data-userid');
-      const userName = this.getAttribute('data-username');
-      const permissions = JSON.parse(this.getAttribute('data-permissions'));
+        permissionBtns.forEach(button => {
+          button.addEventListener('click', function () {
+            // Retrieve the user data
+            const userId = this.getAttribute('data-userid');
+            const userName = this.getAttribute('data-username');
+            const permissions = JSON.parse(this.getAttribute('data-permissions'));
 
-      // Set modal title
-      document.getElementById('permissionModalLabel').textContent = `Set Permissions for ${userName}`;
+            // Set modal title
+            document.getElementById('permissionModalLabel').textContent = `Set Permissions for ${userName}`;
 
-      // Reset all checkboxes
-      const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]');
-      checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
+            // Reset all checkboxes
+            const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+              checkbox.checked = false;
+            });
+
+            // Pre-check the checkboxes based on the user's permissions
+            permissions.forEach(permission => {
+              const checkbox = document.querySelector(`#permissionForm input[value="${permission}"]`);
+              if (checkbox) {
+                checkbox.checked = true;
+              }
+            });
+
+            // Attach the userId to the save button for later use
+            document.getElementById('savePermissionBtn').setAttribute('data-userid', userId);
+          });
+        });
+
+        // Handle saving updated permissions
+        document.getElementById('savePermissionBtn').addEventListener('click', function () {
+          const userId = this.getAttribute('data-userid');
+          const selectedPermissions = [];
+          const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]:checked');
+
+          checkboxes.forEach(checkbox => {
+            selectedPermissions.push(checkbox.value);
+          });
+
+          // Send the selected permissions to the server via AJAX or a simple form submission
+          const formData = new FormData();
+          formData.append('whatAction', 'UpdatePermissions');
+          formData.append('userId', userId);
+          formData.append('permissions', JSON.stringify(selectedPermissions));
+
+          fetch('update_permissions.php', {
+            method: 'POST',
+            body: formData
+          })
+            .then(response => response.text())
+            .then(data => {
+              alert(data);  // You can display success or failure messages
+              $('#permissionModal').modal('hide');  // Hide the modal after saving
+            })
+            .catch(error => console.error('Error:', error));
+        });
       });
-
-      // Pre-check the checkboxes based on the user's permissions
-      permissions.forEach(permission => {
-        const checkbox = document.querySelector(`#permissionForm input[value="${permission}"]`);
-        if (checkbox) {
-          checkbox.checked = true;
-        }
-      });
-
-      // Attach the userId to the save button for later use
-      document.getElementById('savePermissionBtn').setAttribute('data-userid', userId);
-    });
-  });
-
-  // Handle saving updated permissions
-  document.getElementById('savePermissionBtn').addEventListener('click', function() {
-    const userId = this.getAttribute('data-userid');
-    const selectedPermissions = [];
-    const checkboxes = document.querySelectorAll('#permissionForm input[type="checkbox"]:checked');
-    
-    checkboxes.forEach(checkbox => {
-      selectedPermissions.push(checkbox.value);
-    });
-
-    // Send the selected permissions to the server via AJAX or a simple form submission
-    const formData = new FormData();
-    formData.append('whatAction', 'UpdatePermissions');
-    formData.append('userId', userId);
-    formData.append('permissions', JSON.stringify(selectedPermissions));
-
-    fetch('update_permissions.php', {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => response.text())
-    .then(data => {
-      alert(data);  // You can display success or failure messages
-      $('#permissionModal').modal('hide');  // Hide the modal after saving
-    })
-    .catch(error => console.error('Error:', error));
-  });
-});
-</script>
+    </script>
     <script>
 
       // Search Functionality
@@ -584,32 +538,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     </script>
   </div>
 
-  <!-- ROLES TAB -->
-  <div class="tab-pane fade" id="roles" role="tabpanel">
-    <div class="text-center py-5">
-      <h4>Roles & Permissions</h4>
-      <p>Manage roles, create custom permission sets, and control access to different areas of the system.</p>
-      <button class="btn btn-outline-primary">Manage Roles</button>
-    </div>
-  </div>
-
-  <!-- ACTIVITY TAB -->
-  <div class="tab-pane fade" id="activity" role="tabpanel">
-    <div class="text-center py-5">
-      <h4>Activity Tracking</h4>
-      <p>View detailed logs of user actions, login history, and system changes for audit purposes.</p>
-      <button class="btn btn-outline-primary">View Activity Logs</button>
-    </div>
-  </div>
-
-  <!-- ACCESS TAB -->
-  <div class="tab-pane fade" id="access" role="tabpanel">
-    <div class="text-center py-5">
-      <h4>Security Settings</h4>
-      <p>Configure password policies, two-factor authentication, IP restrictions, and session timeouts.</p>
-      <button class="btn btn-outline-primary">Security Settings</button>
-    </div>
-  </div>
 </div>
 
 <!-- JAVASCRIPT -->
