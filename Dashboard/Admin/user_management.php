@@ -83,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       $stmt->execute();
       $stmt->close();
 
-      echo "Permissions updated successfully!";
+      header("Location: admin_dashboard.php?page=user_management");
     } catch (Exception $e) {
       echo "Error updating permissions: " . $e->getMessage();
     }
@@ -356,10 +356,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                   <td>
                     <div class="d-flex gap-2">
                       <!-- Permission button -->
-                      <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#permissionModal"
-                        data-userid="<?php echo $row['User_ID']; ?>" data-username="<?php echo $row['User_Name']; ?>"
-                        data-permissions='<?php echo htmlspecialchars(json_encode($permissions)); ?>'
-                        id="permissionBtn_<?php echo $row['User_ID']; ?>">Set Permissions</button>
+                      <button class="btn btn-info btn-sm permissionBtn" data-bs-toggle="modal"
+                      data-bs-target="#permissionModal" data-userid="<?php echo $row['User_ID']; ?>"
+                      data-username="<?php echo $row['User_Name']; ?>"
+                      data-permissions='<?php echo htmlspecialchars(json_encode($permissions), ENT_QUOTES, 'UTF-8'); ?>'>
+                      Set Permissions
+                    </button>
 
                       <form method="POST" action="user_management.php"
                         onsubmit="return confirm('Are you sure you want to delete this user?');">
@@ -451,7 +453,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         // Get all permission buttons
-        const permissionBtns = document.querySelectorAll('[id^="permissionBtn_"]');
+        const permissionBtns = document.querySelectorAll('.permissionBtn');
 
         permissionBtns.forEach(button => {
           button.addEventListener('click', function () {
@@ -491,6 +493,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
           checkboxes.forEach(checkbox => {
             selectedPermissions.push(checkbox.value);
           });
+          // console.log('User ID:', userId);
+          // console.log('Selected Permissions:', selectedPermissions);
+
 
           // Send the selected permissions to the server via AJAX or a simple form submission
           const formData = new FormData();
@@ -498,14 +503,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
           formData.append('userId', userId);
           formData.append('permissions', JSON.stringify(selectedPermissions));
 
-          fetch('update_permissions.php', {
+          fetch('user_management.php', {
             method: 'POST',
             body: formData
           })
             .then(response => response.text())
             .then(data => {
-              alert(data);  // You can display success or failure messages
-              $('#permissionModal').modal('hide');  // Hide the modal after saving
+              // alert(data); 
+              // $('#permissionModal').modal('hide');
+              location.reload();  // Reload the page to see changes
             })
             .catch(error => console.error('Error:', error));
         });
@@ -530,6 +536,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
           row.style.display = match ? '' : 'none';
         });
       });
+      // Export table data to CSV
+function exportTableToCSV(filename = 'table-data.csv') {
+  const rows = document.querySelectorAll("#supplyTable tr");
+  let csv = [];
+
+  rows.forEach(row => {
+    let cols = Array.from(row.querySelectorAll("th, td"))
+      .map(col => `"${col.innerText.trim()}"`);
+    csv.push(cols.join(","));
+  });
+
+  // Create a Blob from the CSV string
+  let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+  // Create a temporary link to trigger download
+  let downloadLink = document.createElement("a");
+  downloadLink.download = filename;
+  downloadLink.href = window.URL.createObjectURL(csvFile);
+  downloadLink.style.display = "none";
+  document.body.appendChild(downloadLink);
+
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
+
       // Refresh Button (Reload page)
       document.getElementById('refreshBtn').addEventListener('click', function () {
         location.reload();
@@ -569,16 +600,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     const modal = bootstrap.Modal.getInstance(document.getElementById('permissionModal'));
     modal.hide();
   });
-  // export btn ke liye
-  function exportTableToCSV(filename = 'table-data.csv') {
-    const rows = document.querySelectorAll("#supplyTable tr");
-    let csv = [];
-
-    rows.forEach(row => {
-      let cols = Array.from(row.querySelectorAll("th, td"))
-        .map(col => `"${col.innerText.trim()}"`);
-      csv.push(cols.join(","));
-    });
+ 
 
     const csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
     const downloadLink = document.createElement("a");

@@ -109,41 +109,36 @@
         ?>
       </select>
     </form>
-    <button class="btn btn-outline-secondary me-2" id="exportBtn" data-bs-toggle="modal"
+    <button class="btn btn-outline-secondary me-2"  onclick="exportTableToCSV()" id="exportBtn" data-bs-toggle="modal"
       data-bs-target="#exportSuccessModal">
       Export
     </button>
-    <!-- Export Success Modal -->
-    <div class="modal fade" id="exportSuccessModal" tabindex="-1" aria-labelledby="exportSuccessLabel"
-      aria-hidden="true">
+
+    <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#shareModal">Share</button>
+
+    <!-- Share Modal -->
+    <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center">
           <div class="modal-header">
-            <h5 class="modal-title" id="exportSuccessLabel">Export Complete</h5>
+            <h5 class="modal-title" id="shareModalLabel">Share This Report</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            ✅ Your table has been successfully exported as CSV!
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            <p class="mb-2">Copy the link below to share:</p>
+            <input type="text" class="form-control mb-3" id="shareLink" value="https://yourapp.com/report/12345"
+              readonly>
+            <button class="btn btn-primary btn-sm" onclick="copyShareLink()">Copy Link</button>
           </div>
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
 <!-- Filters -->
 <div class="d-flex flex-wrap gap-2 mb-4">
   <input type="search" class="form-control w-auto" id="searchInput" placeholder="Search..." />
-  <button class="btn btn-outline-secondary">₹</button>
-  <select class="form-select w-auto">
-    <option>Last 6 Months</option>
-  </select>
-  <button class="btn btn-outline-secondary"><i class="bi bi-calendar"></i></button>
-  <button class="btn btn-outline-secondary"><i class="bi bi-funnel"></i></button>
 </div>
 
 <?php
@@ -251,6 +246,8 @@ $profit_percent = ($last_profit > 0) ? ($profit - $last_profit) / $last_profit *
         </div>
       </div>
     </div>
+
+
 
     <script>
 

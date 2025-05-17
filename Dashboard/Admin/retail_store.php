@@ -818,6 +818,61 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
 
         </div>
     </div>
+
+    <script>
+        // Search Functionality
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchText = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#supplyTable tbody tr');
+
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName('td');
+                let match = false;
+                for (let i = 0; i < cells.length; i++) {
+                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                        match = true;
+                        break;
+                    }
+                }
+                row.style.display = match ? '' : 'none';
+            });
+        });
+        // print krane ke liye
+
+        function printSection(sectionId) {
+            const printContent = document.getElementById(sectionId).innerHTML;
+            const originalContent = document.body.innerHTML;
+
+            document.body.innerHTML = printContent;
+            window.print();
+            document.body.innerHTML = originalContent;
+        }
+
+        // Export table data to CSV
+        function exportTableToCSV(filename = 'table-data.csv') {
+            const rows = document.querySelectorAll("#supplyTable tr");
+            let csv = [];
+
+            rows.forEach(row => {
+                let cols = Array.from(row.querySelectorAll("th, td"))
+                    .map(col => `"${col.innerText.trim()}"`);
+                csv.push(cols.join(","));
+            });
+
+            // Create a Blob from the CSV string
+            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+            // Create a temporary link to trigger download
+            let downloadLink = document.createElement("a");
+            downloadLink.download = filename;
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
 </div>
 
 <!-- Tabels -->
@@ -838,7 +893,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             <div class="d-flex justify-content-start">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0 table-search" data-table="sales_table"
+                    <input type="text" id="searchInput" class="form-control border-start-0 table-search" data-table="supplyTable"
                         placeholder="Search..." />
                 </div>
                 <button class="btn btn-outline-primary status-filter me-2" data-type="Completed"
@@ -855,7 +910,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             </div>
 
         </div>
-        <table id="sales_table" class="table table-bordered table-hover">
+        <table id="supplyTable" class="table table-bordered table-hover">
             <thead>
                 <tr>
                     <th>Sales ID</th>
@@ -904,7 +959,25 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             </tbody>
             <div id="pagination" class="mt-3 d-flex justify-content-center gap-2"></div>
         </table>
+        <script>
+// Search Functionality
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const searchText = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#supplyTable tbody tr');
 
+            rows.forEach(row => {
+                const cells = row.getElementsByTagName('td');
+                let match = false;
+                for (let i = 0; i < cells.length; i++) {
+                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                        match = true;
+                        break;
+                    }
+                }
+                row.style.display = match ? '' : 'none';
+            });
+        });
+        </script>
         <div class="row">
             <div class="col-md-4 col-sm-12 mb-2">
                 <div class="card stat-card cards shadow-sm">
