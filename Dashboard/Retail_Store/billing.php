@@ -503,34 +503,18 @@ $types = ['All', 'Retail', 'Wholesale'];
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Export Records</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="exportForm">
-                        <div class="mb-3">
-                            <label class="form-label">Export Format:</label>
-                            <select class="form-select" name="export_format" required>
-                                <option value="csv">CSV</option>
-                                <option value="pdf">PDF</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Start Date:</label>
-                            <input type="date" class="form-control" name="start_date" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">End Date:</label>
-                            <input type="date" class="form-control" name="end_date" required>
-                        </div>
-                    </form>
+                    <p>Click the button below to export all invoice records as a CSV file.</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="submitExport()">Export</button>
+                    <button type="button" class="btn btn-success" onclick="exportTableToCSV()">Export Records</button>
                 </div>
             </div>
         </div>
     </div>
+
 
     <!-- Create Invoice form -->
     <div id="invoiceModal" class="modal">
@@ -922,7 +906,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                     <form method="GET" action="?page=billing" class="d-flex align-items-center gap-2">
                         <input type="hidden" name="page" value="billing">
                         <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                            <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                                    class="fas fa-search"></i></span>
                             <input type="text" class="form-control border-start-0 table-search"
                                 data-table="invoice_table" placeholder="Search..." />
                         </div>
@@ -1183,6 +1168,32 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 ?>
                             </tbody>
                         </table>
+                        <script>
+                            // Export table data to CSV
+                            function exportTableToCSV(filename = 'table-data.csv') {
+                                const rows = document.querySelectorAll("#supplyTable tr");
+                                let csv = [];
+
+                                rows.forEach(row => {
+                                    let cols = Array.from(row.querySelectorAll("th, td"))
+                                        .map(col => `"${col.innerText.trim()}"`);
+                                    csv.push(cols.join(","));
+                                });
+
+                                // Create a Blob from the CSV string
+                                let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                                // Create a temporary link to trigger download
+                                let downloadLink = document.createElement("a");
+                                downloadLink.download = filename;
+                                downloadLink.href = window.URL.createObjectURL(csvFile);
+                                downloadLink.style.display = "none";
+                                document.body.appendChild(downloadLink);
+
+                                downloadLink.click();
+                                document.body.removeChild(downloadLink);
+                            }
+                        </script>
                     </div>
                 </div>
             </div>
@@ -1261,7 +1272,7 @@ $types = ['All', 'Retail', 'Wholesale'];
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
+                        <table class="table table-bordered table-hover" id="supplyTable">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -1305,6 +1316,38 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 ?>
                             </tbody>
                         </table>
+                        <script>
+                            // Export table data to CSV
+                            function exportTableToCSV(filename = 'table-data.csv') {
+                                const rows = document.querySelectorAll("#supplyTable tr");
+                                let csv = [];
+
+                                rows.forEach(row => {
+                                    let cols = Array.from(row.querySelectorAll("th, td"))
+                                        .map(col => `"${col.innerText.trim()}"`);
+                                    csv.push(cols.join(","));
+                                });
+
+                                // Create a Blob from the CSV string
+                                let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                                // Create a temporary link to trigger download
+                                let downloadLink = document.createElement("a");
+                                downloadLink.download = filename;
+                                downloadLink.href = window.URL.createObjectURL(csvFile);
+                                downloadLink.style.display = "none";
+                                document.body.appendChild(downloadLink);
+
+                                downloadLink.click();
+                                document.body.removeChild(downloadLink);
+                            }
+
+                            // Refresh Button (Reload page)
+                            document.getElementById('refreshBtn').addEventListener('click', function () {
+                                location.reload();
+                            });
+
+                        </script>
                     </div>
                 </div>
             </div>
@@ -1341,7 +1384,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 <h6 class="card-title"><i class="fas fa-money-bill text-primary me-2"></i> Cash in Hand
                                 </h6>
                                 <p class="text-muted small">Track cash payments and manage cash drawer</p>
-                                <button type="button" class="btn btn-outline-primary btn-sm">Generate Report</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                    onclick="exportTableToCSV()">Generate Report</button>
                             </div>
                         </div>
                     </div>
@@ -1361,7 +1405,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                 <div class="card-body">
                     <h5 class="mb-3">Recent Transactions</h5>
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
+                        <table class="table table-bordered table-hover" id="table">
                             <thead>
                                 <tr>
                                     <th>Payment ID</th>
@@ -1375,7 +1419,6 @@ $types = ['All', 'Retail', 'Wholesale'];
                             </thead>
                             <tbody>
                                 <?php
-
                                 // Fetch transactions from the database
                                 $result = $conn->query("SELECT * FROM invoice WHERE created_for = '$created_for' ORDER BY invoice_id DESC");
 
@@ -1396,7 +1439,43 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 }
                                 ?>
                             </tbody>
+                            <script>
+                                function exportTableToCSV(filename = 'export.csv') {
+                                    const table = document.getElementById("table");
+                                    const rows = table.querySelectorAll("tbody tr");
+
+                                    if (rows.length === 0) {
+                                        alert("No data found in the table.");
+                                        return;
+                                    }
+
+                                    let csv = [];
+                                    const headers = table.querySelectorAll("thead th");
+                                    let headerRow = [];
+                                    headers.forEach(th => headerRow.push('"' + th.innerText.trim() + '"'));
+                                    csv.push(headerRow.join(","));
+
+                                    rows.forEach(row => {
+                                        let rowData = [];
+                                        row.querySelectorAll("td").forEach(td => {
+                                            rowData.push('"' + td.innerText.trim().replace(/"/g, '""') + '"');
+                                        });
+                                        csv.push(rowData.join(","));
+                                    });
+
+                                    // Create and download CSV file
+                                    let csvBlob = new Blob([csv.join("\n")], { type: "text/csv" });
+                                    let url = URL.createObjectURL(csvBlob);
+                                    let a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = filename;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                }
+                            </script>
+
                         </table>
+
                     </div>
                 </div>
             </div>
@@ -1412,7 +1491,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                             <div class="card-body">
                                 <h6 class="card-title">Sales Summary</h6>
                                 <p class="text-muted small">Overview of all sales transactions</p>
-                                <button type="button" class="btn btn-outline-primary btn-sm">Generate Report</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                    onclick="exportTableToCSV()">Generate Report</button>
                             </div>
                         </div>
                     </div>
@@ -1421,7 +1501,9 @@ $types = ['All', 'Retail', 'Wholesale'];
                             <div class="card-body">
                                 <h6 class="card-title">Payment Analysis</h6>
                                 <p class="text-muted small">Analysis of payment methods used</p>
-                                <button type="button" class="btn btn-outline-primary btn-sm">Generate Report</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                    onclick="exportTableToCSV('export.csv')">Generate Report</button>
+
                             </div>
                         </div>
                     </div>
@@ -1430,7 +1512,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                             <div class="card-body">
                                 <h6 class="card-title">Cash Flow Report</h6>
                                 <p class="text-muted small">Track cash in hand and cash flow</p>
-                                <button type="button" class="btn btn-outline-primary btn-sm">Generate Report</button>
+                                <button type="button" class="btn btn-outline-primary btn-sm"
+                                    onclick="exportTableToCSV()">Generate Report</button>
                             </div>
                         </div>
                     </div>

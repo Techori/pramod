@@ -218,21 +218,18 @@ $date_ranges = ['All Time', 'Last 30 Days', 'Last 3 Months', 'This Year'];
                 <div class="flex-grow-1">
                     <label class="form-label text-muted">Search Transactions</label>
                     <form method="GET" action="?page=payments" class="d-flex align-items-center gap-2">
-                        <input type="hidden" name="page" value="payments">
+                        <input type="hidden" name="page" value="payments" >
                         <input type="hidden" name="tab" value="transactions">
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                             <input
+                                id="transactionSearch"
                                 type="text"
                                 name="search"
                                 class="form-control border-start-0"
                                 placeholder="Search transactions by ID..."
-                                value="<?php echo htmlspecialchars($search_query); ?>"
-                            >
+                                value="<?php echo htmlspecialchars($search_query); ?>">
                         </div>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="fas fa-search me-1"></i> Search
-                        </button>
                     </form>
                 </div>
                 <!-- Filters -->
@@ -274,7 +271,7 @@ $date_ranges = ['All Time', 'Last 30 Days', 'Last 3 Months', 'This Year'];
 
             <!-- Transactions Table -->
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
+                <table class="table table-bordered table-hover" id="transactionsTable">
                     <thead>
                         <tr>
                             <th>Transaction ID</th>
@@ -340,6 +337,25 @@ $date_ranges = ['All Time', 'Last 30 Days', 'Last 3 Months', 'This Year'];
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
+                        <script>
+                            // Search Functionality
+                            document.getElementById('transactionSearch').addEventListener('input', function () {
+                                const searchText = this.value.toLowerCase();
+                                const rows = document.querySelectorAll('#transactionsTable tbody tr');
+
+                                rows.forEach(row => {
+                                    const cells = row.getElementsByTagName('td');
+                                    let match = false;
+                                    for (let i = 0; i < cells.length; i++) {
+                                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                            match = true;
+                                            break;
+                                        }
+                                    }
+                                    row.style.display = match ? '' : 'none';
+                                });
+                            });
+                        </script>
                 </table>
             </div>
         </div>
