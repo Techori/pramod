@@ -190,12 +190,9 @@ function get_type_badge($type)
                 <input type="hidden" name="tab" value="<?php echo htmlspecialchars($tab); ?>">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0"
+                    <input type="text" name="search" class="form-control border-start-0" id="searchInput"
                         placeholder="Search customers..." value="<?php echo htmlspecialchars($search_query); ?>">
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="fas fa-search me-1"></i> Search
-                </button>
             </form>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -203,7 +200,7 @@ function get_type_badge($type)
                 <i class="fas fa-user-plus me-1"></i> Add Customer
             </button>
 
-            <button type="submit" class="btn btn-outline-primary btn-sm">
+            <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()">
                 <i class="fas fa-download me-1"></i> Export
             </button>
         </div>
@@ -433,7 +430,7 @@ function get_type_badge($type)
                 <h5 class="mb-3">Customer Database</h5>
                 <p class="text-muted mb-3">View and manage all your customers</p>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover" id="customerTable">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -463,6 +460,49 @@ function get_type_badge($type)
                             ?>
                         </tbody>
                     </table>
+                     <script>
+                     // Search Functionality
+                        document.getElementById('searchInput').addEventListener('input', function () {
+                            const searchText = this.value.toLowerCase();
+                            const rows = document.querySelectorAll('#customerTable tbody tr');
+
+                            rows.forEach(row => {
+                                const cells = row.getElementsByTagName('td');
+                                let match = false;
+                                for (let i = 0; i < cells.length; i++) {
+                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                row.style.display = match ? '' : 'none';
+                            });
+                        });
+                        // Export table data to CSV
+                        function exportTableToCSV(filename = 'table-data.csv') {
+                            const rows = document.querySelectorAll("#customerTable tr");
+                            let csv = [];
+
+                            rows.forEach(row => {
+                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                    .map(col => `"${col.innerText.trim()}"`);
+                                csv.push(cols.join(","));
+                            });
+
+                            // Create a Blob from the CSV string
+                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                            // Create a temporary link to trigger download
+                            let downloadLink = document.createElement("a");
+                            downloadLink.download = filename;
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                            downloadLink.style.display = "none";
+                            document.body.appendChild(downloadLink);
+
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        }
+                    </script>
                 </div>
             </div>
         </div>
@@ -472,7 +512,7 @@ function get_type_badge($type)
                 <h5 class="mb-3"><?php echo htmlspecialchars(ucfirst($tab)); ?> Customers</h5>
                 <p class="text-muted mb-3">Manage <?php echo htmlspecialchars($tab); ?> customers</p>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover" id="retailTable">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -502,6 +542,49 @@ function get_type_badge($type)
                             ?>
                         </tbody>
                     </table>
+                     <script>
+                     // Search Functionality
+                        document.getElementById('searchInput').addEventListener('input', function () {
+                            const searchText = this.value.toLowerCase();
+                            const rows = document.querySelectorAll('#retailTable tbody tr');
+
+                            rows.forEach(row => {
+                                const cells = row.getElementsByTagName('td');
+                                let match = false;
+                                for (let i = 0; i < cells.length; i++) {
+                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                row.style.display = match ? '' : 'none';
+                            });
+                        });
+                        // Export table data to CSV
+                        function exportTableToCSV(filename = 'table-data.csv') {
+                            const rows = document.querySelectorAll("#retailTable tr");
+                            let csv = [];
+
+                            rows.forEach(row => {
+                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                    .map(col => `"${col.innerText.trim()}"`);
+                                csv.push(cols.join(","));
+                            });
+
+                            // Create a Blob from the CSV string
+                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                            // Create a temporary link to trigger download
+                            let downloadLink = document.createElement("a");
+                            downloadLink.download = filename;
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                            downloadLink.style.display = "none";
+                            document.body.appendChild(downloadLink);
+
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        }
+                    </script>
                 </div>
             </div>
         </div>

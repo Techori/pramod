@@ -32,7 +32,7 @@ require_once 'database.php';
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="../../public/css/styles.css">
-    <style>    </style>
+    <style> </style>
 </head>
 
 <body>
@@ -151,7 +151,7 @@ require_once 'database.php';
                                     <div class="input-group w-auto flex-grow-1" style="max-width: 300px;">
                                         <span class="input-group-text bg-light border-end-0"><i
                                                 class="fas fa-search"></i></span>
-                                        <input type="text" class="form-control border-start-0"
+                                        <input type="text" class="form-control border-start-0" id="searchInvoice"
                                             placeholder="Search invoices..." />
                                     </div>
                                     <div class="d-flex gap-2 flex-wrap">
@@ -166,12 +166,12 @@ require_once 'database.php';
                                     <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Create
                                         Invoice</button>
                                     <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                                        data-bs-target="#generateInvoiceModal">
+                                        data-bs-target="#generateInvoiceModal" onclick="exportTableToCSV()">
                                         <i class="fas fa-plus"></i> Generate Invoice
                                     </button>
                                 </div>
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-hover">
+                                    <table class="table table-bordered table-hover" id="dashTable">
                                         <thead>
                                             <tr>
                                                 <th>Invoice #</th>
@@ -215,6 +215,50 @@ require_once 'database.php';
                                             <?php endforeach; ?>
                                         </tbody>
                                     </table>
+                                    <script>
+                                        // Search Functionality
+                                        document.getElementById('searchInvoice').addEventListener('input', function () {
+                                            const searchText = this.value.toLowerCase();
+                                            const rows = document.querySelectorAll('#dashTable tbody tr');
+
+                                            rows.forEach(row => {
+                                                const cells = row.getElementsByTagName('td');
+                                                let match = false;
+                                                for (let i = 0; i < cells.length; i++) {
+                                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                                        match = true;
+                                                        break;
+                                                    }
+                                                }
+                                                row.style.display = match ? '' : 'none';
+                                            });
+                                        });
+                                        // Export table data to CSV
+                                        function exportTableToCSV(filename = 'table-data.csv') {
+                                            const rows = document.querySelectorAll("#dashTable tr");
+                                            let csv = [];
+
+                                            rows.forEach(row => {
+                                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                                    .map(col => `"${col.innerText.trim()}"`);
+                                                csv.push(cols.join(","));
+                                            });
+
+                                            // Create a Blob from the CSV string
+                                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                                            // Create a temporary link to trigger download
+                                            let downloadLink = document.createElement("a");
+                                            downloadLink.download = filename;
+                                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                                            downloadLink.style.display = "none";
+                                            document.body.appendChild(downloadLink);
+
+                                            downloadLink.click();
+                                            document.body.removeChild(downloadLink);
+                                        }
+
+                                    </script>
                                 </div>
                                 <div class="text-center mt-4">
                                     <a href="#" class="btn btn-outline-primary btn-sm">View All Invoices <i
@@ -227,7 +271,7 @@ require_once 'database.php';
                                     <div class="input-group w-auto flex-grow-1" style="max-width: 300px;">
                                         <span class="input-group-text bg-light border-end-0"><i
                                                 class="fas fa-search"></i></span>
-                                        <input type="text" class="form-control border-start-0"
+                                        <input type="text" class="form-control border-start-0" id="paymentSearch"
                                             placeholder="Search payments..." />
                                     </div>
                                     <div class="d-flex gap-2 flex-wrap">
@@ -235,11 +279,11 @@ require_once 'database.php';
                                         <button class="btn btn-outline-primary btn-sm">This Month</button>
                                         <button class="btn btn-outline-primary btn-sm">Last Month</button>
                                     </div>
-                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Record
+                                    <button class="btn btn-primary btn-sm" onclick="exportTableToCSV()"><i class="fas fa-plus me-1"></i> Record
                                         Payment</button>
                                 </div>
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-hover">
+                                    <table class="table table-bordered table-hover" id="paymentsTable">
                                         <thead>
                                             <tr>
                                                 <th>Payment ID</th>
@@ -411,6 +455,49 @@ require_once 'database.php';
                                                             <?php endforeach; ?>
                                                         </tbody>
                                                     </table>
+                                                    <script>
+                                                        // Search Functionality
+                                                        document.getElementById('paymentSearch').addEventListener('input', function () {
+                                                            const searchText = this.value.toLowerCase();
+                                                            const rows = document.querySelectorAll('#paymentsTable tbody tr');
+
+                                                            rows.forEach(row => {
+                                                                const cells = row.getElementsByTagName('td');
+                                                                let match = false;
+                                                                for (let i = 0; i < cells.length; i++) {
+                                                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                                                        match = true;
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                row.style.display = match ? '' : 'none';
+                                                            });
+                                                        });
+                                                        // Export table data to CSV
+                                                        function exportTableToCSV(filename = 'table-data.csv') {
+                                                            const rows = document.querySelectorAll("#paymentsTable tr");
+                                                            let csv = [];
+
+                                                            rows.forEach(row => {
+                                                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                                                    .map(col => `"${col.innerText.trim()}"`);
+                                                                csv.push(cols.join(","));
+                                                            });
+
+                                                            // Create a Blob from the CSV string
+                                                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                                                            // Create a temporary link to trigger download
+                                                            let downloadLink = document.createElement("a");
+                                                            downloadLink.download = filename;
+                                                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                                                            downloadLink.style.display = "none";
+                                                            document.body.appendChild(downloadLink);
+
+                                                            downloadLink.click();
+                                                            document.body.removeChild(downloadLink);
+                                                        }
+                                                    </script>
                                                 </div>
                                             </div>
                                         </div>

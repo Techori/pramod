@@ -80,17 +80,17 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
 <p>Manage and process orders from factories.</p>
 
 <?php if ($success_message): ?>
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-    <?php echo htmlspecialchars($success_message); ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?php echo htmlspecialchars($success_message); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 <?php endif; ?>
 
 <?php if ($error_message): ?>
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <?php echo htmlspecialchars($error_message); ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?php echo htmlspecialchars($error_message); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 <?php endif; ?>
 
 <!-- Header with New Order Button -->
@@ -99,12 +99,18 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
         <h5 class="text-muted">Order List</h5>
     </div>
     <div class="d-flex gap-2">
-        <button class="btn btn-outline-primary btn-sm" onclick="alert('Generating orders report...')">
+        <button class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()" >
             <i class="fas fa-file-export"></i> Export
         </button>
-        <button class="btn btn-outline-primary btn-sm" onclick="alert('Refreshing orders...')">
+        <button class="btn btn-outline-primary btn-sm" id="refreshBtn">
             <i class="fas fa-sync-alt"></i> Refresh
         </button>
+        <script>
+        // Refresh Button (Reload page)
+      document.getElementById('refreshBtn').addEventListener('click', function () {
+        location.reload();
+      });
+        </script>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newOrderModal">
             <i class="fas fa-plus me-1"></i> New Order
         </button>
@@ -122,17 +128,9 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                     <input type="hidden" name="page" value="orders">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                        <input
-                            type="text"
-                            name="search"
-                            class="form-control border-start-0"
-                            placeholder="Search by order ID or customer..."
-                            value="<?php echo htmlspecialchars($search_query); ?>"
-                        >
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search me-1"></i> Search
-                    </button>
+                        <input type="text" name="search" class="form-control border-start-0"
+                           id="ordersSearch" placeholder="Search by order ID or customer..."
+                            value="<?php echo htmlspecialchars($search_query); ?>">
                 </form>
             </div>
             <!-- Filters -->
@@ -142,11 +140,13 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                     <label class="form-label text-muted">Order Status</label>
                     <div class="d-flex flex-wrap gap-2">
                         <?php foreach ($statuses as $status): ?>
-                        <a href="?page=orders&status=<?php echo urlencode($status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>">
-                            <span class="badge <?php echo $selected_status === $status ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                <?php echo htmlspecialchars($status); ?>
-                            </span>
-                        </a>
+                            <a
+                                href="?page=orders&status=<?php echo urlencode($status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>">
+                                <span
+                                    class="badge <?php echo $selected_status === $status ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
+                                    <?php echo htmlspecialchars($status); ?>
+                                </span>
+                            </a>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -155,11 +155,13 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                     <label class="form-label text-muted">Payment Status</label>
                     <div class="d-flex flex-wrap gap-2">
                         <?php foreach ($payment_statuses as $payment): ?>
-                        <a href="?page=orders&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($payment); ?>&search=<?php echo urlencode($search_query); ?>">
-                            <span class="badge <?php echo $selected_payment === $payment ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                <?php echo htmlspecialchars($payment); ?>
-                            </span>
-                        </a>
+                            <a
+                                href="?page=orders&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($payment); ?>&search=<?php echo urlencode($search_query); ?>">
+                                <span
+                                    class="badge <?php echo $selected_payment === $payment ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
+                                    <?php echo htmlspecialchars($payment); ?>
+                                </span>
+                            </a>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -178,11 +180,12 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
 <div class="card shadow-sm">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-bordered table-hover">
+            <table class="table table-bordered table-hover" id="ordersTable">
                 <thead>
                     <tr>
                         <th>
-                            <a href="?page=orders&sort=id&dir=<?php echo $sort_field === 'id' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>" class="text-decoration-none">
+                            <a href="?page=orders&sort=id&dir=<?php echo $sort_field === 'id' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>"
+                                class="text-decoration-none">
                                 Order ID
                                 <?php if ($sort_field === 'id'): ?>
                                     <i class="fas fa-sort-<?php echo $sort_direction === 'asc' ? 'up' : 'down'; ?>"></i>
@@ -190,7 +193,8 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                             </a>
                         </th>
                         <th>
-                            <a href="?page=orders&sort=customer&dir=<?php echo $sort_field === 'customer' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>" class="text-decoration-none">
+                            <a href="?page=orders&sort=customer&dir=<?php echo $sort_field === 'customer' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>"
+                                class="text-decoration-none">
                                 Customer
                                 <?php if ($sort_field === 'customer'): ?>
                                     <i class="fas fa-sort-<?php echo $sort_direction === 'asc' ? 'up' : 'down'; ?>"></i>
@@ -198,7 +202,8 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                             </a>
                         </th>
                         <th>
-                            <a href="?page=orders&sort=date&dir=<?php echo $sort_field === 'date' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>" class="text-decoration-none">
+                            <a href="?page=orders&sort=date&dir=<?php echo $sort_field === 'date' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>"
+                                class="text-decoration-none">
                                 Order Date
                                 <?php if ($sort_field === 'date'): ?>
                                     <i class="fas fa-sort-<?php echo $sort_direction === 'asc' ? 'up' : 'down'; ?>"></i>
@@ -206,7 +211,8 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                             </a>
                         </th>
                         <th>
-                            <a href="?page=orders&sort=amount&dir=<?php echo $sort_field === 'amount' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>" class="text-decoration-none">
+                            <a href="?page=orders&sort=amount&dir=<?php echo $sort_field === 'amount' && $sort_direction === 'asc' ? 'desc' : 'asc'; ?>&status=<?php echo urlencode($selected_status); ?>&payment=<?php echo urlencode($selected_payment); ?>&search=<?php echo urlencode($search_query); ?>"
+                                class="text-decoration-none">
                                 Amount
                                 <?php if ($sort_field === 'amount'): ?>
                                     <i class="fas fa-sort-<?php echo $sort_direction === 'asc' ? 'up' : 'down'; ?>"></i>
@@ -229,70 +235,117 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                         </tr>
                     <?php else: ?>
                         <?php foreach ($filtered_orders as $order): ?>
-                        <tr>
-                            <td><a href="#" class="text-primary"><?php echo htmlspecialchars($order['id']); ?></a></td>
-                            <td><?php echo htmlspecialchars($order['customer']); ?></td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas fa-calendar-alt text-muted"></i>
-                                    <?php
+                            <tr>
+                                <td><a href="#" class="text-primary"><?php echo htmlspecialchars($order['id']); ?></a></td>
+                                <td><?php echo htmlspecialchars($order['customer']); ?></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fas fa-calendar-alt text-muted"></i>
+                                        <?php
                                         $date = new DateTime($order['date']);
                                         echo $date->format('M j, Y');
-                                    ?>
-                                </div>
-                            </td>
-                            <td>₹<?php echo number_format($order['amount']); ?></td>
-                            <td>
-                                <span class="badge <?php
+                                        ?>
+                                    </div>
+                                </td>
+                                <td>₹<?php echo number_format($order['amount']); ?></td>
+                                <td>
+                                    <span class="badge <?php
                                     echo $order['status'] === 'New' ? 'bg-primary' :
                                         ($order['status'] === 'Processing' ? 'bg-warning' :
-                                        ($order['status'] === 'Shipped' ? 'bg-purple' :
-                                        ($order['status'] === 'Delivered' ? 'bg-success' : 'bg-danger')));
-                                ?> text-white">
-                                    <i class="fas <?php
+                                            ($order['status'] === 'Shipped' ? 'bg-purple' :
+                                                ($order['status'] === 'Delivered' ? 'bg-success' : 'bg-danger')));
+                                    ?> text-white">
+                                        <i class="fas <?php
                                         echo $order['status'] === 'New' ? 'fa-exclamation-circle' :
                                             ($order['status'] === 'Processing' ? 'fa-sync-alt' :
-                                            ($order['status'] === 'Shipped' ? 'fa-truck' :
-                                            ($order['status'] === 'Delivered' ? 'fa-check-circle' : 'fa-exclamation-circle')));
-                                    ?> me-1"></i>
-                                    <?php echo htmlspecialchars($order['status']); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge <?php
+                                                ($order['status'] === 'Shipped' ? 'fa-truck' :
+                                                    ($order['status'] === 'Delivered' ? 'fa-check-circle' : 'fa-exclamation-circle')));
+                                        ?> me-1"></i>
+                                        <?php echo htmlspecialchars($order['status']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge <?php
                                     echo $order['payment'] === 'Paid' ? 'bg-success' :
                                         ($order['payment'] === 'Pending' ? 'bg-warning' :
-                                        ($order['payment'] === 'Partial' ? 'bg-primary' : 'bg-danger'));
-                                ?> text-white">
-                                    <?php echo htmlspecialchars($order['payment']); ?>
-                                </span>
-                            </td>
-                            <td class="text-end">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <button class="btn btn-outline-primary btn-sm" title="View" onclick="alert('Viewing order <?php echo htmlspecialchars($order['id']); ?>')">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <?php if ($order['status'] === 'New'): ?>
-                                        <button class="btn btn-outline-warning btn-sm" title="Process" onclick="alert('Processing order <?php echo htmlspecialchars($order['id']); ?>')">
-                                            <i class="fas fa-sync-alt"></i>
+                                            ($order['payment'] === 'Partial' ? 'bg-primary' : 'bg-danger'));
+                                    ?> text-white">
+                                        <?php echo htmlspecialchars($order['payment']); ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button class="btn btn-outline-primary btn-sm" title="View"
+                                            onclick="alert('Viewing order <?php echo htmlspecialchars($order['id']); ?>')">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                    <?php endif; ?>
-                                    <?php if ($order['status'] === 'New' || $order['status'] === 'Processing'): ?>
-                                        <button class="btn btn-outline-purple btn-sm" title="Ship" onclick="alert('Shipping order <?php echo htmlspecialchars($order['id']); ?>')">
-                                            <i class="fas fa-truck"></i>
-                                        </button>
-                                    <?php endif; ?>
-                                    <?php if ($order['status'] === 'Shipped'): ?>
-                                        <button class="btn btn-outline-success btn-sm" title="Mark Delivered" onclick="alert('Marking order <?php echo htmlspecialchars($order['id']); ?> as delivered')">
-                                            <i class="fas fa-check-circle"></i>
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
+                                        <?php if ($order['status'] === 'New'): ?>
+                                            <button class="btn btn-outline-warning btn-sm" title="Process"
+                                                onclick="alert('Processing order <?php echo htmlspecialchars($order['id']); ?>')">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if ($order['status'] === 'New' || $order['status'] === 'Processing'): ?>
+                                            <button class="btn btn-outline-purple btn-sm" title="Ship"
+                                                onclick="alert('Shipping order <?php echo htmlspecialchars($order['id']); ?>')">
+                                                <i class="fas fa-truck"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                        <?php if ($order['status'] === 'Shipped'): ?>
+                                            <button class="btn btn-outline-success btn-sm" title="Mark Delivered"
+                                                onclick="alert('Marking order <?php echo htmlspecialchars($order['id']); ?> as delivered')">
+                                                <i class="fas fa-check-circle"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
+                <script>
+                    // Search Functionality
+                    document.getElementById('ordersSearch').addEventListener('input', function () {
+                        const searchText = this.value.toLowerCase();
+                        const rows = document.querySelectorAll('#ordersTable tbody tr');
+
+                        rows.forEach(row => {
+                            const cells = row.getElementsByTagName('td');
+                            let match = false;
+                            for (let i = 0; i < cells.length; i++) {
+                                if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                    match = true;
+                                    break;
+                                }
+                            }
+                            row.style.display = match ? '' : 'none';
+                        });
+                    });
+                    // Export table data to CSV
+                    function exportTableToCSV(filename = 'table-data.csv') {
+                        const rows = document.querySelectorAll("#ordersTable tr");
+                        let csv = [];
+
+                        rows.forEach(row => {
+                            let cols = Array.from(row.querySelectorAll("th, td"))
+                                .map(col => `"${col.innerText.trim()}"`);
+                            csv.push(cols.join(","));
+                        });
+
+                        // Create a Blob from the CSV string
+                        let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                        // Create a temporary link to trigger download
+                        let downloadLink = document.createElement("a");
+                        downloadLink.download = filename;
+                        downloadLink.href = window.URL.createObjectURL(csvFile);
+                        downloadLink.style.display = "none";
+                        document.body.appendChild(downloadLink);
+
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                    }
+                </script>
             </table>
         </div>
     </div>
@@ -334,17 +387,20 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
                         </div>
                         <div class="col-md-6">
                             <label for="amount" class="form-label">Amount (₹)</label>
-                            <input type="number" class="form-control" id="amount" name="amount" min="0" step="0.01" required>
+                            <input type="number" class="form-control" id="amount" name="amount" min="0" step="0.01"
+                                required>
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="itemsCount" class="form-label">Number of Items</label>
-                            <input type="number" class="form-control" id="itemsCount" name="items_count" min="1" required>
+                            <input type="number" class="form-control" id="itemsCount" name="items_count" min="1"
+                                required>
                         </div>
                         <div class="col-md-6">
                             <label for="items" class="form-label">Item Details</label>
-                            <textarea class="form-control" id="items" name="items" rows="3" placeholder="Enter item details..." required></textarea>
+                            <textarea class="form-control" id="items" name="items" rows="3"
+                                placeholder="Enter item details..." required></textarea>
                         </div>
                     </div>
                     <div class="row mb-3">
@@ -379,22 +435,26 @@ $payment_statuses = ['All Payments', 'Paid', 'Pending', 'Partial', 'Refunded'];
 </div>
 
 <style>
-.bg-purple {
-    background-color: #6f42c1;
-}
-.text-purple {
-    color: #6f42c1;
-}
-.btn-outline-purple {
-    border-color: #6f42c1;
-    color: #6f42c1;
-}
-.btn-outline-purple:hover {
-    background-color: #6f42c1;
-    color: #fff;
-}
-.badge {
-    font-size: 0.85rem;
-    padding: 4px 8px;
-}
+    .bg-purple {
+        background-color: #6f42c1;
+    }
+
+    .text-purple {
+        color: #6f42c1;
+    }
+
+    .btn-outline-purple {
+        border-color: #6f42c1;
+        color: #6f42c1;
+    }
+
+    .btn-outline-purple:hover {
+        background-color: #6f42c1;
+        color: #fff;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
 </style>

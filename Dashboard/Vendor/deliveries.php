@@ -129,16 +129,13 @@ $statuses = ['All', 'Processing', 'In Transit', 'Out for Delivery', 'Delivered']
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
                         <input
-                            type="text"
+                            id="deliverySearch"
+                            type="text" 
                             name="search"
                             class="form-control border-start-0"
                             placeholder="Search by delivery ID, tracking ID or order ID..."
-                            value="<?php echo htmlspecialchars($search_query); ?>"
-                        >
+                            value="<?php echo htmlspecialchars($search_query); ?>">
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search me-1"></i> Search
-                    </button>
                 </form>
             </div>
             <!-- Filters -->
@@ -186,7 +183,7 @@ $statuses = ['All', 'Processing', 'In Transit', 'Out for Delivery', 'Delivered']
         <h5 class="card-title">Recent Deliveries</h5>
         <p class="text-muted">Track your recent and ongoing deliveries from factories</p>
         <div class="table-responsive">
-            <table class="table table-bordered table-hover">
+            <table class="table table-bordered table-hover" id="deliveriesTable">
                 <thead>
                     <tr>
                         <th>Delivery ID</th>
@@ -262,6 +259,25 @@ $statuses = ['All', 'Processing', 'In Transit', 'Out for Delivery', 'Delivered']
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
+                  <script>
+                // Search Functionality
+                    document.getElementById('deliverySearch').addEventListener('input', function () {
+                        const searchText = this.value.toLowerCase();
+                        const rows = document.querySelectorAll('#deliveriesTable tbody tr');
+
+                        rows.forEach(row => {
+                            const cells = row.getElementsByTagName('td');
+                            let match = false;
+                            for (let i = 0; i < cells.length; i++) {
+                                if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                    match = true;
+                                    break;
+                                }
+                            }
+                            row.style.display = match ? '' : 'none';
+                        });
+                    });
+                  </script>
             </table>
         </div>
     </div>

@@ -413,11 +413,11 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
     <!-- Search and Actions -->
     <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between mb-4">
         <div class="flex-grow-1">
-                <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" id="globalSearch" class="form-control border-start-0"
-                        placeholder="Search inventory...">
-                </div>
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0"
+                    placeholder="Search inventory...">
+            </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <button type="submit" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addItem">
@@ -427,49 +427,49 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                 data-bs-target="#requestStock">
                 <i class="fas fa-truck me-1"></i> Request Stock
             </button>
-            <button type="submit" class="btn btn-outline-primary btn-sm">
+            <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()" >
                 <i class="fas fa-download me-1"></i> Export
             </button>
         </div>
     </div>
 
     <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const searchInput = document.getElementById("globalSearch");
+        document.addEventListener("DOMContentLoaded", function () {
+            const searchInput = document.getElementById("searchInput");
 
-        searchInput.addEventListener("input", function () {
-            // Remove previous highlights
-            document.querySelectorAll("mark.search-highlight").forEach(el => {
-                const parent = el.parentNode;
-                parent.replaceChild(document.createTextNode(el.textContent), el);
-                parent.normalize(); // Combine adjacent text nodes
-            });
+            searchInput.addEventListener("input", function () {
+                // Remove previous highlights
+                document.querySelectorAll("mark.search-highlight").forEach(el => {
+                    const parent = el.parentNode;
+                    parent.replaceChild(document.createTextNode(el.textContent), el);
+                    parent.normalize(); // Combine adjacent text nodes
+                });
 
-            const query = searchInput.value.trim().toLowerCase();
-            if (!query) return;
+                const query = searchInput.value.trim().toLowerCase();
+                if (!query) return;
 
-            const allElements = document.body.querySelectorAll("*:not(script):not(style)");
+                const allElements = document.body.querySelectorAll("*:not(script):not(style)");
 
-            let firstMatch = null;
+                let firstMatch = null;
 
-            allElements.forEach(el => {
-                if (el.children.length === 0 && el.textContent.toLowerCase().includes(query)) {
-                    const regex = new RegExp(`(${query})`, "i");
-                    const newHTML = el.textContent.replace(regex, '<mark class="search-highlight">$1</mark>');
-                    el.innerHTML = newHTML;
+                allElements.forEach(el => {
+                    if (el.children.length === 0 && el.textContent.toLowerCase().includes(query)) {
+                        const regex = new RegExp(`(${query})`, "i");
+                        const newHTML = el.textContent.replace(regex, '<mark class="search-highlight">$1</mark>');
+                        el.innerHTML = newHTML;
 
-                    if (!firstMatch) firstMatch = el;
+                        if (!firstMatch) firstMatch = el;
+                    }
+                });
+
+                if (firstMatch) {
+                    setTimeout(() => {
+                        firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }, 100);
                 }
             });
-
-            if (firstMatch) {
-                setTimeout(() => {
-                    firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
-                }, 100);
-            }
         });
-    });
-</script>
+    </script>
 
     <!-- Tabs and Filters -->
     <div class="card card-border shadow-sm mb-4">
@@ -500,7 +500,7 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                 <h5 class="mb-3">Inventory Items</h5>
                 <p class="text-muted mb-3">Manage all your store inventory items</p>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover" id="supplyTable">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -557,6 +557,50 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                             ?>
                         </tbody>
                     </table>
+                    <script>
+
+                        // Search Functionality
+                        document.getElementById('searchInput').addEventListener('input', function () {
+                            const searchText = this.value.toLowerCase();
+                            const rows = document.querySelectorAll('#supplyTable tbody tr');
+
+                            rows.forEach(row => {
+                                const cells = row.getElementsByTagName('td');
+                                let match = false;
+                                for (let i = 0; i < cells.length; i++) {
+                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                row.style.display = match ? '' : 'none';
+                            });
+                        });
+                        // Export table data to CSV
+                        function exportTableToCSV(filename = 'table-data.csv') {
+                            const rows = document.querySelectorAll("#supplyTable tr");
+                            let csv = [];
+
+                            rows.forEach(row => {
+                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                    .map(col => `"${col.innerText.trim()}"`);
+                                csv.push(cols.join(","));
+                            });
+
+                            // Create a Blob from the CSV string
+                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                            // Create a temporary link to trigger download
+                            let downloadLink = document.createElement("a");
+                            downloadLink.download = filename;
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                            downloadLink.style.display = "none";
+                            document.body.appendChild(downloadLink);
+
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        }
+                    </script>
                 </div>
             </div>
         </div>
@@ -566,7 +610,7 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                 <h5 class="mb-3">Low Stock Items</h5>
                 <p class="text-muted mb-3">Items that need to be restocked soon</p>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover" id="inventoryTable">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -605,6 +649,49 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                             ?>
                         </tbody>
                     </table>
+                    <script>
+                     // Search Functionality
+                        document.getElementById('searchInput').addEventListener('input', function () {
+                            const searchText = this.value.toLowerCase();
+                            const rows = document.querySelectorAll('#inventoryTable tbody tr');
+
+                            rows.forEach(row => {
+                                const cells = row.getElementsByTagName('td');
+                                let match = false;
+                                for (let i = 0; i < cells.length; i++) {
+                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                row.style.display = match ? '' : 'none';
+                            });
+                        });
+                        // Export table data to CSV
+                        function exportTableToCSV(filename = 'table-data.csv') {
+                            const rows = document.querySelectorAll("#inventoryTable tr");
+                            let csv = [];
+
+                            rows.forEach(row => {
+                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                    .map(col => `"${col.innerText.trim()}"`);
+                                csv.push(cols.join(","));
+                            });
+
+                            // Create a Blob from the CSV string
+                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                            // Create a temporary link to trigger download
+                            let downloadLink = document.createElement("a");
+                            downloadLink.download = filename;
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                            downloadLink.style.display = "none";
+                            document.body.appendChild(downloadLink);
+
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        }
+                    </script>
                 </div>
             </div>
         </div>
@@ -614,7 +701,7 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                 <h5 class="mb-3">Out of Stock Items</h5>
                 <p class="text-muted mb-3">Items that need immediate attention</p>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover" id="outofStock">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -653,6 +740,49 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                             ?>
                         </tbody>
                     </table>
+                     <script>
+                     // Search Functionality
+                        document.getElementById('searchInput').addEventListener('input', function () {
+                            const searchText = this.value.toLowerCase();
+                            const rows = document.querySelectorAll('#outofStock tbody tr');
+
+                            rows.forEach(row => {
+                                const cells = row.getElementsByTagName('td');
+                                let match = false;
+                                for (let i = 0; i < cells.length; i++) {
+                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                row.style.display = match ? '' : 'none';
+                            });
+                        });
+                        // Export table data to CSV
+                        function exportTableToCSV(filename = 'table-data.csv') {
+                            const rows = document.querySelectorAll("#outofStock tr");
+                            let csv = [];
+
+                            rows.forEach(row => {
+                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                    .map(col => `"${col.innerText.trim()}"`);
+                                csv.push(cols.join(","));
+                            });
+
+                            // Create a Blob from the CSV string
+                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                            // Create a temporary link to trigger download
+                            let downloadLink = document.createElement("a");
+                            downloadLink.download = filename;
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                            downloadLink.style.display = "none";
+                            document.body.appendChild(downloadLink);
+
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        }
+                    </script>
                 </div>
             </div>
         </div>
@@ -810,7 +940,7 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
         padding: 0;
         border-radius: 2px;
     }
-    
+
     .space-y-4>*+* {
         margin-top: 1rem;
     }

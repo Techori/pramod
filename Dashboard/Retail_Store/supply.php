@@ -8,11 +8,6 @@ $user_name = $_SESSION['user_name'];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
-    function clean($input)
-    {
-        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-    }
-
     if ($_POST['whatAction'] === 'requestStock') {
         // Collect data for transaction
         $itemName = clean($_POST['item_Name']);
@@ -147,7 +142,7 @@ $filtered_requests = array_filter($supply_requests, function ($request) use ($se
         <div class="flex-grow-1">
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                <input type="text" id="globalSearch" class="form-control border-start-0"
+                <input type="text" id="searchInput" class="form-control border-start-0"
                     placeholder="Search products, orders, suppliers...">
             </div>
         </div>
@@ -387,7 +382,7 @@ $filtered_requests = array_filter($supply_requests, function ($request) use ($se
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
+                <table class="table table-bordered table-hover" id = "supplyTable">
                     <thead>
                         <tr>
                             <th>Request ID</th>
@@ -427,6 +422,25 @@ $filtered_requests = array_filter($supply_requests, function ($request) use ($se
                         ?>
                     </tbody>
                 </table>
+                <script>
+                    // Search Functionality
+                    document.getElementById('searchInput').addEventListener('input', function () {
+                        const searchText = this.value.toLowerCase();
+                        const rows = document.querySelectorAll('#supplyTable tbody tr');
+
+                        rows.forEach(row => {
+                            const cells = row.getElementsByTagName('td');
+                            let match = false;
+                            for (let i = 0; i < cells.length; i++) {
+                                if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                    match = true;
+                                    break;
+                                }
+                            }
+                            row.style.display = match ? '' : 'none';
+                        });
+                    });
+                </script>
             </div>
         </div>
     </div>

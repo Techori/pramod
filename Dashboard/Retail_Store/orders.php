@@ -288,7 +288,7 @@ function get_payment_badge($status)
     <!-- Export -->
     <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between mb-4">
 
-        <button type="submit" class="btn btn-outline-primary btn-sm">
+        <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()">
             <i class="fas fa-file-alt me-1"></i> Export
         </button>
     </div>
@@ -391,7 +391,7 @@ $order_analytics['deliveredToday'] = $row['count'];
             <div class="d-flex justify-content-start">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" class="form-control border-start-0 table-search" data-table="order_table"
+                    <input type="text" class="form-control border-start-0 table-search" id="searchInput" data-table="order_table"
                         placeholder="Search..." />
                 </div>
             </div>
@@ -404,7 +404,7 @@ $order_analytics['deliveredToday'] = $row['count'];
         </div>
 
         <div class="table-responsive">
-            <table class="table table-bordered table-hover" id="order_table">
+            <table class="table table-bordered table-hover" id="orderTable">
                 <thead>
                     <tr>
                         <th>Order ID</th>
@@ -495,6 +495,49 @@ $order_analytics['deliveredToday'] = $row['count'];
                     ?>
                 </tbody>
             </table>
+             <script>
+                     // Search Functionality
+                        document.getElementById('searchInput').addEventListener('input', function () {
+                            const searchText = this.value.toLowerCase();
+                            const rows = document.querySelectorAll('#orderTable tbody tr');
+
+                            rows.forEach(row => {
+                                const cells = row.getElementsByTagName('td');
+                                let match = false;
+                                for (let i = 0; i < cells.length; i++) {
+                                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                                row.style.display = match ? '' : 'none';
+                            });
+                        });
+                        // Export table data to CSV
+                        function exportTableToCSV(filename = 'table-data.csv') {
+                            const rows = document.querySelectorAll("#orderTable tr");
+                            let csv = [];
+
+                            rows.forEach(row => {
+                                let cols = Array.from(row.querySelectorAll("th, td"))
+                                    .map(col => `"${col.innerText.trim()}"`);
+                                csv.push(cols.join(","));
+                            });
+
+                            // Create a Blob from the CSV string
+                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                            // Create a temporary link to trigger download
+                            let downloadLink = document.createElement("a");
+                            downloadLink.download = filename;
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                            downloadLink.style.display = "none";
+                            document.body.appendChild(downloadLink);
+
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        }
+                    </script>
         </div>
     </div>
 </div>

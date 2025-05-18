@@ -66,8 +66,8 @@ function build_sort_url($field) {
                     <div class="col-md-4">
                         <label for="search" class="form-label">Search Products</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or SKU...">
-                            <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
+                            <input type="text" class="form-control" id="productsSearch" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or SKU...">
+
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -105,7 +105,7 @@ function build_sort_url($field) {
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover" id="productsTable">
                         <thead>
                             <tr>
                                 <th><a href="<?php echo build_sort_url('name'); ?>">Product Name <?php if ($sort === 'name') echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
@@ -139,6 +139,25 @@ function build_sort_url($field) {
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
+                         <script>
+                // Search Functionality
+                    document.getElementById('productsSearch').addEventListener('input', function () {
+                        const searchText = this.value.toLowerCase();
+                        const rows = document.querySelectorAll('#productsTable tbody tr');
+
+                        rows.forEach(row => {
+                            const cells = row.getElementsByTagName('td');
+                            let match = false;
+                            for (let i = 0; i < cells.length; i++) {
+                                if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                    match = true;
+                                    break;
+                                }
+                            }
+                            row.style.display = match ? '' : 'none';
+                        });
+                    });
+                  </script>
                     </table>
                 </div>
             <?php endif; ?>

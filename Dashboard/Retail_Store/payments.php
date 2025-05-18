@@ -318,7 +318,7 @@ function get_status_badge($status)
                 </form>
                 <form method="POST" action="?page=payments" class="d-inline">
                     <input type="hidden" name="action" value="generate_payment_report">
-                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()">
                         <i class="fas fa-file-alt me-1"></i> Export
                     </button>
                 </form>
@@ -413,9 +413,34 @@ function get_status_badge($status)
                             } else {
                                 echo "<tr><td colspan='8' class='text-center'>No transactions found</td></tr>";
                             }
-                            ?>
-                        </tbody>
+                            ?></tbody>
                     </table>
+                    <script>
+                     // Export table data to CSV
+                        function exportTableToCSV(filename = 'table-data.csv') {
+                            const rows = document.querySelectorAll("#transaction tr");
+                            let csv = [];
+
+                            rows.forEach(row => {
+                              let cols = Array.from(row.querySelectorAll("th, td"))
+                                    .map(col => `"${col.innerText.trim()}"`);
+                                csv.push(cols.join(","));
+                            });
+
+                            // Create a Blob from the CSV string
+                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                            // Create a temporary link to trigger download
+                            let downloadLink = document.createElement("a");
+                            downloadLink.download = filename;
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+                            downloadLink.style.display = "none";
+                            document.body.appendChild(downloadLink);
+
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        }
+                    </script>
                 </div>
             </div>
         </div>
