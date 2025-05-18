@@ -1,8 +1,5 @@
 <?php
-$conn = new mysqli('localhost', 'root', '', 'unnati-wires');
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include '../../_conn.php';
 $pending_orders = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='Ordered'")->fetch_assoc()['count'];
 
 // Get current and previous month for percentage calculations

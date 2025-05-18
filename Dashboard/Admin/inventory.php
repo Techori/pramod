@@ -1,10 +1,6 @@
 <?php
 include '../../_conn.php';
 
-// Clean input data function
-function clean($input) {
-    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-}
 
 // Handle Add Product
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {

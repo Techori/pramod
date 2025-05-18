@@ -24,6 +24,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'admin_dashboard';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
+    function clean($input)
+    {
+        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    }
+
     if ($_POST['whatAction'] === 'update') {
         // Get data from the form
         $invoice_id = $_POST['invoice_id'] ?? '';
@@ -192,12 +197,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 $error_message = "Delete failed: " . $e->getMessage();
             }
         }
-    }
-
-    // Clean input data function
-    function clean($input)
-    {
-        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
     }
 
     // Transaction action
