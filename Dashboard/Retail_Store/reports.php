@@ -99,17 +99,40 @@ $filtered_reports = array_filter($reports, function ($report) use ($period) {
     ?>
 
     <!-- Report Actions -->
+    <!-- Report Actions -->
     <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between mb-4">
-        
         <div class="d-flex flex-wrap gap-2">
-            <form method="POST" action="?page=reports" class="d-inline">
-                <input type="hidden" name="action" value="generate_new_report">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="fas fa-file-alt me-1"></i> Generate Report
-                </button>
-            </form>
+            <button type="button" class="btn btn-primary btn-sm" onclick="generateReport()">
+                <i class="fas fa-file-alt me-1"></i> Generate Report
+            </button>
         </div>
     </div>
+    <script>
+        function generateReport() {
+            // Example: Show alert
+            alert("Generating report...");
+
+            // Example 1: Update charts (you'd replace this with real chart logic)
+            updateCharts();
+
+            // Example 2: Export table to CSV (if you want export on report click)
+            // exportTableToCSV('report.csv');
+        }
+
+        function updateCharts() {
+            // Simulated dummy update to charts
+            console.log("Updating charts...");
+
+            // You can use Chart.js to dynamically reload chart data here
+            // Example:
+            // monthlySalesChart.data.datasets[0].data = [newData];
+            // monthlySalesChart.update();
+
+        }
+        exportTableToCSV('report.csv');
+
+    </script>
+
 
     <!-- Charts and Analytics -->
     <div class="row row-cols-1 row-cols-lg-2 g-4 mb-4">
@@ -272,7 +295,7 @@ $result = $stmt->get_result();
 
 while ($row = $result->fetch_assoc()) {
     $paymentLabels[] = $row['payment_method'];
-    $paymentCounts[] = (float)$row['total'];
+    $paymentCounts[] = (float) $row['total'];
 }
 $stmt->close();
 ?>

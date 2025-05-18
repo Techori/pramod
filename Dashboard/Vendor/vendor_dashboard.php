@@ -32,6 +32,7 @@ require_once 'database.php';
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="../../public/css/styles.css">
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/xlsx.full.min.js"></script>
     <style> </style>
 </head>
 

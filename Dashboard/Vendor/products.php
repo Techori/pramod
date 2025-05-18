@@ -9,32 +9,40 @@ $sort = isset($_GET['sort']) ? $_GET['sort'] : 'name';
 $dir = isset($_GET['dir']) ? $_GET['dir'] : 'asc';
 
 // Filter products
-$filtered_products = array_filter($all_products, function($product) use ($search, $category) {
+$filtered_products = array_filter($all_products, function ($product) use ($search, $category) {
     $search_match = stripos($product['name'], $search) !== false || stripos($product['sku'], $search) !== false;
     $category_match = $category === 'All Categories' || $product['category'] === $category;
     return $search_match && $category_match;
 });
 
 // Sort products
-usort($filtered_products, function($a, $b) use ($sort, $dir) {
+usort($filtered_products, function ($a, $b) use ($sort, $dir) {
     $a_val = $a[$sort];
     $b_val = $b[$sort];
-    if ($a_val < $b_val) return $dir === 'asc' ? -1 : 1;
-    if ($a_val > $b_val) return $dir === 'asc' ? 1 : -1;
+    if ($a_val < $b_val)
+        return $dir === 'asc' ? -1 : 1;
+    if ($a_val > $b_val)
+        return $dir === 'asc' ? 1 : -1;
     return 0;
 });
 
 
-function get_status_class($status) {
+function get_status_class($status)
+{
     switch ($status) {
-        case 'In Stock': return 'bg-success';
-        case 'Low Stock': return 'bg-warning';
-        case 'Out of Stock': return 'bg-danger';
-        default: return 'bg-secondary';
+        case 'In Stock':
+            return 'bg-success';
+        case 'Low Stock':
+            return 'bg-warning';
+        case 'Out of Stock':
+            return 'bg-danger';
+        default:
+            return 'bg-secondary';
     }
 }
 
-function build_sort_url($field) {
+function build_sort_url($field)
+{
     global $search, $category, $sort, $dir;
     $new_dir = ($sort === $field && $dir === 'asc') ? 'desc' : 'asc';
     $params = [
@@ -54,7 +62,8 @@ function build_sort_url($field) {
             <h1><i class="fas fa-box text-primary"></i> Product Management</h1>
             <p>Manage your product catalog, update inventory and pricing.</p>
         </div>
-        <button class="btn btn-primary" onclick="alert('Adding new product')"><i class="fas fa-plus"></i> Add Product</button>
+        <button class="btn btn-primary" onclick="alert('Adding new product')"><i class="fas fa-plus"></i> Add
+            Product</button>
     </div>
 
     <!-- Search and Filters -->
@@ -66,7 +75,8 @@ function build_sort_url($field) {
                     <div class="col-md-4">
                         <label for="search" class="form-label">Search Products</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="productsSearch" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or SKU...">
+                            <input type="text" class="form-control" id="productsSearch" name="search"
+                                value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or SKU...">
 
                         </div>
                     </div>
@@ -74,13 +84,47 @@ function build_sort_url($field) {
                         <label for="category" class="form-label">Filter by Category</label>
                         <select class="form-select" id="category" name="category">
                             <?php foreach ($categories as $c): ?>
-                                <option value="<?php echo $c; ?>" <?php echo $category === $c ? 'selected' : ''; ?>><?php echo $c; ?></option>
+                                <option value="<?php echo $c; ?>" <?php echo $category === $c ? 'selected' : ''; ?>>
+                                    <?php echo $c; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-md-3 d-flex align-items-end gap-2">
-                        <button type="button" class="btn btn-outline-secondary" onclick="alert('Importing products')"><i class="fas fa-file-import"></i> Import</button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="alert('Exporting products')"><i class="fas fa-file-export"></i> Export</button>
+                        <input type="file" id="fileInput"
+                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                            style="display: none;" onchange="handleFileImport(event)" />
+
+                        <button type="button" class="btn btn-outline-secondary"
+                            onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-file-import"></i> Import
+                        </button>
+
+                        <button type="button" class="btn btn-outline-secondary" onclick="exportTableToCSV()">
+                            <i class="fas fa-file-export"></i> Export
+                        </button>
+
+                        <script>
+                            function handleFileImport(event) {
+                                const file = event.target.files[0];
+                                if (!file) return;
+
+                                const reader = new FileReader();
+                                reader.onload = function (e) {
+                                    const content = e.target.result;
+                                    // Yahan aap CSV ya Excel content ko parse karke table mein daal sakte hain
+                                    console.log("Imported content:\n", content);
+                                    // TODO: Parse and render table
+                                };
+
+                                if (file.name.endsWith(".csv")) {
+                                    reader.readAsText(file);
+                                } else {
+                                    alert("Only CSV import supported in this demo.");
+                                    // Excel ke liye SheetJS (xlsx.js) use karna padega
+                                }
+                            }
+                        </script>
+
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary">Apply Filters</button>
@@ -108,11 +152,21 @@ function build_sort_url($field) {
                     <table class="table table-bordered table-hover" id="productsTable">
                         <thead>
                             <tr>
-                                <th><a href="<?php echo build_sort_url('name'); ?>">Product Name <?php if ($sort === 'name') echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
-                                <th><a href="<?php echo build_sort_url('sku'); ?>">SKU <?php if ($sort === 'sku') echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
-                                <th><a href="<?php echo build_sort_url('category'); ?>">Category <?php if ($sort === 'category') echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
-                                <th><a href="<?php echo build_sort_url('price'); ?>">Price <?php if ($sort === 'price') echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
-                                <th><a href="<?php echo build_sort_url('stock'); ?>">Stock <?php if ($sort === 'stock') echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
+                                <th><a href="<?php echo build_sort_url('name'); ?>">Product Name
+                                        <?php if ($sort === 'name')
+                                            echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
+                                <th><a href="<?php echo build_sort_url('sku'); ?>">SKU
+                                        <?php if ($sort === 'sku')
+                                            echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
+                                <th><a href="<?php echo build_sort_url('category'); ?>">Category
+                                        <?php if ($sort === 'category')
+                                            echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
+                                <th><a href="<?php echo build_sort_url('price'); ?>">Price
+                                        <?php if ($sort === 'price')
+                                            echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
+                                <th><a href="<?php echo build_sort_url('stock'); ?>">Stock
+                                        <?php if ($sort === 'stock')
+                                            echo $dir === 'asc' ? '↑' : '↓'; ?></a></th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -132,32 +186,60 @@ function build_sort_url($field) {
                                     </td>
                                     <td>
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary" onclick="alert('Editing product <?php echo htmlspecialchars($product['name']); ?>')"><i class="fas fa-edit"></i></button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="alert('Deleting product <?php echo htmlspecialchars($product['name']); ?>')"><i class="fas fa-trash"></i></button>
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                onclick="alert('Editing product <?php echo htmlspecialchars($product['name']); ?>')"><i
+                                                    class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                onclick="alert('Deleting product <?php echo htmlspecialchars($product['name']); ?>')"><i
+                                                    class="fas fa-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
-                         <script>
-                // Search Functionality
-                    document.getElementById('productsSearch').addEventListener('input', function () {
-                        const searchText = this.value.toLowerCase();
-                        const rows = document.querySelectorAll('#productsTable tbody tr');
+                        <script>
+                            // Search Functionality
+                            document.getElementById('productsSearch').addEventListener('input', function () {
+                                const searchText = this.value.toLowerCase();
+                                const rows = document.querySelectorAll('#productsTable tbody tr');
 
-                        rows.forEach(row => {
-                            const cells = row.getElementsByTagName('td');
-                            let match = false;
-                            for (let i = 0; i < cells.length; i++) {
-                                if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                                    match = true;
-                                    break;
-                                }
+                                rows.forEach(row => {
+                                    const cells = row.getElementsByTagName('td');
+                                    let match = false;
+                                    for (let i = 0; i < cells.length; i++) {
+                                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                                            match = true;
+                                            break;
+                                        }
+                                    }
+                                    row.style.display = match ? '' : 'none';
+                                });
+                            });
+                            // Export table data to CSV
+                            function exportTableToCSV(filename = 'table-data.csv') {
+                                const rows = document.querySelectorAll("#ordersTable tr");
+                                let csv = [];
+
+                                rows.forEach(row => {
+                                    let cols = Array.from(row.querySelectorAll("th, td"))
+                                        .map(col => `"${col.innerText.trim()}"`);
+                                    csv.push(cols.join(","));
+                                });
+
+                                // Create a Blob from the CSV string
+                                let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+
+                                // Create a temporary link to trigger download
+                                let downloadLink = document.createElement("a");
+                                downloadLink.download = filename;
+                                downloadLink.href = window.URL.createObjectURL(csvFile);
+                                downloadLink.style.display = "none";
+                                document.body.appendChild(downloadLink);
+
+                                downloadLink.click();
+                                document.body.removeChild(downloadLink);
                             }
-                            row.style.display = match ? '' : 'none';
-                        });
-                    });
-                  </script>
+                        </script>
                     </table>
                 </div>
             <?php endif; ?>

@@ -15,7 +15,8 @@ $nav_items = [
 ];
 
 // Helper function to build tab URL
-function build_tab_url($tab) {
+function build_tab_url($tab)
+{
     $params = ['page' => 'settings', 'tab' => $tab];
     return '?' . http_build_query($params);
 }
@@ -36,7 +37,8 @@ function build_tab_url($tab) {
                 <div class="card-body p-0">
                     <nav class="nav flex-column">
                         <?php foreach ($nav_items as $key => $item): ?>
-                            <a class="nav-link d-flex align-items-center gap-2 px-4 py-3 <?php echo $active_tab === $key ? 'bg-primary text-white' : 'text-dark hover:bg-light'; ?>" href="<?php echo build_tab_url($key); ?>">
+                            <a class="nav-link d-flex align-items-center gap-2 px-4 py-3 <?php echo $active_tab === $key ? 'bg-primary text-white' : 'text-dark hover:bg-light'; ?>"
+                                href="<?php echo build_tab_url($key); ?>">
                                 <i class="fas <?php echo $item['icon']; ?>"></i>
                                 <?php echo $item['label']; ?>
                             </a>
@@ -58,38 +60,78 @@ function build_tab_url($tab) {
                         <form method="POST" action="">
                             <div class="row">
                                 <div class="col-md-4 text-center">
-                                    <div class="h-50 w-50 rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto" style="font-size: 2rem;">
-                                        <?php echo htmlspecialchars($settings['profile']['avatar']); ?>
-                                    </div>
-                                    <button type="button" class="btn btn-outline-primary mt-3" onclick="alert('Changing photo')">Change Photo</button>
+                                    <!-- Image Preview (Circle) -->
+                                    <img id="previewPhoto"
+                                        src="<?php echo htmlspecialchars($settings['profile']['avatar'] ?? 'default.jpg'); ?>"
+                                        alt="Profile Photo" class="rounded-circle bg-light"
+                                        style="width: 120px; height: 120px; object-fit: cover;">
+
+                                    <!-- Hidden File Input -->
+                                    <input type="file" id="photoInput" accept="image/*" style="display: none;"
+                                        onchange="handlePhotoChange(event)">
+
+                                    <!-- Visible Button -->
+                                    <button type="button" class="btn btn-outline-primary mt-3"
+                                        onclick="document.getElementById('photoInput').click()">
+                                        Change Photo
+                                    </button>
                                 </div>
+
+                                <script>
+                                    function handlePhotoChange(event) {
+                                        const file = event.target.files[0];
+                                        if (file) {
+                                            // Validate file type if needed
+                                            if (!file.type.startsWith('image/')) {
+                                                alert('Please select an image file.');
+                                                return;
+                                            }
+
+                                            // Preview selected image
+                                            const reader = new FileReader();
+                                            reader.onload = function (e) {
+                                                const img = document.getElementById('previewPhoto');
+                                                img.src = e.target.result;
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }
+                                </script>
+
                                 <div class="col-md-8">
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <label for="firstName" class="form-label">First Name</label>
-                                            <input type="text" class="form-control" id="firstName" name="firstName" value="<?php echo htmlspecialchars($settings['profile']['firstName']); ?>">
+                                            <input type="text" class="form-control" id="firstName" name="firstName"
+                                                value="<?php echo htmlspecialchars($settings['profile']['firstName']); ?>">
                                         </div>
                                         <div class="col-md-6">
                                             <label for="lastName" class="form-label">Last Name</label>
-                                            <input type="text" class="form-control" id="lastName" name="lastName" value="<?php echo htmlspecialchars($settings['profile']['lastName']); ?>">
+                                            <input type="text" class="form-control" id="lastName" name="lastName"
+                                                value="<?php echo htmlspecialchars($settings['profile']['lastName']); ?>">
                                         </div>
                                     </div>
                                     <div class="mb-3">
                                         <label for="email" class="form-label">Email Address</label>
                                         <div class="input-group">
-                                            <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($settings['profile']['email']); ?>">
-                                            <span class="input-group-text bg-success text-white"><i class="fas fa-check"></i> Verified</span>
+                                            <input type="email" class="form-control" id="email" name="email"
+                                                value="<?php echo htmlspecialchars($settings['profile']['email']); ?>">
+                                            <span class="input-group-text bg-success text-white"><i
+                                                    class="fas fa-check"></i> Verified</span>
                                         </div>
                                     </div>
                                     <div class="mb-3">
                                         <label for="phone" class="form-label">Phone Number</label>
-                                        <input type="text" class="form-control" id="phone" name="phone" value="<?php echo htmlspecialchars($settings['profile']['phone']); ?>">
+                                        <input type="text" class="form-control" id="phone" name="phone"
+                                            value="<?php echo htmlspecialchars($settings['profile']['phone']); ?>">
                                     </div>
                                     <div class="mb-3">
                                         <label for="position" class="form-label">Position/Title</label>
-                                        <input type="text" class="form-control" id="position" name="position" value="<?php echo htmlspecialchars($settings['profile']['position']); ?>">
+                                        <input type="text" class="form-control" id="position" name="position"
+                                            value="<?php echo htmlspecialchars($settings['profile']['position']); ?>">
                                     </div>
-                                    <button type="button" class="btn btn-primary" onclick="alert('Profile settings updated')">Save Changes</button>
+                                    <button type="button" class="btn btn-primary"
+                                        onclick="alert('Profile settings updated')">Save Changes</button>
                                 </div>
                             </div>
                         </form>
@@ -107,59 +149,93 @@ function build_tab_url($tab) {
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="companyName" class="form-label">Company Name</label>
-                                    <input type="text" class="form-control" id="companyName" name="companyName" value="<?php echo htmlspecialchars($settings['business']['companyName']); ?>">
+                                    <input type="text" class="form-control" id="companyName" name="companyName"
+                                        value="<?php echo htmlspecialchars($settings['business']['companyName']); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="businessType" class="form-label">Business Type</label>
-                                    <input type="text" class="form-control" id="businessType" name="businessType" value="<?php echo htmlspecialchars($settings['business']['businessType']); ?>">
+                                    <input type="text" class="form-control" id="businessType" name="businessType"
+                                        value="<?php echo htmlspecialchars($settings['business']['businessType']); ?>">
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <label for="address" class="form-label">Business Address</label>
-                                <textarea class="form-control" id="address" name="address" rows="3"><?php echo htmlspecialchars($settings['business']['address']); ?></textarea>
+                                <textarea class="form-control" id="address" name="address"
+                                    rows="3"><?php echo htmlspecialchars($settings['business']['address']); ?></textarea>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-4">
                                     <label for="city" class="form-label">City</label>
-                                    <input type="text" class="form-control" id="city" name="city" value="<?php echo htmlspecialchars($settings['business']['city']); ?>">
+                                    <input type="text" class="form-control" id="city" name="city"
+                                        value="<?php echo htmlspecialchars($settings['business']['city']); ?>">
                                 </div>
                                 <div class="col-md-4">
                                     <label for="state" class="form-label">State</label>
-                                    <input type="text" class="form-control" id="state" name="state" value="<?php echo htmlspecialchars($settings['business']['state']); ?>">
+                                    <input type="text" class="form-control" id="state" name="state"
+                                        value="<?php echo htmlspecialchars($settings['business']['state']); ?>">
                                 </div>
                                 <div class="col-md-4">
                                     <label for="pincode" class="form-label">PIN Code</label>
-                                    <input type="text" class="form-control" id="pincode" name="pincode" value="<?php echo htmlspecialchars($settings['business']['pincode']); ?>">
+                                    <input type="text" class="form-control" id="pincode" name="pincode"
+                                        value="<?php echo htmlspecialchars($settings['business']['pincode']); ?>">
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="gstin" class="form-label">GSTIN</label>
-                                    <input type="text" class="form-control" id="gstin" name="gstin" value="<?php echo htmlspecialchars($settings['business']['gstin']); ?>">
+                                    <input type="text" class="form-control" id="gstin" name="gstin"
+                                        value="<?php echo htmlspecialchars($settings['business']['gstin']); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="panNumber" class="form-label">PAN Number</label>
-                                    <input type="text" class="form-control" id="panNumber" name="panNumber" value="<?php echo htmlspecialchars($settings['business']['panNumber']); ?>">
+                                    <input type="text" class="form-control" id="panNumber" name="panNumber"
+                                        value="<?php echo htmlspecialchars($settings['business']['panNumber']); ?>">
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="website" class="form-label">Website</label>
-                                    <input type="text" class="form-control" id="website" name="website" value="<?php echo htmlspecialchars($settings['business']['website']); ?>">
+                                    <input type="text" class="form-control" id="website" name="website"
+                                        value="<?php echo htmlspecialchars($settings['business']['website']); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="taxExemption" class="form-label">Tax Exemption Certificate</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="taxExemption" name="taxExemption" value="<?php echo htmlspecialchars($settings['business']['taxExemption']); ?>" readonly>
-                                        <button type="button" class="btn btn-outline-primary" onclick="alert('Uploading tax exemption certificate')">Upload</button>
+                                        <!-- Display selected file name -->
+                                        <input type="text" class="form-control" id="taxExemption" name="taxExemption"
+                                            value="<?php echo htmlspecialchars($settings['business']['taxExemption'] ?? ''); ?>"
+                                            readonly>
+
+                                        <!-- Hidden file input -->
+                                        <input type="file" id="taxExemptionFile" accept=".pdf,.jpg,.jpeg,.png"
+                                            style="display: none;" onchange="handleTaxFileChange(event)">
+
+                                        <!-- Button triggers file input -->
+                                        <button type="button" class="btn btn-outline-primary"
+                                            onclick="document.getElementById('taxExemptionFile').click()">Upload</button>
                                     </div>
                                 </div>
+
+                                <script>
+                                    function handleTaxFileChange(event) {
+                                        const file = event.target.files[0];
+                                        if (file) {
+                                            document.getElementById('taxExemption').value = file.name;
+
+                                            // OPTIONAL: Auto-submit or send file via AJAX
+                                            // uploadTaxExemption(file);
+                                        }
+                                    }
+                                </script>
+
                             </div>
                             <div class="mb-3">
                                 <label for="businessDescription" class="form-label">Business Description</label>
-                                <textarea class="form-control" id="businessDescription" name="businessDescription" rows="4"><?php echo htmlspecialchars($settings['business']['businessDescription']); ?></textarea>
+                                <textarea class="form-control" id="businessDescription" name="businessDescription"
+                                    rows="4"><?php echo htmlspecialchars($settings['business']['businessDescription']); ?></textarea>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Business settings updated')">Save Changes</button>
+                            <button type="button" class="btn btn-primary" onclick="alert('Business settings updated')">Save
+                                Changes</button>
                         </form>
                     </div>
                 </div>
@@ -176,31 +252,37 @@ function build_tab_url($tab) {
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="accountName" class="form-label">Account Holder Name</label>
-                                    <input type="text" class="form-control" id="accountName" name="accountName" value="<?php echo htmlspecialchars($settings['payment']['accountName']); ?>">
+                                    <input type="text" class="form-control" id="accountName" name="accountName"
+                                        value="<?php echo htmlspecialchars($settings['payment']['accountName']); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="bankName" class="form-label">Bank Name</label>
-                                    <input type="text" class="form-control" id="bankName" name="bankName" value="<?php echo htmlspecialchars($settings['payment']['bankName']); ?>">
+                                    <input type="text" class="form-control" id="bankName" name="bankName"
+                                        value="<?php echo htmlspecialchars($settings['payment']['bankName']); ?>">
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="accountNumber" class="form-label">Account Number</label>
-                                    <input type="password" class="form-control" id="accountNumber" name="accountNumber" value="<?php echo htmlspecialchars($settings['payment']['accountNumber']); ?>">
+                                    <input type="password" class="form-control" id="accountNumber" name="accountNumber"
+                                        value="<?php echo htmlspecialchars($settings['payment']['accountNumber']); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="ifscCode" class="form-label">IFSC Code</label>
-                                    <input type="text" class="form-control" id="ifscCode" name="ifscCode" value="<?php echo htmlspecialchars($settings['payment']['ifscCode']); ?>">
+                                    <input type="text" class="form-control" id="ifscCode" name="ifscCode"
+                                        value="<?php echo htmlspecialchars($settings['payment']['ifscCode']); ?>">
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="accountType" class="form-label">Account Type</label>
-                                    <input type="text" class="form-control" id="accountType" name="accountType" value="<?php echo htmlspecialchars($settings['payment']['accountType']); ?>">
+                                    <input type="text" class="form-control" id="accountType" name="accountType"
+                                        value="<?php echo htmlspecialchars($settings['payment']['accountType']); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="branch" class="form-label">Branch</label>
-                                    <input type="text" class="form-control" id="branch" name="branch" value="<?php echo htmlspecialchars($settings['payment']['branch']); ?>">
+                                    <input type="text" class="form-control" id="branch" name="branch"
+                                        value="<?php echo htmlspecialchars($settings['payment']['branch']); ?>">
                                 </div>
                             </div>
                             <hr>
@@ -208,33 +290,62 @@ function build_tab_url($tab) {
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="upiId" class="form-label">UPI ID</label>
-                                    <input type="text" class="form-control" id="upiId" name="upiId" value="<?php echo htmlspecialchars($settings['payment']['upiId']); ?>">
+                                    <input type="text" class="form-control" id="upiId" name="upiId"
+                                        value="<?php echo htmlspecialchars($settings['payment']['upiId']); ?>">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="qrCode" class="form-label">QR Code</label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="qrCode" name="qrCode" value="<?php echo htmlspecialchars($settings['payment']['qrCode']); ?>" readonly>
-                                        <button type="button" class="btn btn-outline-primary" onclick="alert('Uploading QR code')">Upload</button>
+                                        <!-- Display selected file name -->
+                                        <input type="text" class="form-control" id="qrCode" name="qrCode"
+                                            value="<?php echo htmlspecialchars($settings['payment']['qrCode'] ?? ''); ?>"
+                                            readonly>
+
+                                        <!-- Hidden file input -->
+                                        <input type="file" id="qrCodeFile" accept="image/*" style="display: none;"
+                                            onchange="handleQRCodeUpload(event)">
+
+                                        <!-- Button triggers file input -->
+                                        <button type="button" class="btn btn-outline-primary"
+                                            onclick="document.getElementById('qrCodeFile').click()">Upload</button>
                                     </div>
                                 </div>
+
+                                <script>
+                                    function handleQRCodeUpload(event) {
+                                        const file = event.target.files[0];
+                                        if (file) {
+                                            document.getElementById('qrCode').value = file.name;
+
+                                            // OPTIONAL: Preview or upload via AJAX
+                                            // uploadQRCode(file);
+                                        }
+                                    }
+                                </script>
+
                             </div>
                             <hr>
                             <h6 class="mb-3">Payment Preferences</h6>
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="autoInvoice" name="autoInvoice" <?php echo $settings['payment']['autoInvoice'] ? 'checked' : ''; ?>>
+                                    <input type="checkbox" class="form-check-input" id="autoInvoice" name="autoInvoice"
+                                        <?php echo $settings['payment']['autoInvoice'] ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="autoInvoice">Auto-Generate Invoices</label>
-                                    <small class="form-text text-muted">Automatically generate invoices for new orders</small>
+                                    <small class="form-text text-muted">Automatically generate invoices for new
+                                        orders</small>
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="paymentReminders" name="paymentReminders" <?php echo $settings['payment']['paymentReminders'] ? 'checked' : ''; ?>>
+                                    <input type="checkbox" class="form-check-input" id="paymentReminders"
+                                        name="paymentReminders" <?php echo $settings['payment']['paymentReminders'] ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="paymentReminders">Payment Reminders</label>
-                                    <small class="form-text text-muted">Send automated payment reminders for outstanding invoices</small>
+                                    <small class="form-text text-muted">Send automated payment reminders for outstanding
+                                        invoices</small>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Payment settings updated')">Save Changes</button>
+                            <button type="button" class="btn btn-primary" onclick="alert('Payment settings updated')">Save
+                                Changes</button>
                         </form>
                     </div>
                 </div>
@@ -249,25 +360,30 @@ function build_tab_url($tab) {
                         <form method="POST" action="">
                             <h6 class="mb-3">Shipping Address</h6>
                             <div class="form-check mb-3">
-                                <input type="checkbox" class="form-check-input" id="sameAsBusiness" name="sameAsBusiness" <?php echo $settings['shipping']['sameAsBusiness'] ? 'checked' : ''; ?>>
+                                <input type="checkbox" class="form-check-input" id="sameAsBusiness" name="sameAsBusiness"
+                                    <?php echo $settings['shipping']['sameAsBusiness'] ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="sameAsBusiness">Same as business address</label>
                             </div>
                             <div class="mb-3">
                                 <label for="shippingAddress" class="form-label">Warehouse/Shipping Address</label>
-                                <textarea class="form-control" id="shippingAddress" name="shippingAddress" rows="3"><?php echo htmlspecialchars($settings['shipping']['shippingAddress']); ?></textarea>
+                                <textarea class="form-control" id="shippingAddress" name="shippingAddress"
+                                    rows="3"><?php echo htmlspecialchars($settings['shipping']['shippingAddress']); ?></textarea>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-4">
                                     <label for="shippingCity" class="form-label">City</label>
-                                    <input type="text" class="form-control" id="shippingCity" name="shippingCity" value="<?php echo htmlspecialchars($settings['shipping']['shippingCity']); ?>">
+                                    <input type="text" class="form-control" id="shippingCity" name="shippingCity"
+                                        value="<?php echo htmlspecialchars($settings['shipping']['shippingCity']); ?>">
                                 </div>
                                 <div class="col-md-4">
                                     <label for="shippingState" class="form-label">State</label>
-                                    <input type="text" class="form-control" id="shippingState" name="shippingState" value="<?php echo htmlspecialchars($settings['shipping']['shippingState']); ?>">
+                                    <input type="text" class="form-control" id="shippingState" name="shippingState"
+                                        value="<?php echo htmlspecialchars($settings['shipping']['shippingState']); ?>">
                                 </div>
                                 <div class="col-md-4">
                                     <label for="shippingPincode" class="form-label">PIN Code</label>
-                                    <input type="text" class="form-control" id="shippingPincode" name="shippingPincode" value="<?php echo htmlspecialchars($settings['shipping']['shippingPincode']); ?>">
+                                    <input type="text" class="form-control" id="shippingPincode" name="shippingPincode"
+                                        value="<?php echo htmlspecialchars($settings['shipping']['shippingPincode']); ?>">
                                 </div>
                             </div>
                             <hr>
@@ -275,20 +391,27 @@ function build_tab_url($tab) {
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="freeShipping" name="freeShipping" <?php echo $settings['shipping']['freeShipping'] ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="freeShipping">Offer Free Shipping</label>
-                                <small class="form-text text-muted">Provide free shipping for orders above a certain value</small>
+                                <small class="form-text text-muted">Provide free shipping for orders above a certain
+                                    value</small>
                             </div>
                             <div class="mb-3">
                                 <label for="freeShippingThreshold" class="form-label">Free Shipping Threshold (₹)</label>
-                                <input type="number" class="form-control" id="freeShippingThreshold" name="freeShippingThreshold" value="<?php echo htmlspecialchars($settings['shipping']['freeShippingThreshold']); ?>">
+                                <input type="number" class="form-control" id="freeShippingThreshold"
+                                    name="freeShippingThreshold"
+                                    value="<?php echo htmlspecialchars($settings['shipping']['freeShippingThreshold']); ?>">
                             </div>
                             <div class="form-check mb-3">
-                                <input type="checkbox" class="form-check-input" id="sameDayProcessing" name="sameDayProcessing" <?php echo $settings['shipping']['sameDayProcessing'] ? 'checked' : ''; ?>>
+                                <input type="checkbox" class="form-check-input" id="sameDayProcessing"
+                                    name="sameDayProcessing" <?php echo $settings['shipping']['sameDayProcessing'] ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="sameDayProcessing">Same-Day Processing</label>
-                                <small class="form-text text-muted">Process orders on the same day if placed before cutoff time</small>
+                                <small class="form-text text-muted">Process orders on the same day if placed before cutoff
+                                    time</small>
                             </div>
                             <div class="mb-3">
                                 <label for="processingCutoffTime" class="form-label">Processing Cutoff Time</label>
-                                <input type="time" class="form-control" id="processingCutoffTime" name="processingCutoffTime" value="<?php echo htmlspecialchars($settings['shipping']['processingCutoffTime']); ?>">
+                                <input type="time" class="form-control" id="processingCutoffTime"
+                                    name="processingCutoffTime"
+                                    value="<?php echo htmlspecialchars($settings['shipping']['processingCutoffTime']); ?>">
                             </div>
                             <hr>
                             <h6 class="mb-3">Shipping Partners</h6>
@@ -296,12 +419,14 @@ function build_tab_url($tab) {
                                 <?php $partners = ['delhivery' => 'Delhivery', 'blueDart' => 'Blue Dart', 'dtdc' => 'DTDC', 'ownDelivery' => 'Own Delivery Service']; ?>
                                 <?php foreach ($partners as $key => $label): ?>
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>" name="shippingPartners[]" value="<?php echo $key; ?>" <?php echo in_array($key, $settings['shipping']['shippingPartners']) ? 'checked' : ''; ?>>
+                                        <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>"
+                                            name="shippingPartners[]" value="<?php echo $key; ?>" <?php echo in_array($key, $settings['shipping']['shippingPartners']) ? 'checked' : ''; ?>>
                                         <label class="form-check-label" for="<?php echo $key; ?>"><?php echo $label; ?></label>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Shipping settings updated')">Save Changes</button>
+                            <button type="button" class="btn btn-primary" onclick="alert('Shipping settings updated')">Save
+                                Changes</button>
                         </form>
                     </div>
                 </div>
@@ -328,15 +453,18 @@ function build_tab_url($tab) {
                                     </div>
                                     <div class="d-flex gap-3">
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>Email" name="<?php echo $key; ?>[email]" <?php echo $settings['notifications'][$key]['email'] ? 'checked' : ''; ?>>
+                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>Email"
+                                                name="<?php echo $key; ?>[email]" <?php echo $settings['notifications'][$key]['email'] ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="<?php echo $key; ?>Email">Email</label>
                                         </div>
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>SMS" name="<?php echo $key; ?>[sms]" <?php echo $settings['notifications'][$key]['sms'] ? 'checked' : ''; ?>>
+                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>SMS"
+                                                name="<?php echo $key; ?>[sms]" <?php echo $settings['notifications'][$key]['sms'] ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="<?php echo $key; ?>SMS">SMS</label>
                                         </div>
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>App" name="<?php echo $key; ?>[app]" <?php echo $settings['notifications'][$key]['app'] ? 'checked' : ''; ?>>
+                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>App"
+                                                name="<?php echo $key; ?>[app]" <?php echo $settings['notifications'][$key]['app'] ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="<?php echo $key; ?>App">App</label>
                                         </div>
                                     </div>
@@ -356,15 +484,18 @@ function build_tab_url($tab) {
                                     </div>
                                     <div class="d-flex gap-3">
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>Email" name="<?php echo $key; ?>[email]" <?php echo $settings['notifications'][$key]['email'] ? 'checked' : ''; ?>>
+                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>Email"
+                                                name="<?php echo $key; ?>[email]" <?php echo $settings['notifications'][$key]['email'] ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="<?php echo $key; ?>Email">Email</label>
                                         </div>
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>SMS" name="<?php echo $key; ?>[sms]" <?php echo $settings['notifications'][$key]['sms'] ? 'checked' : ''; ?>>
+                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>SMS"
+                                                name="<?php echo $key; ?>[sms]" <?php echo $settings['notifications'][$key]['sms'] ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="<?php echo $key; ?>SMS">SMS</label>
                                         </div>
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>App" name="<?php echo $key; ?>[app]" <?php echo $settings['notifications'][$key]['app'] ? 'checked' : ''; ?>>
+                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>App"
+                                                name="<?php echo $key; ?>[app]" <?php echo $settings['notifications'][$key]['app'] ? 'checked' : ''; ?>>
                                             <label class="form-check-label" for="<?php echo $key; ?>App">App</label>
                                         </div>
                                     </div>
@@ -379,20 +510,24 @@ function build_tab_url($tab) {
                                 </div>
                                 <div class="d-flex gap-3">
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="lowStockEmail" name="lowStock[email]" <?php echo $settings['notifications']['lowStock']['email'] ? 'checked' : ''; ?>>
+                                        <input type="checkbox" class="form-check-input" id="lowStockEmail"
+                                            name="lowStock[email]" <?php echo $settings['notifications']['lowStock']['email'] ? 'checked' : ''; ?>>
                                         <label class="form-check-label" for="lowStockEmail">Email</label>
                                     </div>
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="lowStockSMS" name="lowStock[sms]" <?php echo $settings['notifications']['lowStock']['sms'] ? 'checked' : ''; ?>>
+                                        <input type="checkbox" class="form-check-input" id="lowStockSMS"
+                                            name="lowStock[sms]" <?php echo $settings['notifications']['lowStock']['sms'] ? 'checked' : ''; ?>>
                                         <label class="form-check-label" for="lowStockSMS">SMS</label>
                                     </div>
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="lowStockApp" name="lowStock[app]" <?php echo $settings['notifications']['lowStock']['app'] ? 'checked' : ''; ?>>
+                                        <input type="checkbox" class="form-check-input" id="lowStockApp"
+                                            name="lowStock[app]" <?php echo $settings['notifications']['lowStock']['app'] ? 'checked' : ''; ?>>
                                         <label class="form-check-label" for="lowStockApp">App</label>
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Notification settings updated')">Save Changes</button>
+                            <button type="button" class="btn btn-primary"
+                                onclick="alert('Notification settings updated')">Save Changes</button>
                         </form>
                     </div>
                 </div>
@@ -418,7 +553,8 @@ function build_tab_url($tab) {
                                 <label for="confirmPassword" class="form-label">Confirm New Password</label>
                                 <input type="password" class="form-control" id="confirmPassword" name="confirmPassword">
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Password updated')">Update Password</button>
+                            <button type="button" class="btn btn-primary" onclick="alert('Password updated')">Update
+                                Password</button>
                         </form>
                         <hr>
                         <h6 class="mb-3">Two-Factor Authentication</h6>
@@ -427,7 +563,8 @@ function build_tab_url($tab) {
                                 <p>Enhance your account security by enabling two-factor authentication</p>
                                 <p class="text-success">Status: <strong>Enabled</strong></p>
                             </div>
-                            <button type="button" class="btn btn-outline-primary" onclick="alert('Configuring 2FA')">Configure</button>
+                            <button type="button" class="btn btn-outline-primary"
+                                onclick="alert('Configuring 2FA')">Configure</button>
                         </div>
                         <hr>
                         <h6 class="mb-3">Login History</h6>
@@ -435,15 +572,23 @@ function build_tab_url($tab) {
                             <div class="border rounded p-3 mb-2 d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="d-flex align-items-center gap-2">
-                                        <i class="fas fa-shield-alt <?php echo $login['status'] === 'Active' ? 'text-success' : 'text-muted'; ?>"></i>
-                                        <p class="mb-0"><?php echo $login['status'] === 'Active' ? 'Current Session' : 'Previous Login'; ?></p>
+                                        <i
+                                            class="fas fa-shield-alt <?php echo $login['status'] === 'Active' ? 'text-success' : 'text-muted'; ?>"></i>
+                                        <p class="mb-0">
+                                            <?php echo $login['status'] === 'Active' ? 'Current Session' : 'Previous Login'; ?>
+                                        </p>
                                     </div>
-                                    <p class="text-muted small"><?php echo htmlspecialchars($login['location']); ?> - <?php echo htmlspecialchars($login['device']); ?> • <?php echo htmlspecialchars($login['time']); ?></p>
+                                    <p class="text-muted small"><?php echo htmlspecialchars($login['location']); ?> -
+                                        <?php echo htmlspecialchars($login['device']); ?> •
+                                        <?php echo htmlspecialchars($login['time']); ?>
+                                    </p>
                                 </div>
-                                <span class="badge <?php echo $login['status'] === 'Active' ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $login['status']; ?></span>
+                                <span
+                                    class="badge <?php echo $login['status'] === 'Active' ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $login['status']; ?></span>
                             </div>
                         <?php endforeach; ?>
-                        <button type="button" class="btn btn-outline-primary mt-2" onclick="alert('Viewing all login activity')">View All Login Activity</button>
+                        <button type="button" class="btn btn-outline-primary mt-2"
+                            onclick="alert('Viewing all login activity')">View All Login Activity</button>
                         <hr>
                         <h6 class="mb-3">Account Access</h6>
                         <div class="d-flex justify-content-between align-items-center">
@@ -451,7 +596,8 @@ function build_tab_url($tab) {
                                 <h6>Authorized Users</h6>
                                 <p class="text-muted">Manage who can access your vendor account</p>
                             </div>
-                            <button type="button" class="btn btn-outline-primary" onclick="alert('Managing users')"><i class="fas fa-users"></i> Manage Users</button>
+                            <button type="button" class="btn btn-outline-primary" onclick="alert('Managing users')"><i
+                                    class="fas fa-users"></i> Manage Users</button>
                         </div>
                     </div>
                 </div>
@@ -467,18 +613,24 @@ function build_tab_url($tab) {
                         <?php foreach (array_slice($settings['documents'], 0, 4) as $doc): ?>
                             <div class="d-flex justify-content-between align-items-center border-bottom py-3">
                                 <div class="d-flex align-items-center gap-3">
-                                    <i class="fas fa-file-alt <?php echo $doc['status'] === 'Uploaded' ? 'text-primary' : 'text-muted'; ?>"></i>
+                                    <i
+                                        class="fas fa-file-alt <?php echo $doc['status'] === 'Uploaded' ? 'text-primary' : 'text-muted'; ?>"></i>
                                     <div>
                                         <p class="mb-0"><?php echo htmlspecialchars($doc['name']); ?></p>
-                                        <p class="text-muted small"><?php echo $doc['status'] === 'Uploaded' ? 'Uploaded on: ' . htmlspecialchars($doc['uploaded']) : 'Not uploaded'; ?></p>
+                                        <p class="text-muted small">
+                                            <?php echo $doc['status'] === 'Uploaded' ? 'Uploaded on: ' . htmlspecialchars($doc['uploaded']) : 'Not uploaded'; ?>
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <?php if ($doc['status'] === 'Uploaded'): ?>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="alert('Viewing <?php echo htmlspecialchars($doc['name']); ?>')">View</button>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="alert('Updating <?php echo htmlspecialchars($doc['name']); ?>')">Update</button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm"
+                                            onclick="viewDocument('<?php echo htmlspecialchars($doc['name']); ?>')">View</button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm"
+                                            onclick="updateDocument('<?php echo htmlspecialchars($doc['name']); ?>')">Update</button>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="alert('Uploading <?php echo htmlspecialchars($doc['name']); ?>')">Upload</button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm"
+                                            onclick="uploadDocument('<?php echo htmlspecialchars($doc['name']); ?>')">Upload</button>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -491,17 +643,82 @@ function build_tab_url($tab) {
                                     <i class="fas fa-file-alt text-primary"></i>
                                     <div>
                                         <p class="mb-0"><?php echo htmlspecialchars($doc['name']); ?></p>
-                                        <p class="text-muted small">Uploaded on: <?php echo htmlspecialchars($doc['uploaded']); ?></p>
+                                        <p class="text-muted small">Uploaded on:
+                                            <?php echo htmlspecialchars($doc['uploaded']); ?>
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="alert('Viewing <?php echo htmlspecialchars($doc['name']); ?>')">View</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="alert('Updating <?php echo htmlspecialchars($doc['name']); ?>')">Update</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm"
+                                        onclick="viewDocument('<?php echo htmlspecialchars($doc['name']); ?>')">View</button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm"
+                                        onclick="updateDocument('<?php echo htmlspecialchars($doc['name']); ?>')">Update</button>
                                 </div>
                             </div>
                         <?php endforeach; ?>
-                        <button type="button" class="btn btn-primary mt-3" onclick="alert('Uploading new document')"><i class="fas fa-file-alt"></i> Upload New Document</button>
+                        <button type="button" class="btn btn-primary mt-3" onclick="uploadNewDocument()"><i
+                                class="fas fa-file-alt"></i> Upload New Document</button>
                     </div>
+
+                    <!-- Hidden File Input -->
+                    <input type="file" id="docFileInput" style="display:none" onchange="handleFileUpload()" />
+
+                    <script>
+                        let currentDocName = null;
+
+                        function viewDocument(docName) {
+                            // Assuming files stored in 'uploads/' with sanitized names + extension .pdf
+                            const url = `uploads/${encodeURIComponent(docName)}.pdf`;
+                            window.open(url, '_blank');
+                        }
+
+                        function uploadDocument(docName) {
+                            currentDocName = docName;
+                            document.getElementById('docFileInput').click();
+                        }
+
+                        function updateDocument(docName) {
+                            // Reuse uploadDocument for updating
+                            uploadDocument(docName);
+                        }
+
+                        function uploadNewDocument() {
+                            currentDocName = null; // New upload
+                            document.getElementById('docFileInput').click();
+                        }
+
+                        function handleFileUpload() {
+                            const fileInput = document.getElementById('docFileInput');
+                            const file = fileInput.files[0];
+                            if (!file) return;
+
+                            const formData = new FormData();
+                            formData.append('document', file);
+
+                            if (currentDocName) {
+                                formData.append('docName', currentDocName);
+                            } else {
+                                // For new document, you might want to ask for a name or generate
+                                formData.append('docName', file.name.replace(/\.[^/.]+$/, ""));
+                            }
+
+                            fetch('upload_document.php', {
+                                method: 'POST',
+                                body: formData
+                            })
+                                .then(response => response.text())
+                                .then(data => {
+                                    alert('Upload successful!');
+                                    location.reload();  // Refresh to update UI with new document info
+                                })
+                                .catch(error => {
+                                    alert('Upload failed.');
+                                    console.error(error);
+                                });
+                        }
+                    </script>
+
+
                 </div>
 
             <?php endif; ?>
