@@ -164,7 +164,8 @@ require_once 'database.php';
                                         <button class="btn btn-outline-primary btn-sm"><i
                                                 class="fas fa-exclamation-circle text-danger me-1"></i> Overdue</button>
                                     </div>
-                                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Create
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                        data-bs-target="#generateInvoiceModal"><i class="fas fa-plus me-1"></i> Create
                                         Invoice</button>
                                     <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
                                         data-bs-target="#generateInvoiceModal" onclick="exportTableToCSV()">
