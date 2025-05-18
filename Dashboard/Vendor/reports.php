@@ -13,7 +13,7 @@
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <button class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown"
+                <button class="btn btn-outline-primary btn-sm"
                     onclick="exportTableToCSV()">
                     <i class="fas fa-download me-1"></i> Export
                 </button>

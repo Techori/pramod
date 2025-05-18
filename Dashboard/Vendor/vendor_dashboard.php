@@ -167,8 +167,7 @@ require_once 'database.php';
                                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                         data-bs-target="#generateInvoiceModal"><i class="fas fa-plus me-1"></i> Create
                                         Invoice</button>
-                                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                                        data-bs-target="#generateInvoiceModal" onclick="exportTableToCSV()">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()">
                                         <i class="fas fa-plus"></i> Generate Invoice
                                     </button>
                                 </div>
