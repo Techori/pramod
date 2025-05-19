@@ -1,388 +1,294 @@
 <?php
 
-// Include mock database
-require_once 'database.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
 
-// Get payments from database
-$payments = get_payments();
+$user_name = $_SESSION['user_name'];
 
-// Handle actions
-$success_message = '';
-$error_message = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-        if ($action === 'new_payment') {
-            $success_message = 'Initiating a new payment process';
-        } elseif ($action === 'download_transaction' && isset($_POST['transaction_id'])) {
-            $transaction_id = trim($_POST['transaction_id']);
-            $success_message = "Downloading transaction $transaction_id";
-        } elseif ($action === 'view_transaction' && isset($_POST['transaction_id'])) {
-            $transaction_id = trim($_POST['transaction_id']);
-            $success_message = "Viewing transaction $transaction_id";
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    // Get data from the form
+    $invoice_id = $_POST['invoice_id'] ?? '';
+    $status = $_POST['status'] ?? '';
+
+    // Basic validation
+    if (!empty($invoice_id) && !empty($status)) {
+        // Prepare and execute the update query
+        $stmt = $conn->prepare("UPDATE invoice SET status = ? WHERE invoice_id = ?");
+        $stmt->bind_param("ss", $status, $invoice_id);
+
+        if ($stmt->execute()) {
+            exit();
+        } else {
+            echo "Error updating status: " . $conn->error;
         }
+
+        $stmt->close();
+    } else {
+        echo "Invalid input.";
     }
 }
 
-// Filter and search parameters
-$active_tab = isset($_GET['tab']) && in_array($_GET['tab'], ['overview', 'transactions', 'reports', 'settings']) ? $_GET['tab'] : 'overview';
-$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
-$status_filter = isset($_GET['status']) && in_array($_GET['status'], ['All', 'Completed', 'Pending', 'Failed']) ? $_GET['status'] : 'All';
-$date_range_filter = isset($_GET['date_range']) && in_array($_GET['date_range'], ['All Time', 'Last 30 Days', 'Last 3 Months', 'This Year']) ? $_GET['date_range'] : 'All Time';
 
-// Filter payments
-$filtered_payments = array_filter($payments, function ($payment) use ($search_query, $status_filter, $date_range_filter) {
-    $matches_search = empty($search_query) || stripos($payment['id'], $search_query) !== false;
-    $matches_status = $status_filter === 'All' || $payment['status'] === $status_filter;
-
-    if ($date_range_filter === 'Last 30 Days') {
-        $thirty_days_ago = (new DateTime())->modify('-30 days');
-        return $matches_search && $matches_status && new DateTime($payment['date']) >= $thirty_days_ago;
-    } elseif ($date_range_filter === 'Last 3 Months') {
-        $three_months_ago = (new DateTime())->modify('-3 months');
-        return $matches_search && $matches_status && new DateTime($payment['date']) >= $three_months_ago;
-    } elseif ($date_range_filter === 'This Year') {
-        $start_of_year = new DateTime(date('Y-01-01'));
-        return $matches_search && $matches_status && new DateTime($payment['date']) >= $start_of_year;
-    }
-
-    return $matches_search && $matches_status;
-});
-
-// Statuses and date ranges for filter
-$statuses = ['All', 'Completed', 'Pending', 'Failed'];
-$date_ranges = ['All Time', 'Last 30 Days', 'Last 3 Months', 'This Year'];
 ?>
 
 <h4><i class="fas fa-credit-card text-primary"></i> Payments</h4>
 <p>Track payments and manage financial transactions.</p>
 
-<?php if ($success_message): ?>
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-    <?php echo htmlspecialchars($success_message); ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-<?php endif; ?>
+<?php
 
-<?php if ($error_message): ?>
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <?php echo htmlspecialchars($error_message); ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-<?php endif; ?>
+// Fetch total Revenue
+$gst_sql = "SELECT SUM(grand_total) AS total_gst FROM invoice WHERE created_for = '$user_name'";
+$gst_result = $conn->query($gst_sql);
+$gst_count = $gst_result->fetch_assoc()['total_gst'] ?? 0;
 
-<!-- Header with New Payment Button -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <form method="POST" action="?page=payments&tab=<?php echo urlencode($active_tab); ?>">
-        <input type="hidden" name="action" value="new_payment">
-        <button type="submit" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus me-1"></i> New Payment
-        </button>
-    </form>
-</div>
+// Fetch total Pending Payments
+$outstanding_sql = "SELECT SUM(grand_total) AS total_outstanding FROM invoice WHERE status = 'Pending' AND created_for = '$user_name'";
+$outstanding_result = $conn->query($outstanding_sql);
+$outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ?? 0;
 
-<!-- Tabs -->
-<ul class="nav nav-tabs mb-4">
-    <li class="nav-item">
-        <a class="nav-link <?php echo $active_tab === 'overview' ? 'active' : ''; ?>" href="?page=payments&tab=overview">Overview</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link <?php echo $active_tab === 'transactions' ? 'active' : ''; ?>" href="?page=payments&tab=transactions">Transactions</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link <?php echo $active_tab === 'reports' ? 'active' : ''; ?>" href="?page=payments&tab=reports">Reports</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link <?php echo $active_tab === 'settings' ? 'active' : ''; ?>" href="?page=payments&tab=settings">Settings</a>
-    </li>
-</ul>
+?>
 
-<!-- Overview Tab -->
-<?php if ($active_tab === 'overview'): ?>
-    <div class="mb-4">
-        <div class="row mb-4">
-            <div class="col-md-4 mb-3">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Total Revenue</h5>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="h3 font-weight-bold">₹5,40,000</p>
-                                <p class="text-muted">Total amount received</p>
-                            </div>
-                            <div class="p-3 bg-success bg-opacity-10 rounded-circle">
-                                <i class="fas fa-rupee-sign text-success"></i>
-                            </div>
+<div class="mb-4">
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="h3 font-weight-bold">₹<?= number_format($gst_count, 2) ?></p>
+                            <p class="text-muted">Total amount received</p>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Pending Payments</h5>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="h3 font-weight-bold">₹18,750</p>
-                                <p class="text-muted">Total amount pending</p>
-                            </div>
-                            <div class="p-3 bg-warning bg-opacity-10 rounded-circle">
-                                <i class="fas fa-clock text-warning"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Payment Methods</h5>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <p class="h3 font-weight-bold">4</p>
-                                <p class="text-muted">Payment methods used</p>
-                            </div>
-                            <div class="p-3 bg-primary bg-opacity-10 rounded-circle">
-                                <i class="fas fa-credit-card text-primary"></i>
-                            </div>
+                        <div class="p-3 bg-success bg-opacity-10 rounded-circle">
+                            <i class="fas fa-rupee-sign text-success"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">Recent Transactions</h5>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Transaction ID</th>
-                                <th>Date</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                                $recent_payments = array_slice($payments, 0, 5);
-                                foreach ($recent_payments as $payment):
-                            ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($payment['id']); ?></td>
-                                <td>
-                                    <?php
-                                        $date = new DateTime($payment['date']);
-                                        echo $date->format('M j, Y');
-                                    ?>
-                                </td>
-                                <td>₹<?php echo number_format($payment['amount'], 0); ?></td>
-                                <td>
-                                    <span class="badge <?php
-                                        echo $payment['status'] === 'Completed' ? 'bg-success' :
-                                            ($payment['status'] === 'Pending' ? 'bg-warning' : 'bg-danger');
-                                    ?> text-white">
-                                        <i class="fas <?php
-                                            echo $payment['status'] === 'Completed' ? 'fa-check-circle' :
-                                                ($payment['status'] === 'Pending' ? 'fa-clock' : 'fa-times-circle');
-                                        ?> me-1"></i>
-                                        <?php echo htmlspecialchars($payment['status']); ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Payments</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="h3 font-weight-bold">₹<?= number_format($outstanding_amount, 2) ?></p>
+                            <p class="text-muted">Total amount pending</p>
+                        </div>
+                        <div class="p-3 bg-warning bg-opacity-10 rounded-circle">
+                            <i class="fas fa-clock text-warning"></i>
+                        </div>
+                    </div>
                 </div>
-                <div class="text-end">
-                    <a href="?page=payments&tab=transactions" class="btn btn-outline-primary btn-sm">
-                        View All Transactions <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Payment Methods</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="h3 font-weight-bold">4</p>
+                            <p class="text-muted">Payment methods used</p>
+                        </div>
+                        <div class="p-3 bg-primary bg-opacity-10 rounded-circle">
+                            <i class="fas fa-credit-card text-primary"></i>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-<?php endif; ?>
 
-<!-- Transactions Tab -->
-<?php if ($active_tab === 'transactions'): ?>
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">Payment Transactions</h5>
-            <p class="text-muted">Manage and view all payment transactions.</p>
-
-            <!-- Filters and Search -->
-            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-end mb-4">
-                <!-- Search -->
+            <h5 class="card-title">Recent Transactions</h5>
+            <!-- Search and Filters -->
+            <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
                 <div class="flex-grow-1">
-                    <label class="form-label text-muted">Search Transactions</label>
-                    <form method="GET" action="?page=payments" class="d-flex align-items-center gap-2">
-                        <input type="hidden" name="page" value="payments" >
-                        <input type="hidden" name="tab" value="transactions">
+                        <input type="hidden" name="page" value="billing">
                         <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                            <input
-                                id="transactionSearch"
-                                type="text"
-                                name="search"
-                                class="form-control border-start-0"
-                                placeholder="Search transactions by ID..."
-                                value="<?php echo htmlspecialchars($search_query); ?>">
+                            <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                                    class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0 table-search"
+                                data-table="paymentsTable" placeholder="Search..." />
                         </div>
-                    </form>
                 </div>
-                <!-- Filters -->
-                <div class="d-flex flex-column gap-3">
-                    <!-- Status Filter -->
+                <div class="d-flex gap-2">
                     <div>
-                        <label class="form-label text-muted">Status</label>
-                        <div class="d-flex flex-wrap gap-2">
-                            <?php foreach ($statuses as $status): ?>
-                            <a href="?page=payments&tab=transactions&status=<?php echo urlencode($status); ?>&date_range=<?php echo urlencode($date_range_filter); ?>&search=<?php echo urlencode($search_query); ?>">
-                                <span class="badge <?php echo $status_filter === $status ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                    <?php echo htmlspecialchars($status); ?>
-                                </span>
-                            </a>
-                            <?php endforeach; ?>
-                        </div>
+                        <button class="btn btn-outline-primary gst-filter me-2" data-type="Completed"
+                            data-table="paymentsTable">Completed</button>
                     </div>
-                    <!-- Date Range Filter -->
                     <div>
-                        <label class="form-label text-muted">Date Range</label>
-                        <div class="d-flex flex-wrap gap-2">
-                            <?php foreach ($date_ranges as $range): ?>
-                            <a href="?page=payments&tab=transactions&status=<?php echo urlencode($status_filter); ?>&date_range=<?php echo urlencode($range); ?>&search=<?php echo urlencode($search_query); ?>">
-                                <span class="badge <?php echo $date_range_filter === $range ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                    <?php echo htmlspecialchars($range); ?>
-                                </span>
-                            </a>
-                            <?php endforeach; ?>
-                        </div>
+                        <button class="btn btn-outline-primary gst-filter me-2" data-type="Pending"
+                            data-table="paymentsTable">Pending</button>
                     </div>
-                </div>
-                <!-- Clear Filters -->
-                <div>
-                    <a href="?page=payments&tab=transactions" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-filter me-1"></i> Clear Filters
-                    </a>
+                    <div>
+                        <button class="btn btn-outline-primary gst-filter me-2" data-type="Refund"
+                            data-table="paymentsTable">Refund</button>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-danger reset-filters me-2" data-table="paymentsTable">Remove
+                            Filters</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Transactions Table -->
+            <script>
+
+
+                document.addEventListener("DOMContentLoaded", () => {
+
+                    // 🔍 Live Search Function
+                    document.querySelectorAll(".table-search").forEach(input => {
+                        input.addEventListener("input", () => {
+                            const tableId = input.dataset.table;
+                            const value = input.value.toLowerCase();
+                            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                            rows.forEach(row => {
+                                const text = row.textContent.toLowerCase();
+                                row.style.display = text.includes(value) ? "" : "none";
+                            });
+                        });
+                    });
+
+                    // 🧾 GST Filter Buttons
+                    document.querySelectorAll(".gst-filter").forEach(button => {
+                        button.addEventListener("click", () => {
+                            const type = button.dataset.type.toLowerCase();
+                            const tableId = button.dataset.table;
+                            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                            rows.forEach(row => {
+                                const docType = row.children[6]?.innerText.trim().toLowerCase();
+                                row.style.display = docType === type ? "" : "none";
+                            });
+                        });
+                    });
+
+                    // ❌ Remove Filters Button
+                    document.querySelectorAll(".reset-filters").forEach(button => {
+                        button.addEventListener("click", () => {
+                            const tableId = button.dataset.table;
+                            const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                            rows.forEach(row => {
+                                row.style.display = "";
+                            });
+
+                            // Also clear search inputs for that table
+                            document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
+                                input.value = "";
+                            });
+                        });
+                    });
+
+                    // ✅ Filter Helper Function
+                    function filterTable(tableId, conditionFn) {
+                        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                        rows.forEach(row => {
+                            row.style.display = conditionFn(row) ? "" : "none";
+                        });
+                    }
+                });
+            </script>
             <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="transactionsTable">
+                <table class="table table-bordered table-hover" id="paymentsTable">
                     <thead>
                         <tr>
-                            <th>Transaction ID</th>
+                            <th>Payment ID</th>
+                            <th>Invoice ID</th>
+                            <th>Customer</th>
                             <th>Date</th>
                             <th>Amount</th>
                             <th>Method</th>
                             <th>Status</th>
-                            <th class="text-end">Actions</th>
+                            <th>Actions</th>
+
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($filtered_payments)): ?>
-                            <tr>
-                                <td colspan="6" class="text-center py-4">
-                                    <i class="fas fa-file-alt fa-2x text-muted"></i>
-                                    <p class="mt-2 text-muted">No transactions found matching your criteria.</p>
-                                    <a href="?page=payments&tab=transactions" class="btn btn-outline-primary btn-sm">Clear Filters</a>
-                                </td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($filtered_payments as $payment): ?>
-                            <tr>
-                                <td><a href="#" class="text-primary"><?php echo htmlspecialchars($payment['id']); ?></a></td>
-                                <td>
-                                    <?php
-                                        $date = new DateTime($payment['date']);
-                                        echo $date->format('M j, Y');
-                                    ?>
-                                </td>
-                                <td>₹<?php echo number_format($payment['amount'], 0); ?></td>
-                                <td><?php echo htmlspecialchars($payment['method']); ?></td>
-                                <td>
-                                    <span class="badge <?php
-                                        echo $payment['status'] === 'Completed' ? 'bg-success' :
-                                            ($payment['status'] === 'Pending' ? 'bg-warning' : 'bg-danger');
-                                    ?> text-white">
-                                        <i class="fas <?php
-                                            echo $payment['status'] === 'Completed' ? 'fa-check-circle' :
-                                                ($payment['status'] === 'Pending' ? 'fa-clock' : 'fa-times-circle');
-                                        ?> me-1"></i>
-                                        <?php echo htmlspecialchars($payment['status']); ?>
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <form method="POST" action="?page=payments&tab=transactions" class="d-inline">
-                                            <input type="hidden" name="action" value="view_transaction">
-                                            <input type="hidden" name="transaction_id" value="<?php echo htmlspecialchars($payment['id']); ?>">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="?page=payments&tab=transactions" class="d-inline">
-                                            <input type="hidden" name="action" value="download_transaction">
-                                            <input type="hidden" name="transaction_id" value="<?php echo htmlspecialchars($payment['id']); ?>">
-                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                        <script>
-                            // Search Functionality
-                            document.getElementById('transactionSearch').addEventListener('input', function () {
-                                const searchText = this.value.toLowerCase();
-                                const rows = document.querySelectorAll('#transactionsTable tbody tr');
+                        <?php
 
-                                rows.forEach(row => {
-                                    const cells = row.getElementsByTagName('td');
-                                    let match = false;
-                                    for (let i = 0; i < cells.length; i++) {
-                                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                                            match = true;
-                                            break;
-                                        }
-                                    }
-                                    row.style.display = match ? '' : 'none';
-                                });
-                            });
-                        </script>
+                        // Fetch transactions from the database
+                        $result = $conn->query("SELECT * FROM invoice WHERE created_for = '$user_name' ORDER BY invoice_id DESC");
+
+                        if ($result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
+                                $status = htmlspecialchars($row['status']);
+                                $id = $row['invoice_id'];
+
+                                echo "<tr>";
+                                echo "<td>" . htmlspecialchars($row['payment_id']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                                echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                                echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                                echo "<td>" . $status . "</td>";
+
+                                echo "<td>";
+                                if ($status === 'Pending') {
+                                    echo '<button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
+                            <i class="fa-regular fa-pen-to-square"></i>
+                          </button>';
+                                } else {
+                                    echo '<button class="btn btn-outline-secondary btn-sm" disabled>
+                            <i class="fa-regular fa-pen-to-square"></i>
+                          </button>';
+                                }
+                                echo "</td>";
+                                echo "</tr>";
+
+                                // Modal only for pending rows
+                                if ($status === 'Pending') {
+                                    ?>
+                                    <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
+                                        aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <form method="POST" action="vendor_dashboard.php?page=payments&tab=overview">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                            aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <input type="hidden" name="invoice_id" value="<?= $id ?>">
+                                                        <select name="status" class="form-select" required>
+                                                            <option value="">Select Status</option>
+                                                            <option value="Completed">Completed</option>
+                                                            <option value="Refund">Refund</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="submit" class="btn btn-primary">Update</button>
+                                                        <button type="button" class="btn btn-secondary"
+                                                            data-bs-dismiss="modal">Cancel</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <?php
+                                }
+                            }
+                        } else {
+                            echo "<tr><td colspan='8' class='text-center'>No transactions found</td></tr>";
+                        }
+                        ?>
+                    </tbody>
                 </table>
             </div>
+            <!-- <div class="text-end">
+                    <a href="?page=payments&tab=transactions" class="btn btn-outline-primary btn-sm">
+                        View All Transactions <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div> -->
         </div>
     </div>
-<?php endif; ?>
-
-<!-- Reports Tab -->
-<?php if ($active_tab === 'reports'): ?>
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">Payment Reports</h5>
-            <p class="text-muted">Generate and view payment reports.</p>
-            <p>Coming Soon...</p>
-        </div>
-    </div>
-<?php endif; ?>
-
-<!-- Settings Tab -->
-<?php if ($active_tab === 'settings'): ?>
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">Payment Settings</h5>
-            <p class="text-muted">Configure payment settings.</p>
-            <p>Coming Soon...</p>
-        </div>
-    </div>
-<?php endif; ?>
+</div>
 
 <!-- Payment Process -->
 <div class="card shadow-sm">
@@ -430,22 +336,26 @@ $date_ranges = ['All Time', 'Last 30 Days', 'Last 3 Months', 'This Year'];
 </div>
 
 <style>
-.bg-purple {
-    background-color: #6f42c1;
-}
-.text-purple {
-    color: #6f42c1;
-}
-.btn-outline-purple {
-    border-color: #6f42c1;
-    color: #6f42c1;
-}
-.btn-outline-purple:hover {
-    background-color: #6f42c1;
-    color: #fff;
-}
-.badge {
-    font-size: 0.85rem;
-    padding: 4px 8px;
-}
+    .bg-purple {
+        background-color: #6f42c1;
+    }
+
+    .text-purple {
+        color: #6f42c1;
+    }
+
+    .btn-outline-purple {
+        border-color: #6f42c1;
+        color: #6f42c1;
+    }
+
+    .btn-outline-purple:hover {
+        background-color: #6f42c1;
+        color: #fff;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
 </style>

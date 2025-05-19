@@ -7,9 +7,8 @@ include '../../_conn.php';
 
 $user_name = $_SESSION['user_name'];
 
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    if ($_POST['whatAction'] === 'update') {
         // Get data from the form
         $invoice_id = $_POST['invoice_id'] ?? '';
         $status = $_POST['status'] ?? '';
@@ -32,7 +31,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         } else {
             echo "Invalid input.";
         }
-    }
 }
 
 
@@ -298,30 +296,15 @@ function get_status_badge($status)
             <div class="flex-grow-1">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0 table-search" data-table="transaction"
-                        placeholder="Search payments by ID, customer, or amount...">
+                    <input type="text" name="search" class="form-control border-start-0 table-search"
+                        data-table="transaction" placeholder="Search payments by ID, customer, or amount...">
                 </div>
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <form method="GET" action="?page=payments" class="d-inline">
-                    <input type="hidden" name="page" value="payments">
-                    <input type="hidden" name="tab" value="transactions">
-                    <select name="method" class="form-select form-select-sm" style="width: 180px;"
-                        onchange="this.form.submit()">
-                        <option value="all" <?php echo $filter_method === 'all' ? 'selected' : ''; ?>>All Methods</option>
-                        <?php foreach ($payment_methods as $method): ?>
-                            <option value="<?php echo strtolower(htmlspecialchars($method['value'])); ?>" <?php echo strtolower($filter_method) === strtolower($method['value']) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($method['label']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </form>
-                <form method="POST" action="?page=payments" class="d-inline">
-                    <input type="hidden" name="action" value="generate_payment_report">
-                    <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()">
-                        <i class="fas fa-file-alt me-1"></i> Export
-                    </button>
-                </form>
+                <input type="hidden" name="action" value="generate_payment_report">
+                <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()">
+                    <i class="fas fa-file-alt me-1"></i> Export
+                </button>
             </div>
         </div>
 
@@ -413,16 +396,17 @@ function get_status_badge($status)
                             } else {
                                 echo "<tr><td colspan='8' class='text-center'>No transactions found</td></tr>";
                             }
-                            ?></tbody>
+                            ?>
+                        </tbody>
                     </table>
                     <script>
-                     // Export table data to CSV
+                        // Export table data to CSV
                         function exportTableToCSV(filename = 'table-data.csv') {
                             const rows = document.querySelectorAll("#transaction tr");
                             let csv = [];
 
                             rows.forEach(row => {
-                              let cols = Array.from(row.querySelectorAll("th, td"))
+                                let cols = Array.from(row.querySelectorAll("th, td"))
                                     .map(col => `"${col.innerText.trim()}"`);
                                 csv.push(cols.join(","));
                             });

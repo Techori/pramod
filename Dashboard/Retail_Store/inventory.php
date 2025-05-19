@@ -8,22 +8,17 @@ $user_name = $_SESSION['user_name'];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
-    // Clean input data function
-    function clean($input)
-    {
-        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-    }
 
     // Transaction action
     if ($_POST['whatAction'] === 'addItem') {
         // Collect data for transaction
-        $itemName = clean($_POST['itemName']);
-        $category = clean($_POST['category']);
-        $price = clean($_POST['price']);
-        $unit = clean($_POST['unit']);
-        $stock = clean($_POST['stock']);
-        $reorderPoint = clean($_POST['reorderPoint']);
-        $status = clean($_POST['Status']);
+        $itemName = $_POST['itemName'];
+        $category = $_POST['category'];
+        $price = $_POST['price'];
+        $unit = $_POST['unit'];
+        $stock = $_POST['stock'];
+        $reorderPoint = $_POST['reorderPoint'];
+        $status = $_POST['Status'];
 
         $today = date("Y-m-d");
 
@@ -77,8 +72,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
 
     } else if ($_POST['whatAction'] === 'editPrice') {
-        $itemId = clean($_POST['itemId']);
-        $newPrice = clean($_POST['newPrice']);
+        $itemId = $_POST['itemId'];
+        $newPrice = $_POST['newPrice'];
 
         $stmt = $conn->prepare("UPDATE retail_invetory SET price = ?, last_updated = NOW() WHERE Id = ? AND inventory_of = ?");
         $stmt->bind_param("dss", $newPrice, $itemId, $user_name);
@@ -88,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         @header("Location: store_dashboard.php?page=inventory");
 
     } else if ($_POST['whatAction'] === 'deleteItem') {
-        $itemId = clean($_POST['itemId']);
+        $itemId = $_POST['itemId'];
 
         $stmt = $conn->prepare("DELETE FROM retail_invetory WHERE Id = ? AND inventory_of = ?");
         $stmt->bind_param("ss", $itemId, $user_name);
@@ -99,12 +94,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
     } else if ($_POST['whatAction'] === 'requestStock') {
         // Collect data for transaction
-        $itemName = clean($_POST['item_Name']);
-        $category = clean($_POST['Category']);
-        $requestTo = clean($_POST['request_to']);
-        $shopName = clean($_POST['shopName']);
-        $quantity = clean($_POST['quantity']);
-        $location = clean($_POST['location']);
+        $itemName = $_POST['item_Name'];
+        $category = $_POST['Category'];
+        $requestTo = $_POST['request_to'];
+        $shopName = $_POST['shopName'];
+        $quantity = $_POST['quantity'];
+        $location = $_POST['location'];
         $status = "Ordered";
 
         $today = date("Y-m-d");

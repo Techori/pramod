@@ -59,7 +59,7 @@ if (session_status() === PHP_SESSION_NONE) {
         <div class="d-flex align-items-center">
             <button class="hamburger me-3" id="hamburger"><i class="fas fa-bars"></i></button>
             <h5 class="mb-0 fw-bold">Hey!
-                <?php echo isset($_SESSION['user']) ? htmlspecialchars($_SESSION['user']) : 'Store Manager'; ?></h5>
+                <?php echo isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : 'Store Manager'; ?></h5>
         </div>
         <form class="d-flex" role="search" method="GET" action="search.php">
             <div class="input-group">

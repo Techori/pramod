@@ -1,151 +1,281 @@
 <?php
 
-// Include mock database
-require_once 'database.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
 
-// Get invoices and factories from database
-$invoices = get_invoices();
-$factories = get_factories();
+$user_name = $_SESSION['user_name'];
 
-// Handle actions
-$success_message = '';
-$error_message = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        $action = $_POST['action'];
-        if ($action === 'generate_invoice') {
-            // Form submission for new invoice
-            $invoice_data = [
-                'customer' => isset($_POST['customer']) ? trim($_POST['customer']) : '',
-                'amount' => isset($_POST['amount']) ? trim($_POST['amount']) : '',
-                'type' => isset($_POST['type']) ? trim($_POST['type']) : '',
-                'gstNumber' => isset($_POST['gstNumber']) ? trim($_POST['gstNumber']) : '',
-                'date' => isset($_POST['date']) ? trim($_POST['date']) : '',
-                'dueDate' => isset($_POST['dueDate']) ? trim($_POST['dueDate']) : ''
-            ];
-            $result = save_invoice($invoice_data);
-            if ($result['success']) {
-                $success_message = $result['message'];
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    $whatAction = $data['whatAction'] ?? '';
+    // echo "<script>console.log('What action: ". $whatAction ."') </script>";
+
+    if ($whatAction === 'createInvoice') {
+        $table = $data['table'];
+
+        $docType = $data['document_type'];
+        $prefix = ($docType === 'with GST') ? 'INV' : 'INVWO';
+
+        $currentYear = date("Y");
+
+        // Fetch latest invoice ID for the current document type and current or previous year
+        $query = "SELECT invoice_id FROM $table WHERE invoice_id LIKE '$prefix-%' AND created_for = '$user_name' ORDER BY invoice_id DESC LIMIT 1 FOR UPDATE";
+        $result = $conn->query($query);
+
+        if ($row = $result->fetch_assoc()) {
+            $parts = explode('-', $row['invoice_id']);
+            $yearInId = $parts[1];
+            if ($yearInId === $currentYear) {
+                $lastNumber = intval($parts[2]) + 1;
             } else {
-                $error_message = $result['message'];
+                $lastNumber = 1; // New year, start from 1
             }
-        } elseif ($action === 'download_invoice' && isset($_POST['invoice_id'])) {
-            $invoice_id = trim($_POST['invoice_id']);
-            $success_message = "Downloading invoice $invoice_id";
-        } elseif ($action === 'view_invoice' && isset($_POST['invoice_id'])) {
-            $invoice_id = trim($_POST['invoice_id']);
-            $success_message = "Viewing invoice $invoice_id";
-        } elseif ($action === 'download_all') {
-            $success_message = 'Downloading all invoices';
-        } elseif ($action === 'gst_reports') {
-            $success_message = 'Generating GST reports';
-        } elseif ($action === 'filter_templates') {
-            $success_message = 'Applying filter templates';
+        } else {
+            $lastNumber = 1;
         }
+
+        $newInvoiceId = $prefix . '-' . $currentYear . '-' . str_pad($lastNumber, 3, '0', STR_PAD_LEFT);
+
+        // Prepare item arrays
+        $itemNames = explode(',', $data['item_names']);
+        $quantities = explode(',', $data['quantities']);
+
+        // Validate stock before inserting invoice
+        for ($i = 0; $i < count($itemNames); $i++) {
+            $item = trim($itemNames[$i]);
+            $qty = (int) trim($quantities[$i]);
+
+            $stockResult = $conn->query("SELECT stock FROM retail_invetory WHERE item_name = '$item' LIMIT 1");
+
+            if ($stockResult && $stockRow = $stockResult->fetch_assoc()) {
+                $currentStock = (int) $stockRow['stock'];
+                if ($currentStock - $qty < 0) {
+                    echo "<script>alert('Error: Not enough stock for item \"$item\". Available: $currentStock, Requested: $qty');</script>";
+                    exit;
+                }
+            } else {
+                echo "<script>alert('Error: Item \"$item\" not found in inventory.');</script>";
+                exit;
+            }
+        }
+
+
+        // Fetch latest sales ID current or previous year
+        $result = $conn->query("SELECT Sales_Id FROM invoice ORDER BY CAST(SUBSTRING(Sales_Id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['Sales_Id']; // e.g. SL-005
+            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newSalesId = 'SL-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        // Fetch latest payment ID current or previous year
+        $result = $conn->query("SELECT payment_id FROM invoice WHERE created_for = '$user_name' ORDER BY CAST(SUBSTRING(payment_id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['payment_id']; // e.g. SL-005
+            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newPaymentId = 'PAY-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+
+        // Prepare and insert
+        $stmt = $conn->prepare("INSERT INTO $table (
+                invoice_id, customer_name, document_type, date, due_date, tax_rate, notes, subtotal, GST_amount, grand_total,
+                item_name, description, quantity, price, total, Sales_Id, payment_id, payment_method, created_by, created_for, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt->bind_param(
+            "sssssssdddsssssssssss",
+            $newInvoiceId,
+            $data['customer_name'],
+            $data['document_type'],
+            $data['date'],
+            $data['due_date'],
+            $data['tax_rate'],
+            $data['notes'],
+            $data['subtotal'],
+            $data['GST_amount'],
+            $data['grand_total'],
+            $data['item_names'],
+            $data['descriptions'],
+            $data['quantities'],
+            $data['prices'],
+            $data['totals'],
+            $newSalesId,
+            $newPaymentId,
+            $data['payment_method'],
+            $user_name,
+            $user_name,
+            $data['status']
+
+        );
+
+        // Subtract sold quantity from inventory
+        for ($i = 0; $i < count($itemNames); $i++) {
+            $item = trim($itemNames[$i]);
+            $qty = (int) trim($quantities[$i]);
+
+            $updateInventory = $conn->query("UPDATE retail_invetory SET stock = stock - $qty WHERE item_name = '$item'");
+        }
+
+        if ($stmt->execute()) {
+            echo "Invoice inserted successfully!";
+        } else {
+            echo "Error: " . $stmt->error;
+        }
+
     }
 }
 
-// Filter and search parameters
-$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
-$status_filter = isset($_GET['status']) && in_array($_GET['status'], ['All', 'Paid', 'Pending', 'Overdue']) ? $_GET['status'] : 'All';
-$type_filter = isset($_GET['type']) && in_array($_GET['type'], ['All', 'GST', 'Non-GST']) ? $_GET['type'] : 'All';
 
-// Filter invoices
-$filtered_invoices = array_filter($invoices, function ($invoice) use ($search_query, $status_filter, $type_filter) {
-    $matches_search = empty($search_query) || stripos($invoice['id'], $search_query) !== false;
-    $matches_status = $status_filter === 'All' || $invoice['status'] === $status_filter;
-    $matches_type = $type_filter === 'All' || $invoice['type'] === $type_filter;
-    return $matches_search && $matches_status && $matches_type;
-});
-
-// Statuses and types for filter
-$statuses = ['All', 'Paid', 'Pending', 'Overdue'];
-$types = ['All', 'GST', 'Non-GST'];
-
-// Default dates
-$today = '2025-04-25';
-$default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
 ?>
 
-<h4><i class="fas fa-file-invoice text-primary"></i> Invoices (<?php echo count($filtered_invoices); ?>)</h4>
+<h4><i class="fas fa-file-invoice text-primary"></i> Invoices</h4>
 <p>Generate and manage invoices.</p>
 
-<?php if ($success_message): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <?php echo htmlspecialchars($success_message); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-<?php endif; ?>
 
-<?php if ($error_message): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <?php echo htmlspecialchars($error_message); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-<?php endif; ?>
 
-<!-- Header with Generate Invoice Button -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <button type="button" class="btn btn-primary btn-sm" onclick="exportTableToCSV()">
-        <i class="fas fa-plus me-1"></i> Generate Invoice
-    </button>
+<div class="d-flex gap-2">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button type="button" class="btn btn-primary btn-sm" onclick="openInvoiceModal(event)" id="invoice">
+            <i class="fas fa-plus me-1"></i> Generate Invoice
+        </button>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button type="button" class="btn btn-primary btn-sm" onclick="exportTableToCSV()">
+            Export
+        </button>
+    </div>
 </div>
 
-<!-- Filters and Search -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <div class="d-flex flex-column flex-md-row gap-3 align-items-md-end">
-            <!-- Search -->
-            <div class="flex-grow-1">
-                <label class="form-label text-muted">Search Invoices</label>
-                <form method="GET" action="?page=invoices" class="d-flex align-items-center gap-2">
-                    <input type="hidden" name="page" value="invoices">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                        <input type="text" name="search" class="form-control border-start-0" id="invoicesSearch"
-                            placeholder="Search invoices by ID..."
-                            value="<?php echo htmlspecialchars($search_query); ?>">
-                    </div>
-                </form>
+<!-- Create Invoice form -->
+<div id="invoiceModal" class="modal">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <button type="button" class="btn-close" onclick="closeInvoiceModal()"></button>
             </div>
-            <!-- Filters -->
-            <div class="d-flex flex-column gap-3">
-                <!-- Status Filter -->
-                <div>
-                    <label class="form-label text-muted">Status</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        <?php foreach ($statuses as $status): ?>
-                            <a
-                                href="?page=invoices&status=<?php echo urlencode($status); ?>&type=<?php echo urlencode($type_filter); ?>&search=<?php echo urlencode($search_query); ?>">
-                                <span
-                                    class="badge <?php echo $status_filter === $status ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                    <?php echo htmlspecialchars($status); ?>
-                                </span>
-                            </a>
-                        <?php endforeach; ?>
+
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Customer:</label>
+                        <select class="form-select" id="customer" name="customer" required>
+                            <option>Select customer</option>
+                            <?php
+
+                            // Fetch transactions from the database
+                            $result = $conn->query("SELECT name FROM customer WHERE created_for = '$user_name' ORDER BY customer_Id DESC");
+
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo "<option>" . $row['name'] . "</option>";
+                                }
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Payment Method:</label>
+                        <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod" required>
+                            <option>Select payment method</option>
+                            <option>Digital payment</option>
+                            <option>Cash</option>
+                            <option>BNPL</option>
+                            <option>Payment gateway</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4" id="status_section">
+                        <label class="form-label">Status:</label>
+                        <select class="form-select" id="invoiceStatus" name="invoiceStatus" required>
+                            <option>Select status</option>
+                            <option>Completed</option>
+                            <option>Pending</option>
+                            <option>Refund</option>
+                        </select>
                     </div>
                 </div>
-                <!-- Type Filter -->
-                <div>
-                    <label class="form-label text-muted">Invoice Type</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        <?php foreach ($types as $type): ?>
-                            <a
-                                href="?page=invoices&status=<?php echo urlencode($status_filter); ?>&type=<?php echo urlencode($type); ?>&search=<?php echo urlencode($search_query); ?>">
-                                <span
-                                    class="badge <?php echo $type_filter === $type ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                    <?php echo htmlspecialchars($type); ?>
-                                </span>
-                            </a>
-                        <?php endforeach; ?>
+
+                <div class="mb-3">
+                    <label class="form-label d-block">Document Type:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withGST" checked
+                            onchange="toggleGST()">
+                        <label class="form-check-label">With GST</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="docType" value="withoutGST"
+                            onchange="toggleGST()">
+                        <label class="form-check-label">Without GST</label>
                     </div>
                 </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Date:</label>
+                        <input type="date" id="invoiceDate" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Due Date:</label>
+                        <input type="date" id="dueDate" class="form-control">
+                    </div>
+                    <div class="col-md-4 gst-section">
+                        <label class="form-label">Tax Rate:</label>
+                        <select id="taxRate" class="form-select" onchange="updateTotals()">
+                            <option value="5">GST 5%</option>
+                            <option value="12">GST 12%</option>
+                            <option value="18">GST 18%</option>
+                            <option value="28">GST 28%</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered" id="itemTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Qty</th>
+                                <th>Price (₹)</th>
+                                <th>Total (₹)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes:</label>
+                    <textarea class="form-control" id="textarea" name="textarea"
+                        placeholder="Additional notes, payment terms..." rows="3"></textarea>
+                </div>
+
+                <div class="text-end">
+                    <p>Subtotal: ₹<span id="subtotal">0.00</span></p>
+                    <p class="gst-section">GST (<span id="gstPercent">18</span>%): ₹<span id="gstAmount">0.00</span>
+                    </p>
+                    <h5>Total: ₹<span id="totalAmount">0.00</span></h5>
+                </div>
             </div>
-            <!-- Clear Filters -->
-            <div>
-                <a href="?page=invoices" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-filter me-1"></i> Clear Filters
-                </a>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="collectInvoiceData()">Create Invoice</button>
             </div>
         </div>
     </div>
@@ -156,109 +286,155 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
     <div class="card-body">
         <h5 class="card-title">Recent Invoices</h5>
         <p class="text-muted">View and manage your invoices</p>
+        <!-- Search and Filters -->
+        <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
+            <div class="flex-grow-1">
+                    <input type="hidden" name="page" value="billing">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                                class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-start-0 table-search" data-table="invoicesTable"
+                            placeholder="Search..." />
+                    </div>
+            </div>
+            <div class="d-flex gap-2">
+                <div>
+                    <button class="btn btn-outline-primary gst-filter me-2" data-type="with GST"
+                        data-table="invoicesTable">With
+                        GST</button>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary gst-filter me-2" data-type="without GST"
+                        data-table="invoicesTable">Without
+                        GST</button>
+                </div>
+                <div>
+                    <button class="btn btn-outline-danger reset-filters me-2" data-table="invoicesTable">Remove
+                        Filters</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+
+
+            document.addEventListener("DOMContentLoaded", () => {
+
+                // 🔍 Live Search Function
+                document.querySelectorAll(".table-search").forEach(input => {
+                    input.addEventListener("input", () => {
+                        const tableId = input.dataset.table;
+                        const value = input.value.toLowerCase();
+                        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                        rows.forEach(row => {
+                            const text = row.textContent.toLowerCase();
+                            row.style.display = text.includes(value) ? "" : "none";
+                        });
+                    });
+                });
+
+                // 🧾 GST Filter Buttons
+                document.querySelectorAll(".gst-filter").forEach(button => {
+                    button.addEventListener("click", () => {
+                        const type = button.dataset.type.toLowerCase();
+                        const tableId = button.dataset.table;
+                        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                        rows.forEach(row => {
+                            const docType = row.children[6]?.innerText.trim().toLowerCase();
+                            row.style.display = docType === type ? "" : "none";
+                        });
+                    });
+                });
+
+                // ❌ Remove Filters Button
+                document.querySelectorAll(".reset-filters").forEach(button => {
+                    button.addEventListener("click", () => {
+                        const tableId = button.dataset.table;
+                        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                        rows.forEach(row => {
+                            row.style.display = "";
+                        });
+
+                        // Also clear search inputs for that table
+                        document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
+                            input.value = "";
+                        });
+                    });
+                });
+
+                // ✅ Filter Helper Function
+                function filterTable(tableId, conditionFn) {
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        row.style.display = conditionFn(row) ? "" : "none";
+                    });
+                }
+            });
+        </script>
         <div class="table-responsive">
             <table class="table table-bordered table-hover" id="invoicesTable">
                 <thead>
                     <tr>
                         <th>Invoice ID</th>
+                        <th>Sales ID</th>
+                        <th>Payment ID</th>
                         <th>Customer</th>
                         <th>Date</th>
                         <th>Due Date</th>
-                        <th>Amount</th>
-                        <th>Type</th>
+                        <th>Document Type</th>
+                        <th>Tax Rate</th>
+                        <th>Items</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Notes</th>
+                        <th>GST Amount</th>
+                        <th>Grand Total</th>
+                        <th>Created By</th>
                         <th>Status</th>
-                        <th class="text-end">Actions</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($filtered_invoices)): ?>
-                        <tr>
-                            <td colspan="8" class="text-center py-4">
-                                <i class="fas fa-file-invoice fa-2x text-muted"></i>
-                                <p class="mt-2 text-muted">No invoices found matching your criteria.</p>
-                                <a href="?page=invoices" class="btn btn-outline-primary btn-sm">Clear Filters</a>
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($filtered_invoices as $invoice): ?>
-                            <tr>
-                                <td><a href="#" class="text-primary"><?php echo htmlspecialchars($invoice['id']); ?></a></td>
-                                <td><?php echo htmlspecialchars($invoice['customer']); ?></td>
-                                <td>
-                                    <?php
-                                    $date = new DateTime($invoice['date']);
-                                    echo $date->format('M j, Y');
-                                    ?>
-                                </td>
-                                <td>
-                                    <?php
-                                    $due_date = new DateTime($invoice['dueDate']);
-                                    echo $due_date->format('M j, Y');
-                                    ?>
-                                </td>
-                                <td>₹<?php echo number_format($invoice['amount'], 0); ?></td>
-                                <td>
-                                    <?php echo htmlspecialchars($invoice['type']); ?>
-                                    <?php if ($invoice['type'] === 'GST'): ?>
-                                        <div class="small text-muted">GST: <?php echo htmlspecialchars($invoice['gstNumber']); ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="badge <?php
-                                    echo $invoice['status'] === 'Paid' ? 'bg-success' :
-                                        ($invoice['status'] === 'Pending' ? 'bg-warning' : 'bg-danger');
-                                    ?> text-white">
-                                        <i class="fas <?php
-                                        echo $invoice['status'] === 'Paid' ? 'fa-check-circle' :
-                                            ($invoice['status'] === 'Pending' ? 'fa-clock' : 'fa-exclamation-circle');
-                                        ?> me-1"></i>
-                                        <?php echo htmlspecialchars($invoice['status']); ?>
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <form method="POST" action="?page=invoices" class="d-inline">
-                                            <input type="hidden" name="action" value="view_invoice">
-                                            <input type="hidden" name="invoice_id"
-                                                value="<?php echo htmlspecialchars($invoice['id']); ?>">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="?page=invoices" class="d-inline">
-                                            <input type="hidden" name="action" value="download_invoice">
-                                            <input type="hidden" name="invoice_id"
-                                                value="<?php echo htmlspecialchars($invoice['id']); ?>">
-                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                    <?php
+
+                    // Fetch transactions from the database
+                    $result = $conn->query("SELECT * FROM invoice WHERE created_for = '$user_name' ORDER BY invoice_id DESC");
+
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . htmlspecialchars($row['invoice_id']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['Sales_Id']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['payment_id']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['customer_name']) . "</td>";
+                            echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                            echo "<td>" . date('d-M-Y', strtotime($row['due_date'])) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['document_type']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['tax_rate']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['description']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
+                            echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
+                            echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['status']) . "</td>";
+                            echo '<td>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+
+                                </div>
+                            </td>';
+                            echo "</tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='17' class='text-center'>No transactions found</td></tr>";
+                    }
+                    ?>
                 </tbody>
             </table>
             <script>
-                // Search Functionality
-                document.getElementById('invoicesSearch').addEventListener('input', function () {
-                    const searchText = this.value.toLowerCase();
-                    const rows = document.querySelectorAll('#invoicesTable tbody tr');
-
-                    rows.forEach(row => {
-                        const cells = row.getElementsByTagName('td');
-                        let match = false;
-                        for (let i = 0; i < cells.length; i++) {
-                            if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                                match = true;
-                                break;
-                            }
-                        }
-                        row.style.display = match ? '' : 'none';
-                    });
-                });
 
                 // Export table data to CSV function
                 function exportTableToCSV(filename = 'table-data.csv') {
@@ -288,6 +464,26 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
     </div>
 </div>
 
+<?php
+
+// Fetch total GST invoices
+$gst_sql = "SELECT COUNT(*) AS total_gst FROM invoice WHERE document_type = 'with GST' AND created_for = '$user_name'";
+$gst_result = $conn->query($gst_sql);
+$gst_count = $gst_result->fetch_assoc()['total_gst'];
+
+// Fetch total Non-GST invoices
+$non_gst_sql = "SELECT COUNT(*) AS total_non_gst FROM invoice WHERE document_type = 'without GST' AND created_for = '$user_name'";
+$non_gst_result = $conn->query($non_gst_sql);
+$non_gst_count = $non_gst_result->fetch_assoc()['total_non_gst'];
+
+// Fetch Pending Payments
+$outstanding_sql = "SELECT SUM(grand_total) AS total_outstanding FROM invoice WHERE status = 'Pending' AND created_for = '$user_name'";
+$outstanding_result = $conn->query($outstanding_sql);
+$outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ?? 0;
+
+?>
+
+
 <!-- Invoice Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-4 mb-3">
@@ -296,13 +492,7 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
                 <h5 class="card-title">GST Invoices</h5>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="h3 font-weight-bold">
-                            <?php
-                            echo count(array_filter($invoices, function ($i) {
-                                return $i['type'] === 'GST';
-                            }));
-                            ?>
-                        </p>
+                        <p class="h3 font-weight-bold"><?= $gst_count ?></p>
                         <p class="text-muted">Total GST Invoices</p>
                     </div>
                     <div class="p-3 bg-primary bg-opacity-10 rounded-circle">
@@ -318,13 +508,7 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
                 <h5 class="card-title">Non-GST Invoices</h5>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="h3 font-weight-bold">
-                            <?php
-                            echo count(array_filter($invoices, function ($i) {
-                                return $i['type'] === 'Non-GST';
-                            }));
-                            ?>
-                        </p>
+                        <p class="h3 font-weight-bold"><?= $non_gst_count ?></p>
                         <p class="text-muted">Total Non-GST Invoices</p>
                     </div>
                     <div class="p-3 bg-purple bg-opacity-10 rounded-circle">
@@ -340,13 +524,7 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
                 <h5 class="card-title">Outstanding Amount</h5>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="h3 font-weight-bold">
-                            ₹<?php
-                            echo number_format(array_sum(array_map(function ($i) {
-                                return $i['status'] !== 'Paid' ? $i['amount'] : 0;
-                            }, $invoices)), 0);
-                            ?>
-                        </p>
+                        <p class="h3 font-weight-bold">₹<?= number_format($outstanding_amount, 2) ?></p>
                         <p class="text-muted">Total Pending Amount</p>
                     </div>
                     <div class="p-3 bg-warning bg-opacity-10 rounded-circle">
@@ -364,14 +542,6 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
         <h5 class="card-title">Quick Actions</h5>
         <p class="text-muted">Generate or request documents</p>
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-3">
-            <div class="col">
-                <button type="button"
-                    class="btn btn-outline-primary btn-sm w-100 h-100 py-3 d-flex flex-column align-items-center gap-2"
-                    data-bs-toggle="modal" data-bs-target="#generateInvoiceModal">
-                    <i class="fas fa-plus text-primary"></i>
-                    <span>New Invoice</span>
-                </button>
-            </div>
             <div class="col">
                 <form method="POST" action="?page=invoices">
                     <input type="hidden" name="action" value="download_all">
@@ -419,24 +589,24 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
                     <script>
                         document.getElementById('gstReportBtn').addEventListener('click', () => {
                             const rows = document.querySelectorAll('#invoicesTable tbody tr');
-                            let csv = 'Invoice ID,Customer,Date,Due Date,Amount,Type,Status\n';
+                            let csv = 'Invoice ID,Sales ID,Payment ID,Customer,Date,Due Date,Document Type,Tax Rate,Items,Description,Quantity,Notes,GST Amount,Grand Total,Created By,Status\n';
 
                             rows.forEach(row => {
                                 // Skip rows that have a colspan (like "No invoices found" message)
                                 if (row.querySelector('td[colspan]')) return;
 
                                 // Get the "Type" cell text, ignoring the GST number div inside it
-                                let typeCell = row.cells[5];
+                                let typeCell = row.cells[6];
                                 let typeText = '';
                                 if (typeCell) {
                                     // Get only the text node before the div, or fallback to whole text
                                     typeText = typeCell.childNodes[0].textContent.trim();
                                 }
 
-                                if (typeText === 'GST') {
+                                if (typeText === 'with GST') {
                                     // Extract columns 0 to 6
                                     const data = [];
-                                    for (let i = 0; i <= 6; i++) {
+                                    for (let i = 0; i <= 15; i++) {
                                         // Remove commas so CSV format is not broken
                                         let cellText = row.cells[i].innerText.replace(/,/g, '').trim();
                                         data.push(`"${cellText}"`);
@@ -445,7 +615,7 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
                                 }
                             });
 
-                            if (csv === 'Invoice ID,Customer,Date,Due Date,Amount,Type,Status\n') {
+                            if (csv === 'Invoice ID,Sales ID,Payment ID,Customer,Date,Due Date,Document Type,Tax Rate,Items,Description,Quantity,Notes,GST Amount,Grand Total,Created By,Status\n') {
                                 alert('No GST invoices found!');
                                 return;
                             }
@@ -469,77 +639,68 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
             </div>
             <div class="col">
                 <form method="POST" action="?page=invoices">
-                    <input type="hidden" name="action" value="filter_templates">
-                    <button type="submit"
-                        class="btn btn-outline-warning btn-sm w-100 h-100 py-3 d-flex flex-column align-items-center gap-2">
-                        <i class="fas fa-filter text-warning"></i>
-                        <span>Filter Templates</span>
+                    <input type="hidden" name="action" value="non_gst_reports">
+                    <button id="nongstReportBtn" type="button"
+                        class="btn btn-outline-danger btn-sm w-100 h-100 py-3 d-flex flex-column align-items-center gap-2">
+                        <i class="fas fa-file-alt text-danger"></i>
+                        <span>Non GST Reports</span>
                     </button>
+
+                    <script>
+                        document.getElementById('nongstReportBtn').addEventListener('click', () => {
+                            const rows = document.querySelectorAll('#invoicesTable tbody tr');
+                            let csv = 'Invoice ID,Sales ID,Payment ID,Customer,Date,Due Date,Document Type,Tax Rate,Items,Description,Quantity,Notes,GST Amount,Grand Total,Created By,Status\n';
+
+                            rows.forEach(row => {
+                                // Skip rows that have a colspan (like "No invoices found" message)
+                                if (row.querySelector('td[colspan]')) return;
+
+                                // Get the "Type" cell text, ignoring the GST number div inside it
+                                let typeCell = row.cells[6];
+                                let typeText = '';
+                                if (typeCell) {
+                                    // Get only the text node before the div, or fallback to whole text
+                                    typeText = typeCell.childNodes[0].textContent.trim();
+                                }
+
+                                if (typeText === 'without GST') {
+                                    // Extract columns 0 to 6
+                                    const data = [];
+                                    for (let i = 0; i <= 15; i++) {
+                                        // Remove commas so CSV format is not broken
+                                        let cellText = row.cells[i].innerText.replace(/,/g, '').trim();
+                                        data.push(`"${cellText}"`);
+                                    }
+                                    csv += data.join(',') + '\n';
+                                }
+                            });
+
+                            if (csv === 'Invoice ID,Sales ID,Payment ID,Customer,Date,Due Date,Document Type,Tax Rate,Items,Description,Quantity,Notes,GST Amount,Grand Total,Created By,Status\n') {
+                                alert('No non GST invoices found!');
+                                return;
+                            }
+
+                            // Create and download the CSV file
+                            const blob = new Blob([csv], { type: 'text/csv' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'non-gst-invoices-report.csv';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        });
+                    </script>
+
+
+
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Generate Invoice Modal -->
-<div class="modal fade" id="generateInvoiceModal" tabindex="-1" aria-labelledby="generateInvoiceModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="generateInvoiceModalLabel">Generate New Invoice</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST" action="?page=invoices">
-                <div class="modal-body">
-                    <input type="hidden" name="action" value="generate_invoice">
-                    <div class="mb-3">
-                        <label for="customer" class="form-label">Customer</label>
-                        <select name="customer" id="customer" class="form-select" required>
-                            <option value="">Select a customer</option>
-                            <?php foreach ($factories as $factory): ?>
-                            <option value="<?php echo htmlspecialchars($factory['name']); ?>">
-                                <?php echo htmlspecialchars($factory['name']); ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Amount (₹)</label>
-                        <input type="number" name="amount" id="amount" class="form-control" min="1" step="0.01"
-                            required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="type" class="form-label">Invoice Type</label>
-                        <select name="type" id="type" class="form-select" required>
-                            <option value="GST">GST</option>
-                            <option value="Non-GST">Non-GST</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="gstNumber" class="form-label">GST Number</label>
-                        <input type="text" name="gstNumber" id="gstNumber" class="form-control"
-                            placeholder="e.g., 29ABCDE1234F1Z5">
-                    </div>
-                    <div class="mb-3">
-                        <label for="date" class="form-label">Invoice Date</label>
-                        <input type="date" name="date" id="date" class="form-control" value="<?php echo $today; ?>"
-                            required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="dueDate" class="form-label">Due Date</label>
-                        <input type="date" name="dueDate" id="dueDate" class="form-control"
-                            value="<?php echo $default_due_date; ?>" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Generate Invoice</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <style>
     .bg-purple {
@@ -566,25 +727,179 @@ $default_due_date = (new DateTime($today))->modify('+30 days')->format('Y-m-d');
     }
 </style>
 
-<script src="invoice.js"></script>
 <script>
-    // Enable/disable GST number input based on invoice type
-    document.addEventListener('DOMContentLoaded', function () {
-        const typeSelect = document.getElementById('type');
-        const gstNumberInput = document.getElementById('gstNumber');
 
-        function toggleGstNumber() {
-            if (typeSelect.value === 'GST') {
-                gstNumberInput.disabled = false;
-                gstNumberInput.required = true;
-            } else {
-                gstNumberInput.disabled = true;
-                gstNumberInput.required = false;
-                gstNumberInput.value = '';
-            }
+    let activeInvoiceButtonId = null;
+
+    // To open form
+    function openInvoiceModal(event) {
+        activeInvoiceButtonId = event.target.id; // To store clicked button ID
+
+        const modal = document.getElementById('invoiceModal');
+        modal.style.display = 'block';
+        modal.classList.add('show');
+
+        const status = document.getElementById('status_section');
+        if (activeInvoiceButtonId === 'invoice') {
+            status.style.display = 'block';
+            status.classList.add('show');
+        } else {
+            status.style.display = 'none';
+            status.classList.remove('show');
+        }
+        if (document.querySelectorAll("#itemTable tbody tr").length === 0) {
+            addItem();
         }
 
-        typeSelect.addEventListener('change', toggleGstNumber);
-        toggleGstNumber(); // Initial check
-    });
+    }
+
+    // To close form
+    function closeInvoiceModal() {
+        const modal = document.getElementById('invoiceModal');
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+
+        document.querySelector('#itemTable tbody').innerHTML = '';
+        activeInvoiceButtonId = null;
+        updateTotals();
+    }
+
+    // For add item row
+    function addItem() {
+        const tbody = document.querySelector("#itemTable tbody");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+        <td>
+            <select onchange="updateTotals()">
+                <option value="">Select Product</option>
+                <?php
+
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT item_name FROM retail_invetory  WHERE inventory_of = '$user_name'");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<option>" . $row['item_name'] . "</option>";
+                    }
+                }
+                ?>
+            </select>
+        </td>
+        <td><input placeholder="Description"></td>
+        <td><input type="number" value="1" min="1" oninput="updateTotals()"></td>
+        <td><input type="number" value="0" step="0.01" oninput="updateTotals()" class="price"></td>
+        <td class="itemTotal">₹0.00</td>
+        <td><button class="btn btn-sm btn-outline-danger" onclick="removeItem(this)">Delete</button></td>
+    `;
+        tbody.appendChild(tr);
+        updateTotals();
+    }
+
+    // To remove item row
+    function removeItem(btn) {
+        btn.closest("tr").remove();
+        updateTotals();
+    }
+
+    // For GST 
+    function toggleGST() {
+        const withGST = document.querySelector('input[name="docType"]:checked').value === 'withGST';
+        document.querySelectorAll(".gst-section").forEach(el => {
+            el.style.display = withGST ? 'block' : 'none';
+        });
+        updateTotals();
+    }
+
+    // For calculate total amount
+    function updateTotals() {
+        let subtotal = 0;
+        document.querySelectorAll("#itemTable tbody tr").forEach(row => {
+            const qty = parseFloat(row.children[2].querySelector('input').value || 0);
+            const price = parseFloat(row.children[3].querySelector('input').value || 0);
+            const total = qty * price;
+            subtotal += total;
+            row.children[4].innerText = "₹" + total.toFixed(2);
+        });
+
+        const taxRate = parseFloat(document.getElementById('taxRate')?.value || 0);
+        const gstEnabled = document.querySelector('input[name="docType"]:checked').value === 'withGST';
+        const gstAmount = gstEnabled ? (subtotal * taxRate / 100) : 0;
+
+        document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+        document.getElementById('gstPercent').innerText = taxRate;
+        document.getElementById('gstAmount').innerText = gstAmount.toFixed(2);
+        document.getElementById('totalAmount').innerText = (subtotal + gstAmount).toFixed(2);
+    }
+
+    // Close form when clicking outside of it
+    window.onclick = function (event) {
+        const modal = document.getElementById('invoiceModal');
+        if (event.target === modal) {
+            closeInvoiceModal();
+        }
+    };
+
+    function collectInvoiceData() {
+        let item_names = [],
+            descriptions = [],
+            quantities = [],
+            prices = [],
+            totals = [];
+
+        document.querySelectorAll("#itemTable tbody tr").forEach(row => {
+            item_names.push(row.children[0].querySelector("select").value);
+            descriptions.push(row.children[1].querySelector("input").value);
+            let qty = row.children[2].querySelector("input").value;
+            let price = row.children[3].querySelector("input").value;
+            quantities.push(qty);
+            prices.push(price);
+            totals.push((qty * price).toFixed(2));
+        });
+
+        const selectedRadio = document.querySelector('input[name="docType"]:checked');
+        if (!selectedRadio) {
+            alert("Please select document type (With GST / Without GST)");
+            return;
+        }
+        const document_type = selectedRadio.value;
+        const gstEnabled = document_type === 'withGST';
+
+        const data = {
+            table: activeInvoiceButtonId,
+            customer_name: document.getElementById("customer").value,
+            payment_method: document.getElementById("invoicePaymentMethod").value,
+            status: document.getElementById("invoiceStatus").value,
+            document_type: gstEnabled ? "with GST" : "without GST",
+            date: document.getElementById("invoiceDate").value,
+            due_date: document.getElementById("dueDate").value,
+            tax_rate: gstEnabled ? document.getElementById("taxRate").value : 0,
+            notes: document.getElementById("textarea").value,
+            subtotal: document.getElementById("subtotal").innerText,
+            GST_amount: gstEnabled ? document.getElementById("gstAmount").innerText : 0,
+            grand_total: document.getElementById("totalAmount").innerText,
+            item_names: item_names.join(","),
+            descriptions: descriptions.join(","),
+            quantities: quantities.join(","),
+            prices: prices.join(","),
+            totals: totals.join(","),
+            whatAction: "createInvoice",
+        };
+
+        fetch("billing.php", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.text())
+            .then(msg => {
+                // alert(msg);
+                // console.log(msg);
+                activeInvoiceButtonId = null;
+                location.reload();
+            })
+            .catch(err => alert("Error submitting invoice."));
+    }
+
 </script>

@@ -182,7 +182,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             $conn->commit();
             $stmt->close();
 
-            header("Location: admin_dashboard.php?page=admin_dashboard");
+            header("Location: admin_dashboard.php?page=retail_store");
             exit;
 
         } catch (Exception $e) {
@@ -198,23 +198,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     } else if ($_POST['whatAction'] === 'editPrice') {
         $itemId = clean($_POST['itemId']);
         $newPrice = clean($_POST['newPrice']);
+        $inventory_Of = clean($_POST['inventory_Of']);
 
         $stmt = $conn->prepare("UPDATE retail_invetory SET price = ?, last_updated = NOW() WHERE Id = ? AND inventory_of = ?");
-        $stmt->bind_param("dss", $newPrice, $itemId, $user_name);
+        $stmt->bind_param("dss", $newPrice, $itemId, $inventory_Of);
         $stmt->execute();
         $stmt->close();
 
-        @header("Location: admin_dashboard.php?page=admin_dashboard");
+        @header("Location: admin_dashboard.php?page=retail_store");
 
     } else if ($_POST['whatAction'] === 'deleteItem') {
         $itemId = clean($_POST['itemId']);
+        $inventory_of = clean($_POST['inventory_of']);
 
         $stmt = $conn->prepare("DELETE FROM retail_invetory WHERE Id = ? AND inventory_of = ?");
-        $stmt->bind_param("ss", $itemId, $user_name);
+        $stmt->bind_param("ss", $itemId, $inventory_of);
         $stmt->execute();
         $stmt->close();
 
-        @header("Location: admin_dashboard.php?page=admin_dashboard");
+        @header("Location: admin_dashboard.php?page=retail_store");
 
     } else if ($_POST['whatAction'] === 'requestStock') {
         // Collect data for transaction
@@ -267,7 +269,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             $conn->commit();
             $stmt->close();
 
-            header("Location: admin_dashboard.php?page=admin_dashboard");
+            header("Location: admin_dashboard.php?page=retail_store");
             exit;
 
         } catch (Exception $e) {
@@ -893,8 +895,8 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             <div class="d-flex justify-content-start">
                 <div class="input-group w-100 me-2">
                     <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                    <input type="text" id="searchInput" class="form-control border-start-0 table-search" data-table="supplyTable"
-                        placeholder="Search..." />
+                    <input type="text" id="searchInput" class="form-control border-start-0 table-search"
+                        data-table="supplyTable" placeholder="Search..." />
                 </div>
                 <button class="btn btn-outline-primary status-filter me-2" data-type="Completed"
                     data-table="sales_table">Completed</button>
@@ -960,23 +962,23 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
             <div id="pagination" class="mt-3 d-flex justify-content-center gap-2"></div>
         </table>
         <script>
-// Search Functionality
-        document.getElementById('searchInput').addEventListener('input', function () {
-            const searchText = this.value.toLowerCase();
-            const rows = document.querySelectorAll('#supplyTable tbody tr');
+            // Search Functionality
+            document.getElementById('searchInput').addEventListener('input', function () {
+                const searchText = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#supplyTable tbody tr');
 
-            rows.forEach(row => {
-                const cells = row.getElementsByTagName('td');
-                let match = false;
-                for (let i = 0; i < cells.length; i++) {
-                    if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                        match = true;
-                        break;
+                rows.forEach(row => {
+                    const cells = row.getElementsByTagName('td');
+                    let match = false;
+                    for (let i = 0; i < cells.length; i++) {
+                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
+                            match = true;
+                            break;
+                        }
                     }
-                }
-                row.style.display = match ? '' : 'none';
+                    row.style.display = match ? '' : 'none';
+                });
             });
-        });
         </script>
         <div class="row">
             <div class="col-md-4 col-sm-12 mb-2">
@@ -1067,12 +1069,14 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
                                             data-bs-target="#editPriceModal" 
                                             data-id="' . $row['Id'] . '" 
                                             data-name="' . htmlspecialchars($row['item_name']) . '" 
+                                            data-inventory_of="' . htmlspecialchars($row['inventory_of']) . '" 
                                             data-price="' . $row['price'] . '">
                                         <i class="fa-regular fa-pen-to-square"></i>
                                     </button>
 
-                                    <form method="POST" action="store_dashboard.php?page=inventory" style="display:inline;">
+                                    <form method="POST" action="retail_store.php" style="display:inline;">
                                         <input type="hidden" name="whatAction" value="deleteItem">
+                                        <input type="hidden" name="inventory_of" value="' . htmlspecialchars($row['inventory_of']) . '">
                                         <input type="hidden" name="itemId" value="' . $row['Id'] . '">
                                         <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm(\'Are you sure you want to delete this item?\')">
                                             <i class="fa-solid fa-trash-can"></i>
@@ -1154,7 +1158,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
     <div class="modal fade" id="addItem" tabindex="-1" aria-labelledby="addItemLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <form action="inventory.php" method="POST">
+                <form action="retail_store.php" method="POST">
                     <div class="modal-header">
                         <h5 class="modal-title" id="addItemLabel">Add Item</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1234,7 +1238,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
     <div class="modal fade" id="requestStock" tabindex="-1" aria-labelledby="requestStockLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <form action="inventory.php" method="POST">
+                <form action="retail_store.php" method="POST">
                     <div class="modal-header">
                         <h5 class="modal-title" id="requestStockLabel">Request Stock</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1329,7 +1333,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
     <!-- Item price edite Modal -->
     <div class="modal fade" id="editPriceModal" tabindex="-1" aria-labelledby="editPriceLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <form method="POST" action="store_dashboard.php?page=inventory" class="modal-content">
+            <form method="POST" action="retail_store.php" class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editPriceLabel">Edit Item Price</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -1337,6 +1341,7 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
                 <div class="modal-body">
                     <input type="hidden" name="whatAction" value="editPrice">
                     <input type="hidden" name="itemId" id="editItemId">
+                    <input type="hidden" name="inventory_Of" id="inventory_Of">
                     <div class="mb-3">
                         <label for="editItemName" class="form-label">Item</label>
                         <input type="text" class="form-control" id="editItemName" readonly>
@@ -1771,6 +1776,23 @@ $items_info = calculateChangeInfo($total_items_sold, $last_month_items);
                 })
                 .catch(err => alert("Error submitting invoice."));
         }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var editModal = document.getElementById('editPriceModal');
+            editModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var itemId = button.getAttribute('data-id');
+                var itemName = button.getAttribute('data-name');
+                var inventory_Of = button.getAttribute('data-inventory_of');
+                var itemPrice = button.getAttribute('data-price');
+
+                document.getElementById('editItemId').value = itemId;
+                document.getElementById('inventory_Of').value = inventory_Of;
+                document.getElementById('editItemName').value = itemName;
+                document.getElementById('newPrice').value = itemPrice;
+            });
+        });
     </script>
 
     </body>

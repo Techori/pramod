@@ -376,6 +376,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             exit;
         }
 
+        while ($row = $result->fetch_assoc()) {
+            $item_name = $row['item_name'];
+            $quantity = (int) $row['quantity'];
+
+            // Update stock in retail_inventory
+            $updateStockStmt = $conn->prepare("
+                UPDATE retail_invetory 
+                SET stock = stock + ? 
+                WHERE item_name = ?
+            ");
+            $updateStockStmt->bind_param("is", $quantity, $item_name);
+            $updateStockStmt->execute();
+            $updateStockStmt->close();
+        }
+
         //If matched, update received data
         $updateStmt = $conn->prepare("UPDATE retail_store_stock_request SET received_date = ?, received_by = ?, status = ? WHERE request_id  = ?");
         $updateStmt->bind_param("ssss", $receivedDate, $receivedBy, $requestId, $received);

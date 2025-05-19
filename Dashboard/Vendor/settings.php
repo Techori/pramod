@@ -1,6 +1,294 @@
 <?php
-require_once 'database.php';
-$settings = get_settings();
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
+
+$user_name = $_SESSION['user_name'];
+
+// Default values for form
+$settings = [
+    'profile' => [
+        'firstName' => '',
+        'lastName' => '',
+        'email' => '',
+        'phone' => '',
+        'position' => ''
+    ],
+    'business' => [
+        'companyName' => '',
+        'businessType' => '',
+        'address' => '',
+        'city' => '',
+        'state' => '',
+        'pincode' => '',
+        'gstin' => '',
+        'panNumber' => '',
+        'businessDescription' => ''
+    ],
+    'payment' => [
+        'accountName' => '',
+        'bankName' => '',
+        'accountNumber' => '',
+        'ifscCode' => '',
+        'accountType' => '',
+        'branch' => '',
+        'upiId' => '',
+        'qrCode' => ''
+    ],
+    'shipping' => [
+        'sameAsBusiness' => false,
+        'shippingAddress' => '',
+        'shippingCity' => '',
+        'shippingState' => '',
+        'shippingPincode' => '',
+        'freeShipping' => false,
+        'freeShippingThreshold' => '',
+        'sameDayProcessing' => false,
+        'processingCutoffTime' => '',
+        'shippingPartners' => []
+    ],
+];
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['section'] === 'Profile') {
+    $firstName = $conn->real_escape_string($_POST['firstName']);
+    $lastName = $conn->real_escape_string($_POST['lastName']);
+    $email = $conn->real_escape_string($_POST['email']);
+    $phone = $conn->real_escape_string($_POST['phone']);
+    $position = $conn->real_escape_string($_POST['position']);
+
+    // Check if a profile exists for this username
+    $check = $conn->query("SELECT id FROM vendor_user_profiles WHERE created_by = '$user_name'");
+
+    if ($check && $check->num_rows > 0) {
+        // UPDATE
+        $conn->query("
+            UPDATE vendor_user_profiles 
+            SET 
+                first_name = '$firstName',
+                last_name = '$lastName',
+                email = '$email',
+                phone = '$phone',
+                position = '$position',
+                updated_at = NOW()
+            WHERE created_by = '$user_name'
+        ");
+    } else {
+        // INSERT
+        $conn->query("
+            INSERT INTO vendor_user_profiles 
+            (created_by, first_name, last_name, email, phone, position, created_at, updated_at)
+            VALUES 
+            ('$user_name', '$firstName', '$lastName', '$email', '$phone', '$position', NOW(), NOW())
+        ");
+    }
+}
+
+// Fetch profile for pre-filling form
+$result = $conn->query("SELECT * FROM vendor_user_profiles WHERE created_by = '$user_name'");
+if ($result && $result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $settings['profile']['firstName'] = $row['first_name'];
+    $settings['profile']['lastName'] = $row['last_name'];
+    $settings['profile']['email'] = $row['email'];
+    $settings['profile']['phone'] = $row['phone'];
+    $settings['profile']['position'] = $row['position'];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['section'] === 'Business') {
+    $companyName = $conn->real_escape_string($_POST['companyName']);
+    $businessType = $conn->real_escape_string($_POST['businessType']);
+    $address = $conn->real_escape_string($_POST['address']);
+    $city = $conn->real_escape_string($_POST['city']);
+    $state = $conn->real_escape_string($_POST['state']);
+    $pincode = $conn->real_escape_string($_POST['pincode']);
+    $gstin = $conn->real_escape_string($_POST['gstin']);
+    $panNumber = $conn->real_escape_string($_POST['panNumber']);
+    $businessDescription = $conn->real_escape_string($_POST['businessDescription']);
+
+    // Check if record exists
+    $check = $conn->query("SELECT id FROM vendor_business_profiles WHERE created_by = '$user_name'");
+
+    if ($check && $check->num_rows > 0) {
+        // UPDATE
+        $conn->query("
+            UPDATE vendor_business_profiles SET 
+                company_name = '$companyName',
+                business_type = '$businessType',
+                address = '$address',
+                city = '$city',
+                state = '$state',
+                pincode = '$pincode',
+                gstin = '$gstin',
+                pan_number = '$panNumber',
+                business_description = '$businessDescription',
+                updated_at = NOW()
+            WHERE created_by = '$user_name'
+        ");
+    } else {
+        // INSERT
+        $conn->query("
+            INSERT INTO vendor_business_profiles 
+                (created_by, company_name, business_type, address, city, state, pincode, gstin, pan_number, business_description, created_at, updated_at)
+            VALUES 
+                ('$user_name', '$companyName', '$businessType', '$address', '$city', '$state', '$pincode', '$gstin', '$panNumber', '$businessDescription', NOW(), NOW())
+        ");
+    }
+}
+
+// Fetch for prefill
+$result = $conn->query("SELECT * FROM vendor_business_profiles WHERE created_by = '$user_name'");
+if ($result && $result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $settings['business']['companyName'] = $row['company_name'];
+    $settings['business']['businessType'] = $row['business_type'];
+    $settings['business']['address'] = $row['address'];
+    $settings['business']['city'] = $row['city'];
+    $settings['business']['state'] = $row['state'];
+    $settings['business']['pincode'] = $row['pincode'];
+    $settings['business']['gstin'] = $row['gstin'];
+    $settings['business']['panNumber'] = $row['pan_number'];
+    $settings['business']['businessDescription'] = $row['business_description'];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['section'] === 'Payment') {
+    // Sanitize inputs
+    $accountName = $conn->real_escape_string($_POST['accountName']);
+    $bankName = $conn->real_escape_string($_POST['bankName']);
+    $accountNumber = $conn->real_escape_string($_POST['accountNumber']);
+    $ifscCode = $conn->real_escape_string($_POST['ifscCode']);
+    $accountType = $conn->real_escape_string($_POST['accountType']);
+    $branch = $conn->real_escape_string($_POST['branch']);
+    $upiId = $conn->real_escape_string($_POST['upiId']);
+
+    // Handle QR Code Upload
+    $qrCodeFileName = '';
+    $qrCodeFileName = '';
+    if (isset($_FILES['qrCodeFile']) && $_FILES['qrCodeFile']['error'] === UPLOAD_ERR_OK) {
+        $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        $fileType = mime_content_type($_FILES['qrCodeFile']['tmp_name']);
+
+        if (in_array($fileType, $allowedTypes)) {
+            $uploadDir = 'uploads/qr_codes/';
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileName = time() . '_' . basename($_FILES['qrCodeFile']['name']);
+            $targetFilePath = $uploadDir . $fileName;
+
+            if (move_uploaded_file($_FILES['qrCodeFile']['tmp_name'], $targetFilePath)) {
+                $qrCodeFileName = $fileName;
+            } else {
+                echo "QR upload failed.";
+            }
+        } else {
+            echo "Invalid QR image format.";
+        }
+    } else {
+        // Keep old QR code if not reuploaded
+        $qrCodeFileName = $_POST['qrCode'] ?? '';
+    }
+
+    // Check if settings already exist
+    $check = $conn->query("SELECT id FROM vendor_payment_settings WHERE created_by = '$user_name'");
+    if ($check && $check->num_rows > 0) {
+        $conn->query("UPDATE vendor_payment_settings SET
+            account_name = '$accountName',
+            bank_name = '$bankName',
+            account_number = '$accountNumber',
+            ifsc_code = '$ifscCode',
+            account_type = '$accountType',
+            branch = '$branch',
+            upi_id = '$upiId',
+            qr_code = '$qrCodeFileName'
+            WHERE created_by = '$user_name'
+        ");
+    } else {
+        $conn->query("INSERT INTO vendor_payment_settings (
+            created_by, account_name, bank_name, account_number, ifsc_code,
+            account_type, branch, upi_id, qr_code
+        ) VALUES (
+            '$user_name', '$accountName', '$bankName', '$accountNumber', '$ifscCode',
+            '$accountType', '$branch', '$upiId', '$qrCodeFileName'
+        )");
+    }
+}
+
+// Fetch existing data
+$result = $conn->query("SELECT * FROM vendor_payment_settings WHERE created_by = '$user_name'");
+if ($result && $result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $settings['payment']['accountName'] = $row['account_name'];
+    $settings['payment']['bankName'] = $row['bank_name'];
+    $settings['payment']['accountNumber'] = $row['account_number'];
+    $settings['payment']['ifscCode'] = $row['ifsc_code'];
+    $settings['payment']['accountType'] = $row['account_type'];
+    $settings['payment']['branch'] = $row['branch'];
+    $settings['payment']['upiId'] = $row['upi_id'];
+    $settings['payment']['qrCode'] = $row['qr_code'];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['section'] === 'Settings') {
+    $sameAsBusiness = isset($_POST['sameAsBusiness']) ? 1 : 0;
+    $shippingAddress = $conn->real_escape_string($_POST['shippingAddress']);
+    $shippingCity = $conn->real_escape_string($_POST['shippingCity']);
+    $shippingState = $conn->real_escape_string($_POST['shippingState']);
+    $shippingPincode = $conn->real_escape_string($_POST['shippingPincode']);
+    $freeShipping = isset($_POST['freeShipping']) ? 1 : 0;
+    $freeShippingThreshold = $conn->real_escape_string($_POST['freeShippingThreshold']);
+    $sameDayProcessing = isset($_POST['sameDayProcessing']) ? 1 : 0;
+    $processingCutoffTime = $conn->real_escape_string($_POST['processingCutoffTime']);
+    $shippingPartners = isset($_POST['shippingPartners']) ? implode(',', $_POST['shippingPartners']) : '';
+
+    // Check if entry exists
+    $check = $conn->query("SELECT id FROM vendor_shipping_settings WHERE created_by = '$user_name'");
+    if ($check && $check->num_rows > 0) {
+        // Update
+        $conn->query("UPDATE vendor_shipping_settings SET
+            same_as_business = $sameAsBusiness,
+            shipping_address = '$shippingAddress',
+            shipping_city = '$shippingCity',
+            shipping_state = '$shippingState',
+            shipping_pincode = '$shippingPincode',
+            free_shipping = $freeShipping,
+            free_shipping_threshold = '$freeShippingThreshold',
+            same_day_processing = $sameDayProcessing,
+            processing_cutoff_time = '$processingCutoffTime',
+            shipping_partners = '$shippingPartners'
+            WHERE created_by = '$user_name'
+        ");
+    } else {
+        // Insert
+        $conn->query("INSERT INTO vendor_shipping_settings (
+            created_by, same_as_business, shipping_address, shipping_city, shipping_state, shipping_pincode,
+            free_shipping, free_shipping_threshold, same_day_processing, processing_cutoff_time, shipping_partners
+        ) VALUES (
+            '$user_name', $sameAsBusiness, '$shippingAddress', '$shippingCity', '$shippingState', '$shippingPincode',
+            $freeShipping, '$freeShippingThreshold', $sameDayProcessing, '$processingCutoffTime', '$shippingPartners'
+        )");
+    }
+}
+
+// Fetch existing values to prefill form
+$result = $conn->query("SELECT * FROM vendor_shipping_settings WHERE created_by = '$user_name'");
+if ($result && $result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+    $settings['shipping']['sameAsBusiness'] = (bool) $row['same_as_business'];
+    $settings['shipping']['shippingAddress'] = $row['shipping_address'];
+    $settings['shipping']['shippingCity'] = $row['shipping_city'];
+    $settings['shipping']['shippingState'] = $row['shipping_state'];
+    $settings['shipping']['shippingPincode'] = $row['shipping_pincode'];
+    $settings['shipping']['freeShipping'] = (bool) $row['free_shipping'];
+    $settings['shipping']['freeShippingThreshold'] = $row['free_shipping_threshold'];
+    $settings['shipping']['sameDayProcessing'] = (bool) $row['same_day_processing'];
+    $settings['shipping']['processingCutoffTime'] = $row['processing_cutoff_time'];
+    $settings['shipping']['shippingPartners'] = explode(',', $row['shipping_partners']);
+}
+
+
 $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'profile';
 
 // Navigation items
@@ -9,9 +297,6 @@ $nav_items = [
     'business' => ['icon' => 'fa-building', 'label' => 'Business Details'],
     'payment' => ['icon' => 'fa-credit-card', 'label' => 'Payment Information'],
     'shipping' => ['icon' => 'fa-truck', 'label' => 'Shipping Settings'],
-    'notifications' => ['icon' => 'fa-bell', 'label' => 'Notifications'],
-    'security' => ['icon' => 'fa-lock', 'label' => 'Security & Login'],
-    'documents' => ['icon' => 'fa-file-alt', 'label' => 'Documents'],
 ];
 
 // Helper function to build tab URL
@@ -57,48 +342,11 @@ function build_tab_url($tab)
                         <p class="card-text">Update your personal information and contact details</p>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="">
+                        <form method="POST" action="?page=settings&tab=profile">
+                            <input type="hidden" name="section" value="Profile">
                             <div class="row">
-                                <div class="col-md-4 text-center">
-                                    <!-- Image Preview (Circle) -->
-                                    <img id="previewPhoto"
-                                        src="<?php echo htmlspecialchars($settings['profile']['avatar'] ?? 'default.jpg'); ?>"
-                                        alt="Profile Photo" class="rounded-circle bg-light"
-                                        style="width: 120px; height: 120px; object-fit: cover;">
 
-                                    <!-- Hidden File Input -->
-                                    <input type="file" id="photoInput" accept="image/*" style="display: none;"
-                                        onchange="handlePhotoChange(event)">
-
-                                    <!-- Visible Button -->
-                                    <button type="button" class="btn btn-outline-primary mt-3"
-                                        onclick="document.getElementById('photoInput').click()">
-                                        Change Photo
-                                    </button>
-                                </div>
-
-                                <script>
-                                    function handlePhotoChange(event) {
-                                        const file = event.target.files[0];
-                                        if (file) {
-                                            // Validate file type if needed
-                                            if (!file.type.startsWith('image/')) {
-                                                alert('Please select an image file.');
-                                                return;
-                                            }
-
-                                            // Preview selected image
-                                            const reader = new FileReader();
-                                            reader.onload = function (e) {
-                                                const img = document.getElementById('previewPhoto');
-                                                img.src = e.target.result;
-                                            };
-                                            reader.readAsDataURL(file);
-                                        }
-                                    }
-                                </script>
-
-                                <div class="col-md-8">
+                                <div class="col-md-12">
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <label for="firstName" class="form-label">First Name</label>
@@ -116,8 +364,6 @@ function build_tab_url($tab)
                                         <div class="input-group">
                                             <input type="email" class="form-control" id="email" name="email"
                                                 value="<?php echo htmlspecialchars($settings['profile']['email']); ?>">
-                                            <span class="input-group-text bg-success text-white"><i
-                                                    class="fas fa-check"></i> Verified</span>
                                         </div>
                                     </div>
                                     <div class="mb-3">
@@ -130,8 +376,7 @@ function build_tab_url($tab)
                                         <input type="text" class="form-control" id="position" name="position"
                                             value="<?php echo htmlspecialchars($settings['profile']['position']); ?>">
                                     </div>
-                                    <button type="button" class="btn btn-primary"
-                                        onclick="alert('Profile settings updated')">Save Changes</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
                                 </div>
                             </div>
                         </form>
@@ -145,7 +390,8 @@ function build_tab_url($tab)
                         <p class="card-text">Update your company information and business details</p>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="">
+                        <form method="POST" action="?page=settings&tab=business">
+                            <input type="hidden" name="section" value="Business">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="companyName" class="form-label">Company Name</label>
@@ -192,50 +438,12 @@ function build_tab_url($tab)
                                         value="<?php echo htmlspecialchars($settings['business']['panNumber']); ?>">
                                 </div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="website" class="form-label">Website</label>
-                                    <input type="text" class="form-control" id="website" name="website"
-                                        value="<?php echo htmlspecialchars($settings['business']['website']); ?>">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="taxExemption" class="form-label">Tax Exemption Certificate</label>
-                                    <div class="input-group">
-                                        <!-- Display selected file name -->
-                                        <input type="text" class="form-control" id="taxExemption" name="taxExemption"
-                                            value="<?php echo htmlspecialchars($settings['business']['taxExemption'] ?? ''); ?>"
-                                            readonly>
-
-                                        <!-- Hidden file input -->
-                                        <input type="file" id="taxExemptionFile" accept=".pdf,.jpg,.jpeg,.png"
-                                            style="display: none;" onchange="handleTaxFileChange(event)">
-
-                                        <!-- Button triggers file input -->
-                                        <button type="button" class="btn btn-outline-primary"
-                                            onclick="document.getElementById('taxExemptionFile').click()">Upload</button>
-                                    </div>
-                                </div>
-
-                                <script>
-                                    function handleTaxFileChange(event) {
-                                        const file = event.target.files[0];
-                                        if (file) {
-                                            document.getElementById('taxExemption').value = file.name;
-
-                                            // OPTIONAL: Auto-submit or send file via AJAX
-                                            // uploadTaxExemption(file);
-                                        }
-                                    }
-                                </script>
-
-                            </div>
                             <div class="mb-3">
                                 <label for="businessDescription" class="form-label">Business Description</label>
                                 <textarea class="form-control" id="businessDescription" name="businessDescription"
                                     rows="4"><?php echo htmlspecialchars($settings['business']['businessDescription']); ?></textarea>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Business settings updated')">Save
-                                Changes</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
                         </form>
                     </div>
                 </div>
@@ -247,7 +455,8 @@ function build_tab_url($tab)
                         <p class="card-text">Manage your payment methods and bank account details</p>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="">
+                        <form method="POST" action="?page=settings&tab=payment" enctype="multipart/form-data">
+                            <input type="hidden" name="section" value="Payment">
                             <h6 class="mb-3">Bank Account Details</h6>
                             <div class="row mb-3">
                                 <div class="col-md-6">
@@ -302,8 +511,8 @@ function build_tab_url($tab)
                                             readonly>
 
                                         <!-- Hidden file input -->
-                                        <input type="file" id="qrCodeFile" accept="image/*" style="display: none;"
-                                            onchange="handleQRCodeUpload(event)">
+                                        <input type="file" id="qrCodeFile" name="qrCodeFile" accept="image/*"
+                                            style="display: none;" onchange="handleQRCodeUpload(event)">
 
                                         <!-- Button triggers file input -->
                                         <button type="button" class="btn btn-outline-primary"
@@ -324,28 +533,17 @@ function build_tab_url($tab)
                                 </script>
 
                             </div>
+                            <div class="row mb-3">
+                                <?php if (!empty($settings['payment']['qrCode'])): ?>
+                                    <div class="col-md-6">
+                                        <img src="uploads/qr_codes/<?php echo htmlspecialchars($settings['payment']['qrCode']); ?>"
+                                            width="300" height="300" alt="QR Code">
+                                    </div>
+                                <?php endif; ?>
+
+                            </div>
                             <hr>
-                            <h6 class="mb-3">Payment Preferences</h6>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="autoInvoice" name="autoInvoice"
-                                        <?php echo $settings['payment']['autoInvoice'] ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="autoInvoice">Auto-Generate Invoices</label>
-                                    <small class="form-text text-muted">Automatically generate invoices for new
-                                        orders</small>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="paymentReminders"
-                                        name="paymentReminders" <?php echo $settings['payment']['paymentReminders'] ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="paymentReminders">Payment Reminders</label>
-                                    <small class="form-text text-muted">Send automated payment reminders for outstanding
-                                        invoices</small>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Payment settings updated')">Save
-                                Changes</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
                         </form>
                     </div>
                 </div>
@@ -357,7 +555,8 @@ function build_tab_url($tab)
                         <p class="card-text">Configure your shipping preferences and delivery options</p>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="">
+                        <form method="POST" action="?page=settings&tab=shipping">
+                            <input type="hidden" name="section" value="Settings">
                             <h6 class="mb-3">Shipping Address</h6>
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="sameAsBusiness" name="sameAsBusiness"
@@ -425,300 +624,9 @@ function build_tab_url($tab)
                                     </div>
                                 <?php endforeach; ?>
                             </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Shipping settings updated')">Save
-                                Changes</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
                         </form>
                     </div>
-                </div>
-
-            <?php elseif ($active_tab === 'notifications'): ?>
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="card-title">Notification Settings</h5>
-                        <p class="card-text">Configure how and when you receive notifications</p>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" action="">
-                            <h6 class="mb-3">Order Notifications</h6>
-                            <?php $order_notifications = [
-                                'newOrder' => 'New Order',
-                                'orderUpdates' => 'Order Updates',
-                                'orderCancellations' => 'Order Cancellations'
-                            ]; ?>
-                            <?php foreach ($order_notifications as $key => $label): ?>
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <h6><?php echo $label; ?></h6>
-                                        <p class="text-muted">Get notified when <?php echo strtolower($label); ?> occur</p>
-                                    </div>
-                                    <div class="d-flex gap-3">
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>Email"
-                                                name="<?php echo $key; ?>[email]" <?php echo $settings['notifications'][$key]['email'] ? 'checked' : ''; ?>>
-                                            <label class="form-check-label" for="<?php echo $key; ?>Email">Email</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>SMS"
-                                                name="<?php echo $key; ?>[sms]" <?php echo $settings['notifications'][$key]['sms'] ? 'checked' : ''; ?>>
-                                            <label class="form-check-label" for="<?php echo $key; ?>SMS">SMS</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>App"
-                                                name="<?php echo $key; ?>[app]" <?php echo $settings['notifications'][$key]['app'] ? 'checked' : ''; ?>>
-                                            <label class="form-check-label" for="<?php echo $key; ?>App">App</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                            <hr>
-                            <h6 class="mb-3">Payment Notifications</h6>
-                            <?php $payment_notifications = [
-                                'paymentReceived' => 'Payment Received',
-                                'paymentDue' => 'Payment Due'
-                            ]; ?>
-                            <?php foreach ($payment_notifications as $key => $label): ?>
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <div>
-                                        <h6><?php echo $label; ?></h6>
-                                        <p class="text-muted">Get notified about <?php echo strtolower($label); ?></p>
-                                    </div>
-                                    <div class="d-flex gap-3">
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>Email"
-                                                name="<?php echo $key; ?>[email]" <?php echo $settings['notifications'][$key]['email'] ? 'checked' : ''; ?>>
-                                            <label class="form-check-label" for="<?php echo $key; ?>Email">Email</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>SMS"
-                                                name="<?php echo $key; ?>[sms]" <?php echo $settings['notifications'][$key]['sms'] ? 'checked' : ''; ?>>
-                                            <label class="form-check-label" for="<?php echo $key; ?>SMS">SMS</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="<?php echo $key; ?>App"
-                                                name="<?php echo $key; ?>[app]" <?php echo $settings['notifications'][$key]['app'] ? 'checked' : ''; ?>>
-                                            <label class="form-check-label" for="<?php echo $key; ?>App">App</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                            <hr>
-                            <h6 class="mb-3">Inventory Notifications</h6>
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <div>
-                                    <h6>Low Stock Alerts</h6>
-                                    <p class="text-muted">Get notified when products are running low on stock</p>
-                                </div>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="lowStockEmail"
-                                            name="lowStock[email]" <?php echo $settings['notifications']['lowStock']['email'] ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="lowStockEmail">Email</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="lowStockSMS"
-                                            name="lowStock[sms]" <?php echo $settings['notifications']['lowStock']['sms'] ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="lowStockSMS">SMS</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="lowStockApp"
-                                            name="lowStock[app]" <?php echo $settings['notifications']['lowStock']['app'] ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="lowStockApp">App</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-primary"
-                                onclick="alert('Notification settings updated')">Save Changes</button>
-                        </form>
-                    </div>
-                </div>
-
-            <?php elseif ($active_tab === 'security'): ?>
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="card-title">Security & Login</h5>
-                        <p class="card-text">Manage your password and account security settings</p>
-                    </div>
-                    <div class="card-body">
-                        <h6 class="mb-3">Change Password</h6>
-                        <form method="POST" action="">
-                            <div class="mb-3">
-                                <label for="currentPassword" class="form-label">Current Password</label>
-                                <input type="password" class="form-control" id="currentPassword" name="currentPassword">
-                            </div>
-                            <div class="mb-3">
-                                <label for="newPassword" class="form-label">New Password</label>
-                                <input type="password" class="form-control" id="newPassword" name="newPassword">
-                            </div>
-                            <div class="mb-3">
-                                <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword">
-                            </div>
-                            <button type="button" class="btn btn-primary" onclick="alert('Password updated')">Update
-                                Password</button>
-                        </form>
-                        <hr>
-                        <h6 class="mb-3">Two-Factor Authentication</h6>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <p>Enhance your account security by enabling two-factor authentication</p>
-                                <p class="text-success">Status: <strong>Enabled</strong></p>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary"
-                                onclick="alert('Configuring 2FA')">Configure</button>
-                        </div>
-                        <hr>
-                        <h6 class="mb-3">Login History</h6>
-                        <?php foreach ($settings['security']['loginHistory'] as $login): ?>
-                            <div class="border rounded p-3 mb-2 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <i
-                                            class="fas fa-shield-alt <?php echo $login['status'] === 'Active' ? 'text-success' : 'text-muted'; ?>"></i>
-                                        <p class="mb-0">
-                                            <?php echo $login['status'] === 'Active' ? 'Current Session' : 'Previous Login'; ?>
-                                        </p>
-                                    </div>
-                                    <p class="text-muted small"><?php echo htmlspecialchars($login['location']); ?> -
-                                        <?php echo htmlspecialchars($login['device']); ?> •
-                                        <?php echo htmlspecialchars($login['time']); ?>
-                                    </p>
-                                </div>
-                                <span
-                                    class="badge <?php echo $login['status'] === 'Active' ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $login['status']; ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                        <button type="button" class="btn btn-outline-primary mt-2"
-                            onclick="alert('Viewing all login activity')">View All Login Activity</button>
-                        <hr>
-                        <h6 class="mb-3">Account Access</h6>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6>Authorized Users</h6>
-                                <p class="text-muted">Manage who can access your vendor account</p>
-                            </div>
-                            <button type="button" class="btn btn-outline-primary" onclick="alert('Managing users')"><i
-                                    class="fas fa-users"></i> Manage Users</button>
-                        </div>
-                    </div>
-                </div>
-
-            <?php elseif ($active_tab === 'documents'): ?>
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="card-title">Documents</h5>
-                        <p class="card-text">Manage your business documents and compliance certificates</p>
-                    </div>
-                    <div class="card-body">
-                        <h6 class="mb-3">Business Documents</h6>
-                        <?php foreach (array_slice($settings['documents'], 0, 4) as $doc): ?>
-                            <div class="d-flex justify-content-between align-items-center border-bottom py-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <i
-                                        class="fas fa-file-alt <?php echo $doc['status'] === 'Uploaded' ? 'text-primary' : 'text-muted'; ?>"></i>
-                                    <div>
-                                        <p class="mb-0"><?php echo htmlspecialchars($doc['name']); ?></p>
-                                        <p class="text-muted small">
-                                            <?php echo $doc['status'] === 'Uploaded' ? 'Uploaded on: ' . htmlspecialchars($doc['uploaded']) : 'Not uploaded'; ?>
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <?php if ($doc['status'] === 'Uploaded'): ?>
-                                        <button type="button" class="btn btn-outline-primary btn-sm"
-                                            onclick="viewDocument('<?php echo htmlspecialchars($doc['name']); ?>')">View</button>
-                                        <button type="button" class="btn btn-outline-primary btn-sm"
-                                            onclick="updateDocument('<?php echo htmlspecialchars($doc['name']); ?>')">Update</button>
-                                    <?php else: ?>
-                                        <button type="button" class="btn btn-outline-primary btn-sm"
-                                            onclick="uploadDocument('<?php echo htmlspecialchars($doc['name']); ?>')">Upload</button>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                        <hr>
-                        <h6 class="mb-3">Product Certifications</h6>
-                        <?php foreach (array_slice($settings['documents'], 4) as $doc): ?>
-                            <div class="d-flex justify-content-between align-items-center border-bottom py-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <i class="fas fa-file-alt text-primary"></i>
-                                    <div>
-                                        <p class="mb-0"><?php echo htmlspecialchars($doc['name']); ?></p>
-                                        <p class="text-muted small">Uploaded on:
-                                            <?php echo htmlspecialchars($doc['uploaded']); ?>
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-outline-primary btn-sm"
-                                        onclick="viewDocument('<?php echo htmlspecialchars($doc['name']); ?>')">View</button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm"
-                                        onclick="updateDocument('<?php echo htmlspecialchars($doc['name']); ?>')">Update</button>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                        <button type="button" class="btn btn-primary mt-3" onclick="uploadNewDocument()"><i
-                                class="fas fa-file-alt"></i> Upload New Document</button>
-                    </div>
-
-                    <!-- Hidden File Input -->
-                    <input type="file" id="docFileInput" style="display:none" onchange="handleFileUpload()" />
-
-                    <script>
-                        let currentDocName = null;
-
-                        function viewDocument(docName) {
-                            // Assuming files stored in 'uploads/' with sanitized names + extension .pdf
-                            const url = `uploads/${encodeURIComponent(docName)}.pdf`;
-                            window.open(url, '_blank');
-                        }
-
-                        function uploadDocument(docName) {
-                            currentDocName = docName;
-                            document.getElementById('docFileInput').click();
-                        }
-
-                        function updateDocument(docName) {
-                            // Reuse uploadDocument for updating
-                            uploadDocument(docName);
-                        }
-
-                        function uploadNewDocument() {
-                            currentDocName = null; // New upload
-                            document.getElementById('docFileInput').click();
-                        }
-
-                        function handleFileUpload() {
-                            const fileInput = document.getElementById('docFileInput');
-                            const file = fileInput.files[0];
-                            if (!file) return;
-
-                            const formData = new FormData();
-                            formData.append('document', file);
-
-                            if (currentDocName) {
-                                formData.append('docName', currentDocName);
-                            } else {
-                                // For new document, you might want to ask for a name or generate
-                                formData.append('docName', file.name.replace(/\.[^/.]+$/, ""));
-                            }
-
-                            fetch('upload_document.php', {
-                                method: 'POST',
-                                body: formData
-                            })
-                                .then(response => response.text())
-                                .then(data => {
-                                    alert('Upload successful!');
-                                    location.reload();  // Refresh to update UI with new document info
-                                })
-                                .catch(error => {
-                                    alert('Upload failed.');
-                                    console.error(error);
-                                });
-                        }
-                    </script>
-
-
                 </div>
 
             <?php endif; ?>

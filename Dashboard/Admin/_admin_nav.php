@@ -60,7 +60,7 @@
     <header class="header d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center">
             <button class="hamburger me-3" id="hamburger"><i class="fas fa-bars"></i></button>
-            <h5 class="mb-0 fw-bold">Hey! <?php echo isset($_SESSION['user']) ? $_SESSION['user'] : 'Admin'; ?></h5>
+            <h5 class="mb-0 fw-bold">Hey! <?php echo isset($_SESSION['user_name']) ? $_SESSION['user_name'] : 'Admin'; ?></h5>
         </div>
         <form class="d-flex" role="search" method="GET" action="search.php">
             <div class="input-group">

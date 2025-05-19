@@ -5,15 +5,15 @@ include '../../_conn.php';
 // Handle Add Product
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     if ($_POST['whatAction'] === 'AddProduct') {
-        $name = clean($_POST['name'] ?? '');
-        $category = clean($_POST['category'] ?? '');
-        $mrp = clean($_POST['mrp'] ?? '');
-        $gst_rate = clean($_POST['gst_rate'] ?? '');
-        $selling_price = clean($_POST['selling_price'] ?? '');
-        $stock = clean($_POST['stock'] ?? '');
-        $add_inventory = isset($_POST['add_inventory']) && $_POST['add_inventory'] === '1';
-        $status = clean($_POST['status'] ?? '');
-        $supplier = clean($_POST['supplier'] ?? '');
+        $name = $_POST['name'] ?? '';
+        $category = $_POST['category'] ?? '';
+        $mrp = $_POST['mrp'] ?? '';
+        $gst_rate = $_POST['gst_rate'] ?? '';
+        $selling_price = $_POST['selling_price'] ?? '';
+        $stock = $_POST['stock'] ?? '';
+        $add_inventory = $_POST['add_inventory'] && $_POST['add_inventory'] === '1';
+        $status = $_POST['status'] ?? '';
+        $supplier = $_POST['supplier'] ?? '';
 
         // Validate Product Data
         if (empty($name) || empty($category) || empty($mrp) || empty($gst_rate) || empty($selling_price) || empty($stock)) {
@@ -90,11 +90,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
     // Handle Add Inventory Record
     if ($_POST['whatAction'] === 'AddInventory') {
-        $product_id = clean($_POST['product_id'] ?? '');
-        $stock = clean($_POST['stock'] ?? '');
-        $transaction_type = clean($_POST['transaction_type'] ?? '');
-        $status = clean($_POST['status'] ?? '');
-        $supplier = clean($_POST['supplier'] ?? '');
+        $product_id = $_POST['product_id'] ?? '';
+        $stock = $_POST['stock'] ?? '';
+        $transaction_type = $_POST['transaction_type'] ?? '';
+        $status = $_POST['status'] ?? '';
+        $supplier = $_POST['supplier'] ?? '';
 
         // Validate Inventory Data
         if (empty($product_id) || $stock === '' || empty($transaction_type) || empty($status) || empty($supplier)) {
@@ -174,13 +174,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
     // Handle Edit Product
     if ($_POST['whatAction'] === 'EditProduct') {
-        $id = clean($_POST['id'] ?? '');
-        $name = clean($_POST['name'] ?? '');
-        $category = clean($_POST['category'] ?? '');
-        $mrp = clean($_POST['mrp'] ?? '');
-        $gst_rate = clean($_POST['gst_rate'] ?? '');
-        $selling_price = clean($_POST['selling_price'] ?? '');
-        $stock = clean($_POST['stock'] ?? '');
+        $id = $_POST['id'] ?? '';
+        $name = $_POST['name'] ?? '';
+        $category = $_POST['category'] ?? '';
+        $mrp = $_POST['mrp'] ?? '';
+        $gst_rate = $_POST['gst_rate'] ?? '';
+        $selling_price = $_POST['selling_price'] ?? '';
+        $stock = $_POST['stock'] ?? '';
 
         if (empty($id) || empty($name) || empty($category) || empty($mrp) || empty($gst_rate) || empty($selling_price) || empty($stock)) {
             $error_message = 'All fields are required.';
@@ -213,7 +213,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
     // Handle Delete Product
     if ($_POST['whatAction'] === 'DeleteProduct') {
-        $id = clean($_POST['id'] ?? '');
+        $id = $_POST['id'] ?? '';
 
         if (empty($id)) {
             $error_message = 'Product ID is required.';

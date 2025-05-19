@@ -1,4 +1,12 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
+
+$user_name = $_SESSION['user_name'];
+
 // Include mock database
 require_once 'database.php';
 
@@ -77,7 +85,7 @@ $filtered_deliveries = array_filter($deliveries, function ($delivery) use ($sear
 $statuses = ['All', 'Processing', 'In Transit', 'Out for Delivery', 'Delivered'];
 ?>
 
-<h4><i class="fas fa-truck text-primary"></i> Deliveries (<?php echo count($filtered_deliveries); ?>)</h4>
+<h4><i class="fas fa-truck text-primary"></i> Deliveries</h4>
 <p>Track and manage your deliveries from factories.</p>
 
 <?php if ($success_message): ?>
@@ -93,89 +101,6 @@ $statuses = ['All', 'Processing', 'In Transit', 'Out for Delivery', 'Delivered']
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 <?php endif; ?>
-
-<!-- Tracking Section -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="card-title">Track Delivery</h5>
-        <p class="text-muted">Enter a tracking ID to check delivery status</p>
-        <form method="POST" action="?page=deliveries" class="d-flex flex-column flex-md-row gap-3">
-            <input type="hidden" name="track_delivery" value="1">
-            <div class="flex-grow-1">
-                <input
-                    type="text"
-                    name="tracking_id"
-                    class="form-control"
-                    placeholder="Enter tracking ID (e.g., TR124578965)"
-                    required
-                >
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm">
-                <i class="fas fa-search me-1"></i> Track Order
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- Filters and Search -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <div class="d-flex flex-column flex-md-row gap-3 align-items-md-end">
-            <!-- Search -->
-            <div class="flex-grow-1">
-                <label class="form-label text-muted">Search Deliveries</label>
-                <form method="GET" action="?page=deliveries" class="d-flex align-items-center gap-2">
-                    <input type="hidden" name="page" value="deliveries">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                        <input
-                            id="deliverySearch"
-                            type="text" 
-                            name="search"
-                            class="form-control border-start-0"
-                            placeholder="Search by delivery ID, tracking ID or order ID..."
-                            value="<?php echo htmlspecialchars($search_query); ?>">
-                    </div>
-                </form>
-            </div>
-            <!-- Filters -->
-            <div class="d-flex flex-column gap-3">
-                <!-- Status Filter -->
-                <div>
-                    <label class="form-label text-muted">Status</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        <?php foreach ($statuses as $status): ?>
-                        <a href="?page=deliveries&status=<?php echo urlencode($status); ?>&factory=<?php echo urlencode($factory_filter); ?>&search=<?php echo urlencode($search_query); ?>">
-                            <span class="badge <?php echo $status_filter === $status ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                <?php echo htmlspecialchars($status); ?>
-                            </span>
-                        </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <!-- Factory Filter -->
-                <div>
-                    <label class="form-label text-muted">Factory</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        <?php foreach ($factories as $factory): ?>
-                        <a href="?page=deliveries&status=<?php echo urlencode($status_filter); ?>&factory=<?php echo urlencode($factory); ?>&search=<?php echo urlencode($search_query); ?>">
-                            <span class="badge <?php echo $factory_filter === $factory ? 'bg-primary text-white' : 'bg-light text-dark'; ?> px-3 py-1 rounded-pill">
-                                <?php echo htmlspecialchars($factory); ?>
-                            </span>
-                        </a>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            </div>
-            <!-- Clear Filters -->
-            <div>
-                <a href="?page=deliveries" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-filter me-1"></i> Clear Filters
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Deliveries Table -->
 <div class="card shadow-sm mb-4">
