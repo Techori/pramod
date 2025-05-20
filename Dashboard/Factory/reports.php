@@ -36,7 +36,7 @@
 
     <div class="d-flex w-75 gap-2">
         <button class="btn btn-outline-primary"><i class="fa-solid fa-filter"></i> Filter</button>
-        <button class="btn btn-outline-primary"><i class="fa-solid fa-download"></i> Export</button>
+        <button class="btn btn-outline-primary" onclick="exportTableToCSV()"><i class="fa-solid fa-download"></i> Export</button>
         <button class="btn btn-outline-primary"><i class="fa-regular fa-share-from-square"></i> Share</button>
     </div>
 
@@ -218,11 +218,10 @@
                         <h5 class="mb-0">Recent Reports</h5>
                     </div>
                     <div class="justify-content-end">
-                        <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-arrows-rotate"></i>
-                            Refresh</button>
+                         <button class="btn btn-outline-secondary" id="refreshBtn">Refresh</button>
                     </div>
                 </div>
-                <table id="Table" class="table table-bordered table-hover">
+                <table id="supplyTable" class="table table-bordered table-hover">
                     <thead>
                         <tr>
                             <th>Report</th>
@@ -256,6 +255,50 @@
                         </tr>
                     </tbody>
                 </table>
+               <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Export table data to CSV
+        function exportTableToCSV(filename = 'table-data.csv') {
+            const table = document.querySelector("#supplyTable");
+            if (!table) {
+                console.error("Table with id 'supplyTable' not found.");
+                return;
+            }
+
+            const rows = table.querySelectorAll("tr");
+            let csv = [];
+
+            rows.forEach(row => {
+                const cols = Array.from(row.querySelectorAll("th, td"))
+                    .map(col => `"${col.innerText.replace(/"/g, '""').trim()}"`);
+                csv.push(cols.join(","));
+            });
+
+            // Add BOM for Excel UTF-8 support
+            const csvContent = "\uFEFF" + csv.join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Attach export function to global scope (for use in onclick)
+        window.exportTableToCSV = exportTableToCSV;
+
+        // Refresh Button functionality
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function () {
+                location.reload();
+            });
+        }
+    });
+</script>
+
             </div>
         </div>
     </div>
