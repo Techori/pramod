@@ -20,34 +20,34 @@
             <h6 class="mb-0">Unnati Admin Portal</h6>
             <small class="text-muted" style="font-size: 0.8rem;">Manage your business</small>
         </div>
-        <nav class="nav flex-column mt-2">
+        <nav class="nav flex-column">
             <a href="?page=admin_dashboard"
-                class="nav-link <?php echo $page === 'admin_dashboard' ? 'active' : '' ?>"><i
-                    class="fas fa-table-cells-large"></i> Main Dashboard</a>
-            <a href="?page=billing_desk" class="nav-link <?php echo $page === 'billing_desk' ? 'active' : '' ?>"><i
+                class="nav-link <?php echo $page === 'admin_dashboard' ? 'active' : '' ?>" style="font-size: smaller;"><i
+                    class="fas fa-table-cells"></i> Main Dashboard</a>
+            <a href="?page=billing_desk" class="nav-link <?php echo $page === 'billing_desk' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-file-invoice"></i> Billing Desk</a>
-            <a href="?page=accounting" class="nav-link <?php echo $page === 'accounting' ? 'active' : '' ?>"><i
+            <a href="?page=accounting" class="nav-link <?php echo $page === 'accounting' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-dollar-sign"></i> Accounting</a>
-            <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : '' ?>"><i
+            <a href="?page=inventory" class="nav-link <?php echo $page === 'inventory' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-box-open"></i> Inventory</a>
             <a href="?page=expenses_dashboard"
-                class="nav-link <?php echo $page === 'expenses_dashboard' ? 'active' : '' ?>"><i
+                class="nav-link <?php echo $page === 'expenses_dashboard' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-chart-line"></i> Expenses</a>
-            <a href="?page=factory_stock" class="nav-link <?php echo $page === 'factory_stock' ? 'active' : '' ?>"><i
+            <a href="?page=factory_stock" class="nav-link <?php echo $page === 'factory_stock' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-warehouse"></i> Factory Stock</a>
-            <a href="?page=retail_store" class="nav-link <?php echo $page === 'retail_store' ? 'active' : '' ?>"><i
+            <a href="?page=retail_store" class="nav-link <?php echo $page === 'retail_store' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-store"></i> Retail Store</a>
             <a href="?page=After_sales_service"
-                class="nav-link <?php echo $page === 'After_sales_service' ? 'active' : '' ?>"><i
+                class="nav-link <?php echo $page === 'After_sales_service' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-headset"></i> After-Sales Service</a>
-            <a href="?page=suppliers" class="nav-link <?php echo $page === 'suppliers' ? 'active' : '' ?>"><i
+            <a href="?page=suppliers" class="nav-link <?php echo $page === 'suppliers' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-truck-moving"></i> Suppliers</a>
-            <a href="?page=reports" class="nav-link <?php echo $page === './reports' ? 'active' : '' ?>"><i
+            <a href="?page=reports" class="nav-link <?php echo $page === 'reports' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-chart-bar"></i> Reports</a>
             <a href="?page=user_management"
-                class="nav-link <?php echo $page === 'user_management' ? 'active' : '' ?>"><i
+                class="nav-link <?php echo $page === 'user_management' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-users-gear"></i> User Management</a>
-            <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : '' ?>"><i
+            <a href="?page=settings" class="nav-link <?php echo $page === 'settings' ? 'active' : '' ?>" style="font-size: smaller;"><i
                     class="fas fa-gear"></i> Settings</a>
         </nav>
         <div class="footer">© 2025 Unnati Traders</div>
@@ -89,7 +89,7 @@
                         class="fas fa-user-circle"></i></button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <small class="text-muted text-center d-block"
-                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>
+                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['uid']) ? $_SESSION['uid'] : ''; ?></small>
                     <!-- User email can be change according to dashboard -->
                     <li><a class="dropdown-item" href="?page=settings">Update Profile</a></li>
                     <form action="../../logout.php" method="POST" class="d-inline">
@@ -150,6 +150,27 @@
     });
 </script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const hamburger = document.getElementById('hamburger');
+
+        // Open sidebar on hamburger click
+        hamburger.addEventListener('click', function () {
+            sidebar.classList.add('active');
+            overlay.style.display = 'block';
+        });
+
+        // Close sidebar on overlay click
+        overlay.addEventListener('click', function () {
+            sidebar.classList.remove('active');
+            overlay.style.display = 'none';
+        });
+    });
+</script>
+
+
 <style>
     mark.navbar-search-highlight {
         background-color: yellow;
@@ -157,6 +178,64 @@
         padding: 0 2px;
         border-radius: 2px;
     }
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 200px;
+        background-color: #f8f9fa;
+        overflow-y: auto;
+        transition: transform 0.3s ease-in-out;
+        z-index: 1000;
+    }
+    /* Mobile: Hide sidebar by default */
+    @media (max-width: 768px) {
+        .sidebar {
+            width: 50%;
+            transform: translateX(-100%);
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 999;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+    }
+
+    /* Desktop: Sidebar always visible */
+    @media (min-width: 769px) {
+        .overlay {
+            display: none !important;
+        }
+        .sidebar {
+            transform: translateX(0) !important;
+        }
+    }
+
+    .overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+}
 </style>
 
 <script>

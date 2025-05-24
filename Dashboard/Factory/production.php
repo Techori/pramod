@@ -1,12 +1,4 @@
-<style>
-    body {
-        font-family: sans-serif;
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        color: #333;
-    }
-</style>
+
 
     <h1>Production Management</h1>
     <p>Monitor and manage factory production lines</p>

@@ -674,7 +674,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 </div>
 
                 <div class="col-md-3 col-sm-6 mb-4">
-                    <div class="card shadow-sm" style="border-left: 5px solid #6f42c1;">
+                    <div class="card shadow-sm h-100" style="border-left: 5px solid #6f42c1;">
                         <div class="card-body">
                             <h6 class="text-muted">Active Suppliers</h6>
                             <h3 class="fw-bold"><?= $supplierCount ?></h3>
@@ -691,7 +691,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                     <canvas id="lineChart"></canvas>
                 </div>
                 <div class="chart-box">
-                    <h3>Sales by Category</h3>
+                    <h3>Sales by Payment Method</h3>
                     <div style="position: relative; width: 100%; max-width: 300px; margin: 0 auto;">
                         <canvas id="pieChart"></canvas>
                     </div>

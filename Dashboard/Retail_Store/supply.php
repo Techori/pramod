@@ -7,7 +7,7 @@ include '../../_conn.php';
 $user_name = $_SESSION['user_name'];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
-function clean($input)
+    function clean($input)
     {
         return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
     }
@@ -61,7 +61,7 @@ function clean($input)
             $conn->commit();
             $stmt->close();
 
-            header("Location: store_dashboard.php?page=inventory");
+            header("Location: store_dashboard.php?page=supply");
             exit;
 
         } catch (Exception $e) {
@@ -194,7 +194,7 @@ $filtered_requests = array_filter($supply_requests, function ($request) use ($se
         });
     </script>
 
-    Request Stock Form
+    <!-- Request Stock Form -->
     <div class="modal fade" id="requestStock" tabindex="-1" aria-labelledby="requestStockLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -385,15 +385,19 @@ $filtered_requests = array_filter($supply_requests, function ($request) use ($se
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-hover" id = "supplyTable">
+                <table class="table table-bordered table-hover" id="supplyTable">
                     <thead>
                         <tr>
                             <th>Request ID</th>
                             <th>Tracking ID</th>
+                            <th>Delivery ID</th>
+                            <th>Requested To</th>
                             <th>Item</th>
                             <th>Quantity</th>
                             <th>Source</th>
                             <th>Delivery Date</th>
+                            <th>Received Date</th>
+                            <th>Received By</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -408,6 +412,8 @@ $filtered_requests = array_filter($supply_requests, function ($request) use ($se
                                 echo "<tr>";
                                 echo "<td>" . htmlspecialchars($row['request_id']) . "</td>";
                                 echo "<td>" . htmlspecialchars($row['tracking_id']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['delivery_id']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['request_to']) . "</td>";
                                 echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
                                 echo '<td>' . htmlspecialchars($row['quantity']) . "</td>";
                                 echo "<td>" . htmlspecialchars($row['request_to']) . "</td>";
@@ -416,11 +422,17 @@ $filtered_requests = array_filter($supply_requests, function ($request) use ($se
                                 } else {
                                     echo "<td></td>"; // Leave blank if null or invalid
                                 }
+                                if (!empty($row['received_date']) && $row['received_date'] !== '0000-00-00') {
+                                    echo "<td>" . date('d-M-Y', strtotime($row['received_date'])) . "</td>";
+                                } else {
+                                    echo "<td></td>"; // Leave blank if null or invalid
+                                }
+                                echo "<td>" . htmlspecialchars($row['received_by']) . "</td>";
                                 echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                                 echo "</tr>";
                             }
                         } else {
-                            echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                            echo "<tr><td colspan='11' class='text-center'>No transactions found</td></tr>";
                         }
                         ?>
                     </tbody>

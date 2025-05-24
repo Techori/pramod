@@ -885,7 +885,7 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
             whatAction: "createInvoice",
         };
 
-        fetch("billing.php", {
+        fetch("invoices.php", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

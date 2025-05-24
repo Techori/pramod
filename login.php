@@ -283,11 +283,11 @@ include './_conn.php';
                     </div>
                     <div class="text-center">
                         <button class="btn btn-fancy mb-4" name="submit" type="submit">Login</button>
-                        <p>Demo Logins:</p>
+                        <!-- <p>Demo Logins:</p>
                         <p>Admin: admin@unnati.com / admin123</p>
                         <p>Retail Store: store@unnati.com / store123</p>
                         <p>Vendor: vendor@unnati.com / vendor123</p>
-                        <p>Factory: factory@unnati.com / factory123</p>
+                        <p>Factory: factory@unnati.com / factory123</p> -->
                     </div>
                 </form>
                 </div>

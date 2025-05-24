@@ -63,6 +63,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             ]);
             exit;
         }
+    } else if ($_POST['whatAction'] === 'editPrice') {
+
+        // Get data from the form
+        $invoice_id = $_POST['invoice_id'] ?? '';
+        $status = $_POST['status'] ?? '';
+
+        // Basic validation
+        if (!empty($invoice_id) && !empty($status)) {
+            // Prepare and execute the update query
+            $stmt = $conn->prepare("UPDATE retail_store_orders SET status = ? WHERE order_id = ?");
+            $stmt->bind_param("ss", $status, $invoice_id);
+
+            if ($stmt->execute()) {
+                // Redirect or show success message
+                header("Location: store_dashboard.php?page=orders"); // Replace with your actual page
+                exit();
+            } else {
+                echo "Error updating status: " . $conn->error;
+            }
+
+            $stmt->close();
+        } else {
+            echo "Invalid input.";
+        }
+
     }
 }
 
@@ -462,7 +487,7 @@ $order_analytics['deliveredToday'] = $row['count'];
                                 <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
                                     aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
                                     <div class="modal-dialog">
-                                        <form method="POST" action="update_status.php">
+                                        <form method="POST" action="orders.php">
                                             <div class="modal-content">
                                                 <div class="modal-header">
                                                     <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
@@ -473,12 +498,13 @@ $order_analytics['deliveredToday'] = $row['count'];
                                                     <input type="hidden" name="invoice_id" value="<?= $id ?>">
                                                     <select name="status" class="form-select" required>
                                                         <option value="">Select Status</option>
-                                                        <option value="Completed">Completed</option>
-                                                        <option value="Refund">Refund</option>
+                                                        <option value="Ready for Pickup">Ready for Pickup</option>
+                                                        <option value="Delivered">Delivered</option>
+                                                        <option value="Cancelled">Cancelled</option>
                                                     </select>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button type="submit" class="btn btn-primary">Update</button>
+                                                    <button type="submit" class="btn btn-primary" name="whatAction" value="editPrice">Update</button>
                                                     <button type="button" class="btn btn-secondary"
                                                         data-bs-dismiss="modal">Cancel</button>
                                                 </div>

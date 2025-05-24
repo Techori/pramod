@@ -96,61 +96,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     }
 }
 
-require_once 'database.php';
-$all_products = get_products();
-$categories = ["All Categories", "Wires", "Switches", "Lights", "Fans", "Appliances", "Accessories", "Conduits"];
-
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$category = isset($_GET['category']) ? $_GET['category'] : 'All Categories';
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'name';
-$dir = isset($_GET['dir']) ? $_GET['dir'] : 'asc';
-
-// Filter products
-$filtered_products = array_filter($all_products, function ($product) use ($search, $category) {
-    $search_match = stripos($product['name'], $search) !== false || stripos($product['sku'], $search) !== false;
-    $category_match = $category === 'All Categories' || $product['category'] === $category;
-    return $search_match && $category_match;
-});
-
-// Sort products
-usort($filtered_products, function ($a, $b) use ($sort, $dir) {
-    $a_val = $a[$sort];
-    $b_val = $b[$sort];
-    if ($a_val < $b_val)
-        return $dir === 'asc' ? -1 : 1;
-    if ($a_val > $b_val)
-        return $dir === 'asc' ? 1 : -1;
-    return 0;
-});
-
-
-function get_status_class($status)
-{
-    switch ($status) {
-        case 'In Stock':
-            return 'bg-success';
-        case 'Low Stock':
-            return 'bg-warning';
-        case 'Out of Stock':
-            return 'bg-danger';
-        default:
-            return 'bg-secondary';
-    }
-}
-
-function build_sort_url($field)
-{
-    global $search, $category, $sort, $dir;
-    $new_dir = ($sort === $field && $dir === 'asc') ? 'desc' : 'asc';
-    $params = [
-        'page' => 'products',
-        'search' => $search,
-        'category' => $category,
-        'sort' => $field,
-        'dir' => $new_dir
-    ];
-    return '?' . http_build_query($params);
-}
 ?>
 
 <div class="container-fluid">

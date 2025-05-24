@@ -55,11 +55,11 @@
                 <div class="footer-widget">
                     <div class="footer-widget">
                         <h3>Shree Unnati<br>WIRES & TRADERS</h3>
-                        <p>Leading manufacturer and supplier of wires and electric hardware in the region.</p>
+                        <p class="text-light">Leading manufacturer and supplier of wires and electric hardware in the region.</p>
                     </div>
                     <div class="footer-widget">
                         <h3>Contact Us</h3>
-                        <p>123 Industrial Area, Business District, City - 123456<br>
+                        <p class="text-light">123 Industrial Area, Business District, City - 123456<br>
                         +91 98765 43210<br>
                         <a href="mailto:info@unnatitraders.com" onclick="showAlert('Email: info@unnatitraders.com')">info@unnatitraders.com</a></p>
                     </div>

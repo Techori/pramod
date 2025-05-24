@@ -68,7 +68,7 @@
                         class="fas fa-user-circle"></i></button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <small class="text-muted text-center d-block"
-                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'vendor@unnati.com'; ?></small>  <!-- User email can be change according to dashboard -->
+                        style="font-size: 0.8rem;"><?php echo isset($_SESSION['uid']) ? $_SESSION['uid'] : ''; ?></small>  <!-- User email can be change according to dashboard -->
                     <li><a class="dropdown-item" href="?page=settings">Update Profile</a></li>
                     <form action="../../logout.php" method="POST" class="d-inline">
                         <input type="hidden" name="logout_btn" value="logout">
@@ -127,6 +127,27 @@
     });
 </script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const hamburger = document.getElementById('hamburger');
+
+        // Open sidebar on hamburger click
+        hamburger.addEventListener('click', function () {
+            sidebar.classList.add('active');
+            overlay.style.display = 'block';
+        });
+
+        // Close sidebar on overlay click
+        overlay.addEventListener('click', function () {
+            sidebar.classList.remove('active');
+            overlay.style.display = 'none';
+        });
+    });
+</script>
+
+
 <style>
     mark.navbar-search-highlight {
         background-color: yellow;
@@ -134,6 +155,64 @@
         padding: 0 2px;
         border-radius: 2px;
     }
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 200px;
+        background-color: #f8f9fa;
+        overflow-y: auto;
+        transition: transform 0.3s ease-in-out;
+        z-index: 1000;
+    }
+    /* Mobile: Hide sidebar by default */
+    @media (max-width: 768px) {
+        .sidebar {
+            width: 50%;
+            transform: translateX(-100%);
+        }
+
+        .sidebar.show {
+            transform: translateX(0);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 999;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+    }
+
+    /* Desktop: Sidebar always visible */
+    @media (min-width: 769px) {
+        .overlay {
+            display: none !important;
+        }
+        .sidebar {
+            transform: translateX(0) !important;
+        }
+    }
+
+    .overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 999;
+}
 </style>
 
 <script>

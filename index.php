@@ -10,6 +10,8 @@ session_start();
     <title>Shree Unnati Wires & Traders - Premium Wire Manufacturing</title>
     <meta name="description" content="Leading manufacturer of high-quality copper and aluminum wires for industrial, commercial, and residential applications. Explore our range of quality-assured products.">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <style>
         /* Basic CSS for layout and button styling */
         body {

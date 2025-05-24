@@ -16,16 +16,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     $userName = clean($_POST['userName']);
     $userEmail = clean($_POST['userEmail']);
     $role = clean($_POST['role']);
+    $type = clean($_POST['type']);
+    $password = clean($_POST['password']);
+    $confirm_password = clean($_POST['confirm_password']);
     $status = 'Active';
 
     // Capture permissions
     $permissions = isset($_POST['permissions']) ? $_POST['permissions'] : [];
     $permissionsJson = json_encode($permissions);
 
-    $allowedRoles = ['Manager', 'Accountant', 'Store', 'Admin'];
-
-    if (!in_array($role, $allowedRoles)) {
-      die("Invalid role selected.");
+    if ($password !== $confirm_password) {
+      die("Passwords do not match.");
     }
 
     try {
@@ -52,6 +53,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       $stmt->execute();
       $conn->commit();
       $stmt->close();
+
+      $salt = bin2hex(random_bytes(16));
+      $saltedPW =  $password . $salt;
+      $hashedPW = hash('sha256', $saltedPW);
+
+      $userstmt = $conn->prepare("INSERT INTO users (email , password, salt, user_type, user_roll, user_name) VALUES (?, ?, ?, ?, ?, ?)");
+      $userstmt->bind_param("ssssss", $userEmail, $hashedPW, $salt, $type, $role, $userName);
+      $userstmt->execute();
+      $userstmt->close();
 
       header("Location: admin_dashboard.php?page=user_management");
       exit;
@@ -291,14 +301,33 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                   </div>
 
                   <div class="mb-3">
-                    <label for="role" class="form-label">Role</label>
-                    <select class="form-select" id="role" name="role" required>
-                      <option value="Manager">Manager</option>
-                      <option value="Accountant">Accountant</option>
+                    <label for="type" class="form-label">Type</label>
+                    <select class="form-select" id="type" name="type" required>
+                      <option value="Factory">Factory</option>
+                      <option value="Vendor">Vendor</option>
                       <option value="Store">Store</option>
-                      <option value="Admin">Admin</option>
                     </select>
                   </div>
+
+                  <div class="mb-3">
+                    <label for="role" class="form-label">Role</label>
+                    <select class="form-select" id="role" name="role" required>
+                      <option value="Owner">Owner</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Accountant">Accountant</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label for="password">Password</label>
+                    <input type="password" name="password" class="form-control mb-3" required>
+                  </div>
+
+                  <div>
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" name="confirm_password" class="form-control mb-3" required>
+                  </div>
+
                   <input type="hidden" name="whatAction" value="AddUser">
                   <!-- Footer Buttons -->
                   <div class="modal-footer">

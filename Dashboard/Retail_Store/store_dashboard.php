@@ -282,7 +282,7 @@ require_once 'database.php';
                         </div>
                     </div>
                     <div class="chart-box">
-                        <h3>Sales by Category</h3>
+                        <h3>Sales by Payment Method</h3>
                         <div style="position: relative; width: 100%; max-width: 300px; margin: 0 auto;">
                             <canvas id="salesByCategory"></canvas>
                         </div>

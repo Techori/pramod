@@ -351,11 +351,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     } else if ($_POST['whatAction'] === 'generateReceiving') {
 
-        function clean($input)
-        {
-            return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-        }
-
         $deliveryId = clean($_POST['deliveryId']);
         $trackingId = clean($_POST['trackingId']);
         $requestId = clean($_POST['requestId']);
@@ -392,8 +387,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         //If matched, update received data
-        $updateStmt = $conn->prepare("UPDATE retail_store_stock_request SET received_date = ?, received_by = ?, status = ? WHERE request_id  = ?");
-        $updateStmt->bind_param("ssss", $receivedDate, $receivedBy, $requestId, $received);
+        $updateStmt = $conn->prepare("UPDATE retail_store_stock_request SET received_date = ?, received_by = ?, status = ? WHERE tracking_id  = ?");
+        $updateStmt->bind_param("ssss", $receivedDate, $receivedBy, $received, $trackingId);
 
         if ($updateStmt->execute()) {
             echo "<script>alert('Receiving info successfully updated.'); window.location.href='store_dashboard.php?page=billing';</script>";

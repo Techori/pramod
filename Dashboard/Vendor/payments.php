@@ -7,27 +7,30 @@ include '../../_conn.php';
 
 $user_name = $_SESSION['user_name'];
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
-    // Get data from the form
-    $invoice_id = $_POST['invoice_id'] ?? '';
-    $status = $_POST['status'] ?? '';
+    if ($_POST['whatAction'] === 'editStatus') {
 
-    // Basic validation
-    if (!empty($invoice_id) && !empty($status)) {
-        // Prepare and execute the update query
-        $stmt = $conn->prepare("UPDATE invoice SET status = ? WHERE invoice_id = ?");
-        $stmt->bind_param("ss", $status, $invoice_id);
+        // Get data from the form
+        $invoice_id = $_POST['invoice_id'] ?? '';
+        $status = $_POST['status'] ?? '';
 
-        if ($stmt->execute()) {
-            exit();
+        // Basic validation
+        if (!empty($invoice_id) && !empty($status)) {
+            // Prepare and execute the update query
+            $stmt = $conn->prepare("UPDATE invoice SET status = ? WHERE invoice_id = ?");
+            $stmt->bind_param("ss", $status, $invoice_id);
+
+            if ($stmt->execute()) {
+                @header("Location: vendor_dashboard.php?page=payments");
+            } else {
+                echo "Error updating status: " . $conn->error;
+            }
+
+            $stmt->close();
         } else {
-            echo "Error updating status: " . $conn->error;
+            echo "Invalid input.";
         }
-
-        $stmt->close();
-    } else {
-        echo "Invalid input.";
     }
 }
 
@@ -109,13 +112,13 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
             <!-- Search and Filters -->
             <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
                 <div class="flex-grow-1">
-                        <input type="hidden" name="page" value="billing">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0" id="searchInput"><i
-                                    class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0 table-search"
-                                data-table="paymentsTable" placeholder="Search..." />
-                        </div>
+                    <input type="hidden" name="page" value="billing">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                                class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-start-0 table-search" data-table="paymentsTable"
+                            placeholder="Search..." />
+                    </div>
                 </div>
                 <div class="d-flex gap-2">
                     <div>
@@ -247,7 +250,7 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
                                     <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
                                         aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
                                         <div class="modal-dialog">
-                                            <form method="POST" action="vendor_dashboard.php?page=payments&tab=overview">
+                                            <form method="POST" action="payments.php">
                                                 <div class="modal-content">
                                                     <div class="modal-header">
                                                         <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
@@ -263,7 +266,7 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
                                                         </select>
                                                     </div>
                                                     <div class="modal-footer">
-                                                        <button type="submit" class="btn btn-primary">Update</button>
+                                                        <button type="submit" class="btn btn-primary" name="whatAction" value="editStatus">Update</button>
                                                         <button type="button" class="btn btn-secondary"
                                                             data-bs-dismiss="modal">Cancel</button>
                                                     </div>
@@ -281,11 +284,6 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
                     </tbody>
                 </table>
             </div>
-            <!-- <div class="text-end">
-                    <a href="?page=payments&tab=transactions" class="btn btn-outline-primary btn-sm">
-                        View All Transactions <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
-                </div> -->
         </div>
     </div>
 </div>
