@@ -7,7 +7,7 @@
     <div class="d-flex w-75">
         <div class="input-group w-100 me-2">
             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control border-start-0" placeholder="Search..." />
+            <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Search..." />
         </div>
     </div>
 
@@ -269,7 +269,7 @@
             </div>
         </div>
         <p>Track all factory expenses and payments</p>
-        <table id="Table" class="table table-bordered table-hover">
+        <table id="Table" class="table table-bordered table-hover" id="supplyTable">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -295,6 +295,25 @@
                 </tr>
             </tbody>
         </table>
+        <script>
+  // Search Functionality
+  document.getElementById('searchInput').addEventListener('input', function () {
+    const searchText = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#supplyTable tbody tr');
+
+    rows.forEach(row => {
+      const cells = row.getElementsByTagName('td');
+      let match = false;
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].textContent.toLowerCase().includes(searchText)) {
+          match = true;
+          break;
+        }
+      }
+      row.style.display = match ? '' : 'none';
+    });
+  });
+  </script>
     </div>
 </div>
 
@@ -329,5 +348,24 @@
                 </tr>
             </tbody>
         </table>
+         <script>
+  // Search Functionality
+  document.getElementById('searchInput').addEventListener('input', function () {
+    const searchText = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#Table tbody tr');
+
+    rows.forEach(row => {
+      const cells = row.getElementsByTagName('td');
+      let match = false;
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].textContent.toLowerCase().includes(searchText)) {
+          match = true;
+          break;
+        }
+      }
+      row.style.display = match ? '' : 'none';
+    });
+  });
+  </script>
     </div>
 </div>
