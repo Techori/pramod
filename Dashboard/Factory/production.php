@@ -1,358 +1,229 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
+$user_name = $_SESSION['user_name'];
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+    if ($_POST['whatAction'] === 'addProduction') {
+
+        $product = $_POST['productInput'];
+        $quantity = $_POST['quantityInput'];
+        $unit = $_POST['unit'];
+        $start_date = $_POST['startDateInput'];
+        $end_date = $_POST['endDateInput'];
+        $Status = $_POST['statusInput'];
 
 
-    <h1>Production Management</h1>
-    <p>Monitor and manage factory production lines</p>
-    <!-- Metrics Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-lg-3">
-            <div class="card p-3 border-start border-3 border-primary">
-                <small>Today's Output
+        // Generate Expense ID
+        $result = $conn->query("SELECT id FROM factory_production ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['id']; // e.g. TRX-005
+            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newProductionId = 'PRD-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        $stmt = $conn->prepare("INSERT INTO factory_production 
+                (id, product, quantity, unit, start_date, end_date, status, created_for) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt->bind_param("sssdssss", $newProductionId, $product, $quantity, $unit, $start_date, $end_date, $Status, $user_name);
+        $stmt->execute();
+
+        $conn->commit();
+        $stmt->close();
+
+        @header("Location: factory_dashboard.php?page=production");
+        exit;
+
+    } else if ($_POST['whatAction'] === 'updateProduct') {
+        $id = $_POST['tracking_id'];
+        $status = $_POST['status'];
+
+        $stmt = $conn->prepare("UPDATE factory_production SET status = ? WHERE id  = ?");
+        $stmt->bind_param("ss", $status, $id);
+        $stmt->execute();
+        $stmt->close();
 
 
-                </small>
-                <h3>1,450 units</h3>
-            </div>
+        @header("Location: factory_dashboard.php?page=production");
+        exit;
+
+    }
+}
+
+?>
+
+<h1>Production Management</h1>
+<p>Monitor and manage factory production lines</p>
+
+
+<div class="card shadow-sm p-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold">Production Schedule</h2>
+            <p class="text-muted">Upcoming and in-progress production runs</p>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="card p-3 border-start border-3 border-success">
-                <small>Efficiency
-                </small>
-                <h3>78.5%</h3>
-            </div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="card p-3 border-start border-3 border-warning">
-                <small>Active Lines</small>
-                <h3>2/4</h3>
-            </div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="card p-3 border-start border-3 border-purple"
-                style="--bs-border-opacity: 1; border-color: #6f42c1;">
-                <small>Workers Present</small>
-                <h3>32</h3>
-            </div>
-        </div>
-    </div>
+        <div>
+            <!-- Schedule Button -->
+            <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#scheduleModal">
+                <i class="bi bi-calendar-event"></i> Schedule
+            </button>
 
-        <div class="card p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h4 class="fw-bold">Production Lines Status</h4>
-                    <p class="text-muted mb-0">Real-time status of production line operations</p>
-                </div>
-                <button class="btn btn-light border" onclick="location.reload()">
-                    🔄 Refresh
-                </button>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead>
-                        <tr>
-                            <th>Line</th>
-                            <th>Status</th>
-                            <th>Efficiency</th>
-                            <th>Progress</th>
-                            <th>Operator</th>
-                            <th>Started At</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Wire Production Line</td>
-                            <td><span class="status-badge active">Active</span></td>
-                            <td>85%</td>
-                            <td>
-                                <div class="progress-bar-bg">
-                                    <div class="progress-fill" style="width: 81.25%;"></div>
-                                </div>
-                                <small>650 / 800</small>
-                            </td>
-                            <td>Raj Kumar</td>
-                            <td>7:00 AM</td>
-                            <td><span class="text-warning action-btn" onclick="toggleIcon(this)">⏸️</span>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>Cable Assembly</td>
-                            <td><span class="status-badge maintenance">Maintenance</span></td>
-                            <td>45%</td>
-                            <td>
-                                <div class="progress-bar-bg">
-                                    <div class="progress-fill" style="width: 45%;"></div>
-                                </div>
-                                <small>270 / 600</small>
-                            </td>
-                            <td>Amit Sharma</td>
-                            <td>8:00 AM</td>
-                            <td><span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>Quality Control</td>
-                            <td><span class="status-badge active">Active</span></td>
-                            <td>92%</td>
-                            <td>
-                                <div class="progress-bar-bg">
-                                    <div class="progress-fill" style="width: 92%;"></div>
-                                </div>
-                                <small>690 / 750</small>
-                            </td>
-                            <td>Priya Patel</td>
-                            <td>8:00 AM</td>
-                            <td><span class="text-warning action-btn" onclick="toggleIcon(this)">⏸️</span>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>Packaging Line</td>
-                            <td><span class="status-badge idle">Idle</span></td>
-                            <td>0%</td>
-                            <td>
-                                <div class="progress-bar-bg">
-                                    <div class="progress-fill" style="width: 0%;"></div>
-                                </div>
-                                <small>0 / 500</small>
-                            </td>
-                            <td>Vijay Singh</td>
-                            <td>-</td>
-                            <td><span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
-                            </td>
-                        </tr>
-
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
 
-        <div class="card shadow-sm">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h2 class="fw-bold">Production Schedule</h2>
-                    <p class="text-muted">Upcoming and in-progress production runs</p>
-                </div>
-                <div>
-                    <!-- Schedule Button -->
-                    <button class="btn btn-light-custom me-2" data-bs-toggle="modal" data-bs-target="#scheduleModal">
-                        <i class="bi bi-calendar-event"></i> Schedule
-                    </button>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr class="text-muted">
+                    <th>ID</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
 
-                    <!-- Schedule Modal -->
-                    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel"
-                        aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="scheduleModalLabel">Schedule Item</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                        aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="scheduleForm">
-                                        <div class="mb-3">
-                                            <label for="idInput" class="form-label">ID</label>
-                                            <input type="text" class="form-control" id="idInput" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="productInput" class="form-label">Product</label>
-                                            <input type="text" class="form-control" id="productInput" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="quantityInput" class="form-label">Quantity</label>
-                                            <input type="number" class="form-control" id="quantityInput" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="startDateInput" class="form-label">Start Date</label>
-                                            <input type="date" class="form-control" id="startDateInput" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="endDateInput" class="form-label">End Date</label>
-                                            <input type="date" class="form-control" id="endDateInput" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="statusInput" class="form-label">Status</label>
-                                            <select class="form-select" id="statusInput" required>
-                                                <option selected disabled value="">Choose...</option>
-                                                <option value="Pending">Pending</option>
-                                                <option value="Scheduled">Scheduled</option>
-                                                <option value="Completed">Completed</option>
-                                            </select>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM factory_production WHERE created_for = '$user_name' ORDER BY id DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        $status = htmlspecialchars($row['status']);
+                        $id = htmlspecialchars($row['id']);
+
+                        echo "<tr>";
+                        echo "<td>" . $id . "</td>";
+                        echo "<td>" . htmlspecialchars($row['product']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['start_date'])) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['end_date'])) . "</td>";
+                        echo "<td>" . $status . "</td>";
+                        echo "<td>";
+                        if ($status !== 'Completed') {
+                            echo '<button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
+                                <i class="fa-regular fa-pen-to-square"></i>
+                            </button>';
+                        } else {
+                            echo '<button class="btn btn-outline-secondary btn-sm" disabled>
+                                <i class="fa-regular fa-pen-to-square"></i>
+                            </button>';
+                        }
+                        echo "</td>";
+
+                        // Modal for updating status
+                        if ($status !== 'Completed') {
+                            ?>
+                            <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
+                                aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <form method="POST" action="production.php">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <input type="hidden" name="tracking_id" value="<?= $id ?>">
+                                                <label class="form-label">Status</label>
+                                                <!-- <input type="date" name="delivery_date" class="form-control"
+                                                    placeholder="Delivery Date" required> -->
+                                                <select class="form-select" name="status" required>
+                                                    <option value="">Select Status</option>
+                                                    <?php if ($status === 'Scheduled') {
+                                                        ?>
+                                                        <option value="Pending">Pending</option>
+                                                    <?php } else if ($status === 'Pending') { ?>
+                                                        <option value="Scheduled">Scheduled</option>
+                                                    <?php } ?>
+                                                    <option value="Completed">Completed</option>
+                                                </select>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-primary" name="whatAction"
+                                                    value="updateProduct">Update</button>
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                            </div>
                                         </div>
                                     </form>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary"
-                                        data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-primary"
-                                        onclick="submitSchedule()">Save</button>
-                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-light-custom" onclick="showAllRows(this)">
-                        View All
-                    </button>
+                            <?php
+                        }
+                    }
+                } else {
+                    echo "<tr><td colspan='7' class='text-center'>No production found</td></tr>";
+                }
+                ?>
+            </tbody>
+        </table>
+    </div>
+</div>
 
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="production.php" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scheduleModalLabel">Add Expenses</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
 
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr class="text-muted">
-                        <th>ID</th>
-                        <th>Product</th>
-                        <th>Quantity</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="fw-bold">PRD-001</td>
-                        <td>1.5mm House Wire</td>
-                        <td>2,500 m</td>
-                        <td>12 Apr 2025</td>
-                        <td>14 Apr 2025</td>
-                        <td><span class="badge badge-in-progress">In Progress</span></td>
-                        <td>
-                            <span class="text-warning action-btn" onclick="toggleIcon(this)">⏸️</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="fw-bold">PRD-002</td>
-                        <td>2.5mm Industrial Cable</td>
-                        <td>1,800 m</td>
-                        <td>14 Apr 2025</td>
-                        <td>16 Apr 2025</td>
-                        <td><span class="badge badge-scheduled">Scheduled</span></td>
-                        <td>
-                            <span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
-                        </td>
-                    </tr>
+                <div class="modal-body">
 
-                    <!-- Hidden rows initially -->
-                    <tr class="extra-row d-none">
-                        <td class="fw-bold">PRD-003</td>
-                        <td>4mm Armored Cable</td>
-                        <td>950 m</td>
-                        <td>15 Apr 2025</td>
-                        <td>17 Apr 2025</td>
-                        <td><span class="badge badge-scheduled">Scheduled</span></td>
-                        <td>
-                            <span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
-                        </td>
-                    </tr>
-                    <tr class="extra-row d-none">
-                        <td class="fw-bold">PRD-004</td>
-                        <td>6mm Power Cable</td>
-                        <td>750 m</td>
-                        <td>18 Apr 2025</td>
-                        <td>20 Apr 2025</td>
-                        <td><span class="badge badge-scheduled">Scheduled</span></td>
-                        <td>
-                            <span class="text-success action-btn" onclick="toggleIcon(this)">▶️</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                    <div class="mb-3">
+                        <label for="productInput" class="form-label">Product</label>
+                        <input type="text" class="form-control" id="productInput" name="productInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantityInput" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="quantityInput" name="quantityInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="unit" class="form-label">Per Unit</label>
+                        <input type="text" class="form-control" id="unit" name="unit" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="startDateInput" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDateInput" name="startDateInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDateInput" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDateInput" name="endDateInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="statusInput" class="form-label">Status</label>
+                        <select class="form-select" id="statusInput" name="statusInput" required>
+                            <option selected disabled value="">Choose...</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" name="whatAction"
+                            value="addProduction">Save</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Sidebar toggle on mobile
-    document.getElementById('toggleSidebar').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('open');
-    });
-    function refreshPage() {
-        location.reload();
-    }
-
-    function toggleIcon(element) {
-        if (element.innerText.trim() === '▶️') {
-            element.innerText = '⏸️';
-            element.classList.remove('text-success');
-            element.classList.add('text-warning');
-        } else {
-            element.innerText = '▶️';
-            element.classList.remove('text-warning');
-            element.classList.add('text-success');
-        }
-    }
-
-    <!-- Optional: schedule production ke liye -->
-    function submitSchedule() {
-        const form = document.getElementById('scheduleForm');
-        if (form.checkValidity()) {
-            // Get the form values
-            const data = {
-                id: document.getElementById('idInput').value,
-                product: document.getElementById('productInput').value,
-                quantity: document.getElementById('quantityInput').value,
-                startDate: document.getElementById('startDateInput').value,
-                endDate: document.getElementById('endDateInput').value,
-                status: document.getElementById('statusInput').value,
-            };
-
-            console.log('Form Submitted:', data);
-
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-            modal.hide();
-
-            // Reset form
-            form.reset();
-
-            // TODO: Save the data to server or update UI
-        } else {
-            form.reportValidity(); // Show validation messages
-        }
-    }
-    // table kka pura data dikhane ke liye
-    function showAllRows() {
-    const extraRows = document.querySelectorAll('.extra-row');
-    extraRows.forEach(row => row.classList.remove('d-none'));
-}
-
-// action field 
-function toggleIcon(element) {
-        // If the icon is "▶️", change to "⏸️" and change the status to "In Progress"
-        if (element.innerText.trim() === '▶️') {
-            element.innerText = '⏸️';
-            element.classList.remove('text-success');
-            element.classList.add('text-warning');
-            // Update the status badge to "In Progress"
-            const row = element.closest('tr');
-            row.querySelector('td:nth-child(6) .badge').innerText = 'In Progress';
-            row.querySelector('td:nth-child(6) .badge').classList.remove('badge-scheduled');
-            row.querySelector('td:nth-child(6) .badge').classList.add('badge-in-progress');
-        } 
-        // If the icon is "⏸️", change to "▶️" and change the status to "Scheduled"
-        else {
-            element.innerText = '▶️';
-            element.classList.remove('text-warning');
-            element.classList.add('text-success');
-            // Update the status badge to "Scheduled"
-            const row = element.closest('tr');
-            row.querySelector('td:nth-child(6) .badge').innerText = 'Scheduled';
-            row.querySelector('td:nth-child(6) .badge').classList.remove('badge-in-progress');
-            row.querySelector('td:nth-child(6) .badge').classList.add('badge-scheduled');
-        }
-    }
-
-    // Show more rows when the "View All" button is clicked
-    document.getElementById('viewAllBtn').addEventListener('click', function() {
-        const extraRows = document.querySelectorAll('.extra-row');
-        extraRows.forEach(row => row.classList.remove('d-none'));
-        this.style.display = 'none';  // Hide the "View All" button
-    });
-</script>

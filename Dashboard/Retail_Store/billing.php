@@ -913,15 +913,12 @@ $types = ['All', 'Retail', 'Wholesale'];
             <!-- Search and Filters -->
             <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
                 <div class="flex-grow-1">
-                    <form method="GET" action="?page=billing" class="d-flex align-items-center gap-2">
-                        <input type="hidden" name="page" value="billing">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0" id="searchInput"><i
-                                    class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0 table-search"
-                                data-table="invoice_table" placeholder="Search..." />
-                        </div>
-                    </form>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                                class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-start-0 table-search" data-table="invoice_table"
+                            placeholder="Search..." />
+                    </div>
                 </div>
                 <div class="d-flex gap-2">
                     <div>
@@ -1615,8 +1612,6 @@ $types = ['All', 'Retail', 'Wholesale'];
                         ?>
                     </p>
 
-                    </p>
-                    <button type="button" class="btn btn-outline-primary btn-sm">Send Reminders</button>
                 </div>
             </div>
         </div>

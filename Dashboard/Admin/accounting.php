@@ -407,6 +407,7 @@ $profit_percent = ($last_profit > 0) ? ($profit - $last_profit) / $last_profit *
         <button class="accountingTab active" onclick="showaccountingTab('transaction')">Transaction</button>
         <button class="accountingTab" onclick="showaccountingTab('accounts')">Accounts</button>
         <button class="accountingTab" onclick="showaccountingTab('tax')">Tax Information</button>
+        <!-- <button class="accountingTab" onclick="showaccountingTab('customer')">Customer</button> -->
     </div>
 
     <!-- Transaction -->
@@ -559,6 +560,59 @@ $profit_percent = ($last_profit > 0) ? ($profit - $last_profit) / $last_profit *
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Customer -->
+    <div id="customer" class="accounting-tab-content">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+
+            <div class="justify-contnt-start">
+                <h1>Customers</h1>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <div class="input-group w-100 me-2">
+                    <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search..." />
+                </div>
+            </div>
+        </div>
+        <table class="table table-bordered table-hover" id="customerTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Payment Method</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="transactionTableBody">
+                <?php
+
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM transactions ORDER BY Transaction_ID DESC");
+
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['Transaction_ID']) . "</td>";
+                        echo "<td>" . date('d-M-Y', strtotime($row['Date'])) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Description']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Type']) . "</td>";
+                        echo "<td>₹" . number_format($row['Amount'], 2) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['payment_method']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                }
+                ?>
+            </tbody>
+        </table>
     </div>
     <script>
         // Search Functionality

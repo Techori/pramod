@@ -12,13 +12,14 @@ $success_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_expense'])) {
     $date = mysqli_real_escape_string($conn, $_POST['date'] ?? '');
     $category = mysqli_real_escape_string($conn, $_POST['category'] ?? '');
+    $name = !empty($_POST['customCreatedBy']) ? mysqli_real_escape_string($conn, $_POST['customCreatedBy'] ?? '') : mysqli_real_escape_string($conn, $_POST['createdBy'] ?? '');
     $amount = mysqli_real_escape_string($conn, $_POST['amount'] ?? '');
     $vendor = mysqli_real_escape_string($conn, $_POST['vendor'] ?? '');
     $status = mysqli_real_escape_string($conn, $_POST['status'] ?? '');
     $method = mysqli_real_escape_string($conn, $_POST['method'] ?? '');
 
     // Basic validation
-    if (empty($date) || empty($category) || empty($amount) || empty($vendor) || empty($status) || empty($method)) {
+    if (empty($date) || empty($category) || empty($name) || empty($amount) || empty($vendor) || empty($status) || empty($method)) {
         $error_message = 'All fields are required.';
     } else {
         // Generate expense ID (EXP-YYYY-NNN)
@@ -30,10 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_expense'])) {
         $id_result->free();
 
         // Insert into database
-        $sql = "INSERT INTO expenses (id, date, category, amount, vendor, status, method) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO expenses (id, date, category, addedBy, amount, vendor, status, method) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
         if ($stmt) {
-            $stmt->bind_param("sssdsss", $id, $date, $category, $amount, $vendor, $status, $method);
+            $stmt->bind_param("ssssdsss", $id, $date, $category, $name, $amount, $vendor, $status, $method);
             if ($stmt->execute()) {
                 $show_success_popup = true;
                 $success_message = 'Expense added successfully.';
@@ -102,7 +103,7 @@ $last_year_expenses = $last_year_expenses_result ? ($last_year_expenses_result->
 $last_year_expenses_result->free();
 $ytd_expenses_percent = $last_year_expenses > 0 ? round(($ytd_expenses - $last_year_expenses) / $last_year_expenses * 100, 1) : ($ytd_expenses > 0 ? 100 : 0);
 $ytd_expenses_text = $ytd_expenses_percent >= 0 ? "+{$ytd_expenses_percent}%" : "{$ytd_expenses_percent}%";
-$ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-danger' : 'text-success';
+$ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger';
 
 // Card 3: Pending Approvals
 $pending_approvals_query = "SELECT COUNT(*) as count FROM expenses WHERE status = 'Pending'";
@@ -117,6 +118,75 @@ $last_month_savings = $budget - $last_month_expenses;
 $monthly_savings_percent = $last_month_savings > 0 ? round(($monthly_savings - $last_month_savings) / $last_month_savings * 100, 1) : ($monthly_savings > 0 ? 100 : 0);
 $monthly_savings_text = $monthly_savings_percent >= 0 ? "+{$monthly_savings_percent}%" : "{$monthly_savings_percent}%";
 $monthly_savings_class = $monthly_savings_percent >= 0 ? 'text-success' : 'text-danger';
+
+// Card 5: Today's Expenses
+$today_expenses_query = "
+    SELECT SUM(amount) as total 
+    FROM expenses 
+    WHERE DATE(date) = CURDATE()
+";
+$today_expenses_result = $conn->query($today_expenses_query);
+$today_expenses = $today_expenses_result ? ($today_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
+$today_expenses_result->free();
+
+// Yesterday's Expenses (for comparison)
+$yesterday_expenses_query = "
+    SELECT SUM(amount) as total 
+    FROM expenses 
+    WHERE DATE(date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+";
+$yesterday_expenses_result = $conn->query($yesterday_expenses_query);
+$yesterday_expenses = $yesterday_expenses_result ? ($yesterday_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
+$yesterday_expenses_result->free();
+
+// Calculate Percentage Difference
+$today_expense_percent = $yesterday_expenses > 0
+    ? round(($today_expenses - $yesterday_expenses) / $yesterday_expenses * 100, 1)
+    : ($today_expenses > 0 ? 100 : 0);
+
+// Format Percentage Text and Class
+$today_expense_text = $today_expense_percent >= 0
+    ? "+{$today_expense_percent}%"
+    : "{$today_expense_percent}%";
+
+$today_expense_class = $today_expense_percent >= 0
+    ? 'text-success'
+    : 'text-danger';
+
+// Card 6: Current Week Expenses
+$current_week_expenses_query = "
+    SELECT SUM(amount) as total 
+    FROM expenses 
+    WHERE YEARWEEK(date, 1) = YEARWEEK(CURDATE(), 1)
+";
+$current_week_expenses_result = $conn->query($current_week_expenses_query);
+$current_week_expenses = $current_week_expenses_result ? ($current_week_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
+$current_week_expenses_result->free();
+
+// Last Week Expenses
+$last_week_expenses_query = "
+    SELECT SUM(amount) as total 
+    FROM expenses 
+    WHERE YEARWEEK(date, 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1)
+";
+$last_week_expenses_result = $conn->query($last_week_expenses_query);
+$last_week_expenses = $last_week_expenses_result ? ($last_week_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
+$last_week_expenses_result->free();
+
+// Calculate Percentage Difference
+$week_expense_percent = $last_week_expenses > 0
+    ? round(($current_week_expenses - $last_week_expenses) / $last_week_expenses * 100, 1)
+    : ($current_week_expenses > 0 ? 100 : 0);
+
+// Format Percentage Text and Class
+$week_expense_text = $week_expense_percent >= 0
+    ? "+{$week_expense_percent}%"
+    : "{$week_expense_percent}%";
+
+$week_expense_class = $week_expense_percent >= 0
+    ? 'text-success'
+    : 'text-danger';
+
 
 // Pie Chart: Expenses by Category (also used for analysis)
 $pie_query = "SELECT category, SUM(amount) as total FROM expenses WHERE YEAR(date) = YEAR(CURDATE()) GROUP BY category";
@@ -204,8 +274,20 @@ $savings_insight = $monthly_savings >= 0
     : "You have a deficit of ₹" . number_format(abs($monthly_savings), 0) . " this month.";
 
 // Fetch recent expenses for table
-$expenses_query = "SELECT expense_id, id, date, category, amount, vendor, status FROM expenses ORDER BY date DESC LIMIT 5";
+$expenses_query = "SELECT expense_id, id, date, category, addedBy, amount, vendor, status FROM expenses ORDER BY date DESC LIMIT 5";
 $expenses_result = $conn->query($expenses_query);
+
+
+// Get names for Add expense form dropdown
+$itemSql = "SELECT DISTINCT addedBy FROM expenses ORDER BY addedBy";
+$itemResult = $conn->query($itemSql);
+$items = [];
+if ($itemResult->num_rows > 0) {
+    while ($row = $itemResult->fetch_assoc()) {
+        $items[] = $row['addedBy'];
+    }
+}
+
 ?>
 
 <style>
@@ -390,6 +472,46 @@ $expenses_result = $conn->query($expenses_query);
     </div>
 </div>
 
+<!-- Cards -->
+<div class="row">
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
+            <div class="card-body">
+                <h6 class="text-muted">Daily Expenses</h6>
+                <h3 class="fw-bold">₹<?php echo number_format($today_expenses, 0); ?></h3>
+                <p class="<?php echo $today_expense_class; ?>"><?php echo htmlspecialchars($today_expense_text); ?> vs yesterday</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
+            <div class="card-body">
+                <h6 class="text-muted">Weekly Expenses</h6>
+                <h3 class="fw-bold">₹<?php echo number_format($current_week_expenses, 0); ?></h3>
+                <p class="<?php echo $week_expense_class; ?>"><?php echo htmlspecialchars($week_expense_text); ?> vs last week</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
+            <div class="card-body">
+                <h6 class="text-muted">Monthly Expenses</h6>
+                <h3 class="fw-bold">₹<?php echo number_format($monthly_expenses, 0); ?></h3>
+                <p class="<?php echo $monthly_expenses_class; ?>"><?php echo htmlspecialchars($monthly_expenses_text); ?> vs last month</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #6f42c1;">
+            <div class="card-body">
+                <h6 class="text-muted">Yearly Expenses</h6>
+                <h3 class="fw-bold">₹<?php echo number_format($ytd_expenses, 0); ?></h3>
+                <p class="<?php echo $ytd_expenses_class; ?>"><?php echo htmlspecialchars($ytd_expenses_text); ?> vs last year</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Buttons -->
 <div class="row justify-content-center">
     <div class="col-md-3 col-sm-6 mb-4">
@@ -441,6 +563,20 @@ $expenses_result = $conn->query($expenses_query);
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label for="createdBy" class="form-label">Created by</label>
+                        <select class="form-control" id="createdBy" name="createdBy" onchange="toggleItemInput()">
+                                <option value="">Select Name</option>
+                                <?php foreach ($items as $item): ?>
+                                    <option value="<?php echo htmlspecialchars($item); ?>">
+                                        <?php echo htmlspecialchars($item); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <option value="Other">Other</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="customCreatedBy" name="customCreatedBy"
+                                style="display:none;" placeholder="Enter new name">
+                    </div>
+                    <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
                         <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
                     </div>
@@ -473,6 +609,21 @@ $expenses_result = $conn->query($expenses_query);
         </div>
     </div>
 </div>
+
+<script>
+    function toggleItemInput() {
+        const createdBySelect = document.getElementById('createdBy');
+        const customCreatedByInput = document.getElementById('customCreatedBy');
+        if (createdBySelect.value === 'Other') {
+            customCreatedByInput.style.display = 'block';
+            customCreatedByInput.required = true;
+        } else {
+            customCreatedByInput.style.display = 'none';
+            customCreatedByInput.required = false;
+        }
+    }
+
+</script>
 
 <!-- Edit Expense Form -->
 <div class="modal fade" id="editExpense" tabindex="-1" aria-labelledby="editExpenseLabel" aria-hidden="true">
@@ -684,9 +835,6 @@ $expenses_result = $conn->query($expenses_query);
             <div class="justify-content-start">
                 <h1>Recent Expenses</h1>
             </div>
-            <div class="justify-content-end">
-                <button class="btn btn-outline-primary">View All</button>
-            </div>
         </div>
         <table id="Table" class="table table-bordered table-hover">
             <thead>
@@ -694,6 +842,7 @@ $expenses_result = $conn->query($expenses_query);
                     <th>ID</th>
                     <th>Date</th>
                     <th>Category</th>
+                    <th>Expensed By</th>
                     <th>Amount</th>
                     <th>Vendor</th>
                     <th>Status</th>
@@ -707,6 +856,7 @@ $expenses_result = $conn->query($expenses_query);
                             <td><?php echo htmlspecialchars($expense['id']); ?></td>
                             <td><?php echo htmlspecialchars(date('d M, Y', strtotime($expense['date']))); ?></td>
                             <td><?php echo htmlspecialchars($expense['category']); ?></td>
+                            <td><?php echo htmlspecialchars($expense['addedBy']); ?></td>
                             <td>₹<?php echo number_format($expense['amount'], 2); ?></td>
                             <td><?php echo htmlspecialchars($expense['vendor']); ?></td>
                             <td><?php echo htmlspecialchars($expense['status']); ?></td>

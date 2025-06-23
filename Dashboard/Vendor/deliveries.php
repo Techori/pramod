@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         try {
             // Generate a new request ID
-            $result = $conn->query("SELECT request_id FROM vendor_stock_request WHERE requested_by = '$user_name' ORDER BY CAST(SUBSTRING(request_id, 6) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+            $result = $conn->query("SELECT request_id FROM retail_store_stock_request WHERE requested_by = '$user_name' ORDER BY CAST(SUBSTRING(request_id, 6) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
             if ($result && $row = $result->fetch_assoc()) {
                 $lastId = $row['request_id']; // e.g. SL-005
@@ -38,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             $newRequestId = 'RQST-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
             // Generate a new tracking ID
-            $result = $conn->query("SELECT tracking_id FROM vendor_stock_request ORDER BY CAST(SUBSTRING(tracking_id, 6) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+            $result = $conn->query("SELECT tracking_id FROM retail_store_stock_request ORDER BY CAST(SUBSTRING(tracking_id, 6) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
             if ($result && $row = $result->fetch_assoc()) {
                 $lastId = $row['tracking_id']; // e.g. SL-005
@@ -51,7 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             $newTrackId = 'TRCK-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
             // Insert the transaction record
-            $stmt = $conn->prepare("INSERT INTO vendor_stock_request 
+            $stmt = $conn->prepare("INSERT INTO retail_store_stock_request 
                 (date, request_id, tracking_id, request_to, shop_name, item_name, category, quantity, location, requested_by, status) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
@@ -83,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $received = "Received";
 
         // Verify Delivery ID and Tracking ID match with the given Request ID
-        $stmt = $conn->prepare("SELECT * FROM vendor_stock_request WHERE request_id = ? AND delivery_id = ? AND tracking_id = ?");
+        $stmt = $conn->prepare("SELECT * FROM retail_store_stock_request WHERE request_id = ? AND delivery_id = ? AND tracking_id = ?");
         $stmt->bind_param("sss", $requestId, $deliveryId, $trackingId);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -111,7 +111,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
 
         //If matched, update received data
-        $updateStmt = $conn->prepare("UPDATE vendor_stock_request SET recieved_date = ?, recieved_by = ?, status = ? WHERE tracking_id  = ?");
+        $updateStmt = $conn->prepare("UPDATE retail_store_stock_request SET received_date = ?, received_by = ?, status = ? WHERE tracking_id  = ?");
         $updateStmt->bind_param("ssss", $receivedDate, $receivedBy, $received, $trackingId);
 
         if ($updateStmt->execute()) {
@@ -343,7 +343,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                     <?php
 
                     // Fetch transactions from the database
-                    $result = $conn->query("SELECT * FROM vendor_stock_request WHERE requested_by = '$user_name' ORDER BY requested_by DESC");
+                    $result = $conn->query("SELECT * FROM retail_store_stock_request WHERE requested_by = '$user_name' ORDER BY requested_by DESC");
 
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
@@ -360,12 +360,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                             } else {
                                 echo "<td></td>"; // Leave blank if null or invalid
                             }
-                            if (!empty($row['recieved_date']) && $row['recieved_date'] !== '0000-00-00') {
-                                echo "<td>" . date('d-M-Y', strtotime($row['recieved_date'])) . "</td>";
+                            if (!empty($row['received_date']) && $row['received_date'] !== '0000-00-00') {
+                                echo "<td>" . date('d-M-Y', strtotime($row['received_date'])) . "</td>";
                             } else {
                                 echo "<td></td>"; // Leave blank if null or invalid
                             }
-                            echo "<td>" . htmlspecialchars($row['recieved_by']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['received_by']) . "</td>";
                             echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                             echo "</tr>";
                         }
@@ -382,14 +382,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 <?php
 
 // 1. Pending Requests (status = 'ordered')
-$pendingQuery = $conn->prepare("SELECT COUNT(*) AS total FROM vendor_stock_request WHERE status = 'Ordered' AND requested_by = ?");
+$pendingQuery = $conn->prepare("SELECT COUNT(*) AS total FROM retail_store_stock_request WHERE status = 'Ordered' AND requested_by = ?");
 $pendingQuery->bind_param("s", $user_name);
 $pendingQuery->execute();
 $pendingResult = $pendingQuery->get_result()->fetch_assoc();
 $pendingRequests = $pendingResult['total'];
 
 // 2. In Transit (status = 'in transit')
-$transitQuery = $conn->prepare("SELECT COUNT(*) AS total FROM vendor_stock_request WHERE status = 'In Transit' AND requested_by = ?");
+$transitQuery = $conn->prepare("SELECT COUNT(*) AS total FROM retail_store_stock_request WHERE status = 'In Transit' AND requested_by = ?");
 $transitQuery->bind_param("s", $user_name);
 $transitQuery->execute();
 $transitResult = $transitQuery->get_result()->fetch_assoc();
@@ -399,7 +399,7 @@ $inTransit = $transitResult['total'];
 // Step 1: Total Delivered Requests in Last 30 Days
 $totalQuery = $conn->prepare("
     SELECT COUNT(*) AS total 
-    FROM vendor_stock_request 
+    FROM retail_store_stock_request 
     WHERE requested_by = ? 
     AND delivery_date IS NOT NULL 
     AND delivery_date >= CURDATE() - INTERVAL 30 DAY
@@ -412,11 +412,11 @@ $totalRequests = $totalResult['total'];
 // Step 2: On-Time Deliveries (received on or before delivery_date)
 $onTimeQuery = $conn->prepare("
     SELECT COUNT(*) AS on_time 
-    FROM vendor_stock_request 
+    FROM retail_store_stock_request 
     WHERE requested_by = ? 
     AND delivery_date IS NOT NULL 
-    AND recieved_date IS NOT NULL
-    AND recieved_date <= delivery_date
+    AND received_date IS NOT NULL
+    AND received_date <= delivery_date
     AND delivery_date >= CURDATE() - INTERVAL 30 DAY
 ");
 $onTimeQuery->bind_param("s", $user_name);
@@ -475,7 +475,7 @@ $transitQuery->close();
                 <h5 class="card-title">On-Time Deliveries</h5>
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <p class="h3 font-weight-bold"><?php echo $onTimePercentage; ?></p>
+                        <p class="h3 font-weight-bold"><?php echo $onTimePercentage; ?>%</p>
                         <p class="text-muted">Last 30 days (<?php echo $onTimeRequests . " of " . $totalRequests; ?>)</p>
                     </div>
                     <div class="p-3 bg-success bg-opacity-10 rounded-circle">

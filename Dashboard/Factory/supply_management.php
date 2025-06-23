@@ -1,31 +1,64 @@
 <?php
-$conn = new mysqli("localhost", "root", "", "unnati-wires");
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
+include '../../_conn.php';
+$user_name = $_SESSION['user_name'];
+
 // Count stats
-$pending = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='Ordered'")->fetch_assoc()['count'];
-$in_transit = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='In Transit'")->fetch_assoc()['count'];
-$delivered = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='Delivered'")->fetch_assoc()['count'];
-$suppliers = $conn->query("SELECT COUNT(DISTINCT supplier) as count FROM factory_orders")->fetch_assoc()['count'];
+$pending = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered'")->fetch_assoc()['count'];
+$in_transit = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='In Transit'")->fetch_assoc()['count'];
+$delivered = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Received' AND received_date <= CURDATE() AND received_date >= CURDATE() - INTERVAL 30 DAY")->fetch_assoc()['count'];
 ?>
+
 <?php
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+    if ($_POST['whatAction'] === 'updateDeliveryDate') {
+        $trackingId = $_POST['tracking_id'];
+        $deliveryDate = $_POST['delivery_date'];
+        $status = 'In Transit';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $item = $_POST['orderItem'];
-    $quantity = $_POST['orderQuantity'];
-    $supplier = $_POST['orderSupplier'];
-    $delivery = $_POST['orderDelivery'];
-    $latest_code = $conn->query("SELECT order_code FROM factory_orders ORDER BY order_id DESC LIMIT 1")->fetch_assoc();
-    $new_code = 'SUP-2025-' . str_pad((intval(substr($latest_code['order_code'], 9)) + 1), 3, '0', STR_PAD_LEFT);
+        // Generate a new delivery ID
+        $result = $conn->query("SELECT delivery_id FROM retail_store_stock_request ORDER BY CAST(SUBSTRING(delivery_id, 6) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
-    $stmt = $conn->prepare("INSERT INTO factory_orders (order_code, item, quantity, supplier, delivery_date, status) VALUES (?, ?, ?, ?, ?, 'Ordered')");
-    $stmt->bind_param("sssss", $new_code, $item, $quantity, $supplier, $delivery);
-    $stmt->execute();
-    header("Location: supply_management.php");
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['delivery_id']; // e.g. SL-005
+            $num = (int) substr($lastId, 5);   // get "005" → 5
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newDeliveryId = 'DELS-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        $stmt = $conn->prepare("UPDATE retail_store_stock_request SET delivery_id = ?, delivery_date = ?, status = ? WHERE tracking_id  = ?");
+        $stmt->bind_param("ssss", $newDeliveryId, $deliveryDate, $status, $trackingId);
+        $stmt->execute();
+        $stmt->close();
+
+        $quantityFetch = $conn->query("SELECT * FROM retail_store_stock_request WHERE tracking_id = '$trackingId' LIMIT 1");
+
+        while ($row = $quantityFetch->fetch_assoc()) {
+            $quantity = (int) $row["quantity"];
+            $itemName = $row["item_name"];
+
+            $updateStockStmt = $conn->prepare("
+                UPDATE factory_stock 
+                SET quantity = quantity - ? 
+                WHERE item_name = ?
+            ");
+            $updateStockStmt->bind_param("is", $quantity, $itemName);
+            $updateStockStmt->execute();
+            $updateStockStmt->close();
+        }
+
+        @header("Location: factory_dashboard.php?page=supply_management");
+
+    }
 }
+
 ?>
-    
+
 <style>
     .tab-nav {
         background-color: #f8f9fa;
@@ -64,497 +97,370 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 </style>
 
-        <!-- Top Section -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+<!-- Top Section -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold">Factory Supply Management</h2>
+        <p class="text-muted mb-0">Track and manage raw materials and supplies for production</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+
+    <!-- Search and Filters -->
+    <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
+        <div class="flex-grow-1">
+            <input type="hidden" name="page" value="billing">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                        class="fas fa-search"></i></span>
+                <input type="text" class="form-control border-start-0 table-search" data-table="ordersTable"
+                    placeholder="Search..." />
+            </div>
+        </div>
+        <div class="d-flex gap-2">
             <div>
-                <h2 class="fw-bold">Factory Supply Management</h2>
-                <p class="text-muted mb-0">Track and manage raw materials and supplies for production</p>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="Ordered"
+                    data-table="ordersTable">Ordered</button>
             </div>
-            <!-- New Order Button with Modal Trigger -->
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newOrderModal">New Order</button>
+            <div>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="In Transit"
+                    data-table="ordersTable">In Transit</button>
+            </div>
+            <div>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="Received"
+                    data-table="ordersTable">Received</button>
+            </div>
+            <div>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="ordersTable">Remove
+                    Filters</button>
+            </div>
         </div>
+    </div>
+    <script>
 
-        <!-- New Order Modal -->
-        <div class="modal fade" id="newOrderModal" tabindex="-1" aria-labelledby="newOrderModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="newOrderModalLabel">Create New Order</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="newOrderForm">
-                            <div class="mb-3">
-                                <label for="orderItem" class="form-label">Item</label>
-                                <input type="text" class="form-control" id="orderItem" placeholder="Enter item name"
-                                    required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="orderQuantity" class="form-label">Quantity</label>
-                                <input type="number" class="form-control" id="orderQuantity"
-                                    placeholder="Enter quantity" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="orderSupplier" class="form-label">Supplier</label>
-                                <input type="text" class="form-control" id="orderSupplier"
-                                    placeholder="Enter supplier name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="orderDelivery" class="form-label">Delivery Date</label>
-                                <input type="date" class="form-control" id="orderDelivery" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary" form="newOrderForm" id="saveOrderBtn">Save
-                            Order</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <div class="row mb-4">
-            <div class="col-md-9">
-                <input type="text" id="searchInput" class="form-control"
-                    placeholder="Search supplies by ID, item, or supplier...">
-            </div>
-            <div class="col-md-3 d-flex gap-2">
-                <div class="d-flex mb-3">
-                    <select id="categoryFilter" class="form-select me-2 w-50">
-                        <option value="">All Categories</option>
-                        <option value="Metals">Copper Wire 1.5mm</option>
-                        <option value="Polymers">PVC Compound</option>
-                        <option value="Components">Aluminum Wire</option>
-                    </select>
-                    <button id="filterBtn" class="btn btn-outline-secondary w-50">Filter</button>
-                </div>
-                <button id="scheduleBtn" class="btn btn-outline-secondary w-50">Schedule</button>
-            </div>
-        </div>
+        document.addEventListener("DOMContentLoaded", () => {
 
-        <div class="row mb-5 g-3">
-        <div class="col-md-3">
-            <div class="card text-center p-3">
-                <div class="fs-1 mb-2"><i class="fa-regular fa-hourglass-half"></i></div>
-                <h5 class="mb-0">Pending Orders</h5>
-                <h3 class="fw-bold"><?= $pending ?></h3>
-            </div>
+            // 🔍 Live Search Function
+            document.querySelectorAll(".table-search").forEach(input => {
+                input.addEventListener("input", () => {
+                    const tableId = input.dataset.table;
+                    const value = input.value.toLowerCase();
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(value) ? "" : "none";
+                    });
+                });
+            });
+
+            // 🧾 GST Filter Buttons
+            document.querySelectorAll(".gst-filter").forEach(button => {
+                button.addEventListener("click", () => {
+                    const type = button.dataset.type.toLowerCase();
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const docType = row.children[13]?.innerText.trim().toLowerCase();
+                        row.style.display = docType === type ? "" : "none";
+                    });
+                });
+            });
+
+            // ❌ Remove Filters Button
+            document.querySelectorAll(".reset-filters").forEach(button => {
+                button.addEventListener("click", () => {
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        row.style.display = "";
+                    });
+
+                    // Also clear search inputs for that table
+                    document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
+                        input.value = "";
+                    });
+                });
+            });
+
+            // ✅ Filter Helper Function
+            function filterTable(tableId, conditionFn) {
+                const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                rows.forEach(row => {
+                    row.style.display = conditionFn(row) ? "" : "none";
+                });
+            }
+        });
+    </script>
+</div>
+
+<div class="row mb-5 g-3">
+    <div class="col-md-4">
+        <div class="card text-center p-3">
+            <div class="fs-1 mb-2"><i class="fa-regular fa-hourglass-half"></i></div>
+            <h5 class="mb-0">Pending Orders</h5>
+            <h3 class="fw-bold"><?= $pending ?></h3>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center p-3">
-                <div class="fs-1 mb-2"><i class="fa-solid fa-truck-arrow-right"></i></div>
-                <h5 class="mb-0">In Transit</h5>
-                <h3 class="fw-bold"><?= $in_transit ?></h3>
-            </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center p-3">
+            <div class="fs-1 mb-2"><i class="fa-solid fa-truck-arrow-right"></i></div>
+            <h5 class="mb-0">In Transit</h5>
+            <h3 class="fw-bold"><?= $in_transit ?></h3>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center p-3">
-                <div class="fs-1 mb-2"><i class="fa-solid fa-check"></i></div>
-                <h5 class="mb-0">Delivered This Month</h5>
-                <h3 class="fw-bold"><?= $delivered ?></h3>
-            </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center p-3">
+            <div class="fs-1 mb-2"><i class="fa-solid fa-check"></i></div>
+            <h5 class="mb-0">Delivered This Month</h5>
+            <h3 class="fw-bold"><?= $delivered ?></h3>
         </div>
-        <div class="col-md-3">
-            <div class="card text-center p-3">
-                <div class="fs-1 mb-2"><i class="fa-brands fa-creative-commons-by"></i></div>
-                <h5 class="mb-0">Active Suppliers</h5>
-                <h3 class="fw-bold"><?= $suppliers ?></h3>
+    </div>
+</div>
+
+
+<!-- Recent Supply Orders -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold">Recent Supply Orders</h4>
+    <div>
+        <button class="btn btn-outline-primary btn-sm" id="refreshBtn">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+    <script>
+        // Refresh Button (Reload page)
+        document.getElementById('refreshBtn').addEventListener('click', function () {
+            location.reload();
+        });
+    </script>
+</div>
+
+<div class="table-responsive mb-5">
+    <table class="table table-bordered table-hover" id="ordersTable">
+        <thead>
+            <tr>
+                <th>Request ID</th>
+                <th>Tracking ID</th>
+                <th>Delivery ID</th>
+                <th>Date</th>
+                <th>Shop Name</th>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Location</th>
+                <th>Requested By</th>
+                <th>Received By</th>
+                <th>Delivery Date</th>
+                <th>Received Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+
+            $result = $conn->query("SELECT * FROM retail_store_stock_request WHERE request_to = '$user_name' ORDER BY request_id DESC");
+
+            if ($result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    $status = htmlspecialchars($row['status']);
+                    $id = htmlspecialchars($row['tracking_id']);
+
+                    echo "<tr>";
+                    echo "<td>" . htmlspecialchars($row['request_id']) . "</td>";
+                    echo "<td>" . $id . "</td>";
+                    echo "<td>" . htmlspecialchars($row['delivery_id'] ?? '-') . "</td>";
+                    echo "<td>" . date('d-M-Y', strtotime($row['date'])) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['shop_name']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['category']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['quantity']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['location']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['requested_by']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['received_by'] ?? '-') . "</td>";
+                    echo "<td>" . (!empty($row['delivery_date']) ? date('d-M-Y', strtotime($row['delivery_date'])) : '-') . "</td>";
+                    echo "<td>" . (!empty($row['received_date']) ? date('d-M-Y', strtotime($row['received_date'])) : '-') . "</td>";
+                    echo "<td>" . $status . "</td>";
+
+                    echo "<td>";
+                    if ($status === 'Ordered') {
+                        echo '<button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
+                        <i class="fa-regular fa-pen-to-square"></i>
+                    </button>';
+                    } else {
+                        echo '<button class="btn btn-outline-secondary btn-sm" disabled>
+                        <i class="fa-regular fa-pen-to-square"></i>
+                    </button>';
+                    }
+                    echo "</td>";
+                    echo "</tr>";
+
+                    // Modal for updating status
+                    if ($status === 'Ordered') {
+                        ?>
+                        <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
+                            aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <form method="POST" action="supply_management.php">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <input type="hidden" name="tracking_id" value="<?= $id ?>">
+                                            <label class="form-label">Delivery Date</label>
+                                            <input type="date" name="delivery_date" class="form-control" placeholder="Delivery Date"
+                                                required>
+                                            <!-- <select name="status" class="form-select" required>
+                                                        <option value="">Select Status</option>
+                                                        <option value="Dispatched">Dispatched</option>
+                                                        <option value="Delivered">Delivered</option>
+                                                        <option value="Cancelled">Cancelled</option>
+                                                    </select> -->
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-primary" name="whatAction"
+                                                value="updateDeliveryDate">Update</button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <?php
+                    }
+                }
+            } else {
+                echo "<tr><td colspan='15' class='text-center'>No stock requests found</td></tr>";
+            }
+            ?>
+        </tbody>
+    </table>
+</div>
+
+<!-- Check low stock -->
+<?php
+$low_stock_items = [];
+
+$query = $conn->prepare("SELECT item_name, quantity, status FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock')");
+$query->execute();
+$result = $query->get_result();
+
+while ($row = $result->fetch_assoc()) {
+
+    if ($row['status'] === 'Out of Stock') {
+        $level = 'Critical';
+    } else {
+        $level = 'Low';
+    }
+
+    $low_stock_items[] = [
+        'item' => $row['item_name'],
+        'stock' => $row['quantity'], // e.g. '5 rolls'
+        'level' => $level
+    ];
+}
+
+$query->close();
+?>
+
+<!-- New Section: Low Stock and Supply Trends -->
+<div class="row g-4">
+    <!-- Low Stock Alert Section -->
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5 class="fw-bold text-warning"><i class="bi bi-exclamation-circle"></i> Low Stock Alert</h5>
+            <div class="space-y-4">
+                <?php foreach ($low_stock_items as $item): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="font-medium"><?php echo htmlspecialchars($item['item']); ?></span>
+                        <span
+                            class="<?php echo $item['level'] === 'Critical' ? 'text-danger' : 'text-warning'; ?> font-medium">
+                            <?php echo htmlspecialchars($item['level']); ?>
+                            (<?php echo htmlspecialchars($item['stock']); ?> left)
+                        </span>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>
 
+    <!-- Check popular products -->
+    <?php
+    $popular_products = [];
+    $item_sales = [];
 
-        <!-- Recent Supply Orders -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold">Recent Supply Orders</h4>
-            <div>
-                <button id="refreshBtn" class="btn btn-outline-secondary me-2">Refresh</button>
-                <button id="viewAllBtn" class="btn btn-outline-secondary">View All</button>
+    $startOfMonth = date('Y-m-01');
+    $endOfMonth = date('Y-m-t');
+
+    $query = $conn->prepare("
+        SELECT item_name, quantity 
+        FROM invoice
+        WHERE created_for = ? 
+        AND date BETWEEN ? AND ?
+    ");
+    $query->bind_param("sss", $user_name, $startOfMonth, $endOfMonth);
+    $query->execute();
+    $result = $query->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $items = explode(",", $row['item_name']);
+        $quantities = explode(",", $row['quantity']);
+
+        foreach ($items as $index => $item) {
+            $item = trim($item);
+            $qty = isset($quantities[$index]) ? (int) trim($quantities[$index]) : 0;
+
+            if (!isset($item_sales[$item])) {
+                $item_sales[$item] = 0;
+            }
+            $item_sales[$item] += $qty;
+        }
+    }
+    $query->close();
+
+    // Sort by sold quantity in descending order
+    arsort($item_sales);
+
+    // Take top 5 items
+    $top_items = array_slice($item_sales, 0, 5, true);
+
+    foreach ($top_items as $item => $qty) {
+        // Calculate percentage based on max 1000 units
+        $percentage = min(100, round(($qty / 1000) * 100));
+        $popular_products[] = [
+            'item' => $item,
+            'quantity' => $qty,
+            'percentage' => $percentage
+        ];
+    }
+
+    ?>
+
+    <!-- Supply Trends Card -->
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5 class="fw-bold text-primary"><i class="bi bi-graph-up"></i> Supply Trends</h5>
+            <p class="text-muted mb-4">Monthly procurement of top 3 raw materials</p>
+
+            <div class="space-y-3">
+                <?php foreach ($popular_products as $product): ?>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-sm font-medium"><?php echo htmlspecialchars($product['item']); ?></span>
+                            <span class="text-sm text-muted"><?php echo htmlspecialchars($product['quantity']); ?></span>
+                        </div>
+                        <div class="progress bg-light h-2">
+                            <div class="progress-bar bg-primary"
+                                style="width: <?php echo htmlspecialchars($product['percentage']); ?>%"></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
-
-        <div class="table-responsive mb-5">
-            <table id="supplyTable" class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Item</th>
-                        <th>Quantity</th>
-                        <th>Supplier</th>
-                        <th>Delivery Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>SUP-2025-001</strong></td>
-                        <td>Copper Wire 2.5mm</td>
-                        <td>2000 kg</td>
-                        <td>Hindalco Industries</td>
-                        <td>08 Apr, 2025</td>
-                        <td><span class="badge bg-success">Delivered</span></td>
-                        <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
-                    </tr>
-                    <tr>
-                        <td><strong>SUP-2025-002</strong></td>
-                        <td>PVC Insulation</td>
-                        <td>1500 kg</td>
-                        <td>Polycab Ltd</td>
-                        <td>10 Apr, 2025</td>
-                        <td><span class="badge bg-primary">In Transit</span></td>
-                        <td><a href="#" class="btn btn-sm btn-outline-primary">Track</a></td>
-                    </tr>
-                    <tr>
-                        <td><strong>SUP-2025-003</strong></td>
-                        <td>Aluminum Wire</td>
-                        <td>3000 kg</td>
-                        <td>Sterlite Technologies</td>
-                        <td>12 Apr, 2025</td>
-                        <td><span class="badge bg-warning text-dark">Ordered</span></td>
-                        <td><a href="#" class="btn btn-sm btn-outline-primary">Track</a></td>
-                    </tr>
-                    <tr>
-                        <td><strong>SUP-2025-004</strong></td>
-                        <td>Packaging Material</td>
-                        <td>500 units</td>
-                        <td>Packaging Solutions</td>
-                        <td>05 Apr, 2025</td>
-                        <td><span class="badge bg-success">Delivered</span></td>
-                        <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
-                    </tr>
-                    <tr>
-                        <td><strong>SUP-2025-005</strong></td>
-                        <td>Machine Parts</td>
-                        <td>24 units</td>
-                        <td>Industrial Machines Ltd</td>
-                        <td>11 Apr, 2025</td>
-                        <td><span class="badge bg-primary">In Transit</span></td>
-                        <td><a href="#" class="btn btn-sm btn-outline-primary">Track</a></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <script>
-            // Search Functionality
-            document.getElementById('searchInput').addEventListener('input', function () {
-                const searchText = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
-
-                rows.forEach(row => {
-                    const cells = row.getElementsByTagName('td');
-                    let match = false;
-                    for (let i = 0; i < cells.length; i++) {
-                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    row.style.display = match ? '' : 'none';
-                });
-            });
-                // Filter Functionality (Filter by "Ordered" status)
-                document.getElementById('filterBtn').addEventListener('click', function () {
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
-                rows.forEach(row => {
-                    const status = row.cells[5].textContent.trim().toLowerCase();
-                    if (status === 'ordered') {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-   // Refresh Button (Reload page)
-   document.getElementById('refreshBtn').addEventListener('click', function () {
-                location.reload();
-            });
-
-            // Schedule Functionality (Filter by "In Transit" status)
-            document.getElementById('scheduleBtn').addEventListener('click', function () {
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
-                rows.forEach(row => {
-                    const status = row.cells[5].textContent.trim().toLowerCase();
-                    if (status === 'in transit') {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-          
-
-            // View All Button (Reveals hidden rows)
-            document.getElementById('viewAllBtn').addEventListener('click', function () {
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
-                rows.forEach(row => row.style.display = '');
-                this.style.display = 'none';  // Hide the "View All" button
-            });
-
-           
-
-            // Handle form submission (for demo purposes, just log the form data)
-            document.getElementById('newOrderForm').addEventListener('submit', function (e) {
-                e.preventDefault(); // Prevent the form from submitting normally
-
-                // Collect form data
-                const orderItem = document.getElementById('orderItem').value;
-                const orderQuantity = document.getElementById('orderQuantity').value;
-                const orderSupplier = document.getElementById('orderSupplier').value;
-                const orderDelivery = document.getElementById('orderDelivery').value;
-
-                // Log the data (in a real scenario, you'd send this to a server)
-                console.log('New Order Details:', {
-                    item: orderItem,
-                    quantity: orderQuantity,
-                    supplier: orderSupplier,
-                    deliveryDate: orderDelivery
-                });
-
-                // Close the modal after saving
-                const modal = bootstrap.Modal.getInstance(document.getElementById('newOrderModal'));
-                modal.hide();
-
-                // Optionally, reset the form
-                document.getElementById('newOrderForm').reset();
-            });
-        </script>
-    <!-- New Section: Low Stock and Supply Trends -->
-    <div class="row g-4">
-        <!-- Low Stock Alert Section -->
-        <div class="col-md-6">
-            <div class="card p-3">
-                <h5 class="fw-bold text-warning"><i class="bi bi-exclamation-circle"></i> Low Stock Alert</h5>
-                <ul class="list-unstyled mt-3 mb-4">
-                    <li class="mb-2">Copper Wire 1.5mm <span class="text-danger fw-bold float-end">Critical (120 kg
-                            left)</span></li>
-                    <li class="mb-2">PVC Insulation (Red) <span class="text-warning fw-bold float-end">Low (450 kg
-                            left)</span></li>
-                    <li class="mb-2">Aluminum Wire 2.0mm <span class="text-warning fw-bold float-end">Low (380 kg
-                            left)</span></li>
-                </ul>
-                <button class="btn btn-outline-warning w-100" data-bs-toggle="modal"
-                    data-bs-target="#orderLowStockModal">
-                    Order Low Stock Items
-                </button>
-            </div>
-        </div>
-
-        <!-- Modal -->
-        <div class="modal fade" id="orderLowStockModal" tabindex="-1" aria-labelledby="orderLowStockModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="orderLowStockModalLabel">Confirm Order</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        Do you want to place an order for the low stock items listed?
-                        <ul class="mt-3">
-                            <li>Copper Wire 1.5mm - 120 kg</li>
-                            <li>PVC Insulation (Red) - 450 kg</li>
-                            <li>Aluminum Wire 2.0mm - 380 kg</li>
-                        </ul>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-warning" onclick="confirmOrder()">Confirm Order</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Supply Trends Card -->
-        <div class="col-md-6">
-            <div class="card p-3">
-                <h5 class="fw-bold text-primary"><i class="bi bi-graph-up"></i> Supply Trends</h5>
-                <p class="text-muted mb-4">Monthly procurement of top 3 raw materials</p>
-
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between">
-                        <span>Copper Wire</span><span>8,500 kg</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-primary" style="width: 90%;"></div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between">
-                        <span>PVC Insulation</span><span>6,200 kg</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-primary" style="width: 65%;"></div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between">
-                        <span>Aluminum Wire</span><span>4,800 kg</span>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar bg-primary" style="width: 45%;"></div>
-                    </div>
-                </div>
-
-                <button class="btn btn-outline-primary w-100" data-bs-toggle="modal"
-                    data-bs-target="#fullReportModal">View Full Report</button>
-            </div>
-        </div>
-
-        <!-- Modal -->
-        <div class="modal fade" id="fullReportModal" tabindex="-1" aria-labelledby="fullReportModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="fullReportModalLabel">Supply Trends - Full Report</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>This report contains the full monthly procurement data of all key raw materials:</p>
-                        <ul>
-                            <li><strong>Copper Wire:</strong> 8,500 kg (↑ 12% from last month)</li>
-                            <li><strong>PVC Insulation:</strong> 6,200 kg (↔ Same as last month)</li>
-                            <li><strong>Aluminum Wire:</strong> 4,800 kg (↓ 5% from last month)</li>
-                            <li><strong>Packaging Material:</strong> 2,300 units (↑ 8%)</li>
-                            <li><strong>Machine Parts:</strong> 150 units (New entry)</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <script>
-        function showTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('d-none'));
-            document.getElementById(tab).classList.remove('d-none');
-            document.querySelectorAll('.tab-nav a').forEach(a => a.classList.remove('active'));
-            document.querySelector('.tab-nav a[href="#' + tab + '"]').classList.add('active');
-            document.getElementById('actionLabel').innerText = tab === 'purchase' ? 'New Order' : 'Add Supplier';
-        }
-    </script>
-
-    <script>
-        const ctxPie = document.getElementById('spendingChart');
-        new Chart(ctxPie, {
-            type: 'pie',
-            data: {
-                labels: ['Havells', 'Polycab', 'Orient', 'Bajaj', 'Anchor', 'Others'],
-                datasets: [{
-                    data: [28, 23, 10, 8, 12, 18],
-                    backgroundColor: ['#007bff', '#20c997', '#fd7e14', '#ff5733', '#6f42c1', '#343a40']
-                }]
-            },
-            options: {
-                responsive: true
-            }
-        });
-
-        const ctxLine = document.getElementById('ordersTrend');
-        new Chart(ctxLine, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Orders',
-                    data: [38, 32, 45, 53, 48, 42],
-                    fill: false,
-                    borderColor: '#007bff',
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-        // Spending by Supplier (Pie Chart)
-        const spendingCtx = document.getElementById('spendingChart').getContext('2d');
-        const spendingChart = new Chart(spendingCtx, {
-            type: 'pie',
-            data: {
-                labels: ['Supplier A', 'Supplier B', 'Supplier C'],
-                datasets: [{
-                    label: 'Spending',
-                    data: [3000, 2000, 5000],
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-
-        // Purchase Orders Trend (Line Chart)
-        const ordersCtx = document.getElementById('ordersTrend').getContext('2d');
-        const ordersTrend = new Chart(ordersCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-                datasets: [{
-                    label: 'Purchase Orders',
-                    data: [12, 19, 3, 5, 9],
-                    fill: false,
-                    borderColor: '#4BC0C0',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-
-        // Handle form submission (for demo purposes, just log the form data)
-        document.getElementById('newOrderForm').addEventListener('submit', function (e) {
-            e.preventDefault(); // Prevent the form from submitting normally
-
-            // Collect form data
-            const orderItem = document.getElementById('orderItem').value;
-            const orderQuantity = document.getElementById('orderQuantity').value;
-            const orderSupplier = document.getElementById('orderSupplier').value;
-            const orderDelivery = document.getElementById('orderDelivery').value;
-
-            // Log the data (in a real scenario, you'd send this to a server)
-            console.log('New Order Details:', {
-                item: orderItem,
-                quantity: orderQuantity,
-                supplier: orderSupplier,
-                deliveryDate: orderDelivery
-            });
-
-            // Close the modal after saving
-            const modal = bootstrap.Modal.getInstance(document.getElementById('newOrderModal'));
-            modal.hide();
-
-            // Optionally, reset the form
-            document.getElementById('newOrderForm').reset();
-        });
-
-        // Low Stock Alert btn ke liye
-        function confirmOrder() {
-            alert("Low stock items order placed successfully!");
-            const modal = bootstrap.Modal.getInstance(document.getElementById('orderLowStockModal'));
-            modal.hide();
-        }
-    </script>
+</div>

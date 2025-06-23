@@ -62,7 +62,7 @@
         $pendingPayments = $pendingPaymentsRow['pending_total'] ?? 0;
 
         // --- 3. Pending Deliveries
-        $pendingDeliveriesQuery = $conn->query("SELECT COUNT(*) AS pending_count FROM vendor_stock_request WHERE status = 'Ordered'");
+        $pendingDeliveriesQuery = $conn->query("SELECT COUNT(*) AS pending_count FROM retail_store_stock_request WHERE status = 'Ordered' AND requested_by = '$user_name'");
         $pendingDeliveriesRow = $pendingDeliveriesQuery->fetch_assoc();
         $pendingDeliveries = $pendingDeliveriesRow['pending_count'] ?? 0;
         ?>

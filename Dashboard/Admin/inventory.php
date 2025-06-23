@@ -14,12 +14,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $add_inventory = $_POST['add_inventory'] && $_POST['add_inventory'] === '1';
         $status = $_POST['status'] ?? '';
         $supplier = $_POST['supplier'] ?? '';
+        $date = $_POST['date'] ?? '';
+        $name = !empty($_POST['customCreatedBy']) ? mysqli_real_escape_string($conn, $_POST['customCreatedBy'] ?? '') : mysqli_real_escape_string($conn, $_POST['createdBy'] ?? '');
 
         // Validate Product Data
         if (empty($name) || empty($category) || empty($mrp) || empty($gst_rate) || empty($selling_price) || empty($stock)) {
             $error_message = 'All product fields are required.';
-        } elseif ($add_inventory && (empty($status) || empty($supplier))) {
-            $error_message = 'Status and Supplier are required when adding an inventory record.';
+        } elseif ($add_inventory && (empty($status) || empty($supplier) || empty($name))) {
+            $error_message = 'Status, Supplier and Created By are required when adding an inventory record.';
         } elseif ($stock < 0) {
             $error_message = 'Initial stock quantity cannot be negative.';
         } else {
@@ -36,7 +38,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 $sql = "INSERT INTO products (id, mrp, name, category, gst_rate, selling_price, stock_quantity) 
                         VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $stmt = $conn->prepare($sql);
-                $initial_stock = $add_inventory ? 0 : (int)$stock; // If adding inventory record, stock starts at 0
+                $initial_stock = $add_inventory ? 0 : (int) $stock; // If adding inventory record, stock starts at 0
                 $stmt->bind_param("sdssddi", $product_id, $mrp, $name, $category, $gst_rate, $selling_price, $initial_stock);
                 $stmt->execute();
                 $stmt->close();
@@ -74,6 +76,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                     $update_stmt->bind_param("is", $stock, $product_id);
                     $update_stmt->execute();
                     $update_stmt->close();
+
+                    // Generate expense ID (EXP-YYYY-NNN)
+                    $year = date('Y', strtotime($date));
+                    $id_query = "SELECT COUNT(*) as count FROM expenses WHERE YEAR(date) = '$year'";
+                    $id_result = $conn->query($id_query);
+                    $count = $id_result ? ($id_result->fetch_assoc()['count'] + 1) : 1;
+                    $id = "EXP-$year-" . str_pad($count, 3, '0', STR_PAD_LEFT);
+                    $id_result->free();
+
+                    $mrp_price = (int) $mrp;
+                    $stock_quantity = (int) $stock;
+                    $amount = $mrp_price * $stock_quantity;
+
+                    // Insert into database
+                    $exp_sql = "INSERT INTO expenses (id, date, category, addedBy, amount, vendor, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    $exp_stmt = $conn->prepare($exp_sql);
+                    $exp_stmt->bind_param("ssssdss", $id, $date, $category, $name, $amount, $supplier, $status);
+                    $exp_stmt->execute();
+                    $exp_stmt->close();
                 }
 
                 $conn->commit();
@@ -94,12 +115,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $stock = $_POST['stock'] ?? '';
         $transaction_type = $_POST['transaction_type'] ?? '';
         $status = $_POST['status'] ?? '';
+        $amount = $_POST['amount'] ?? '';
         $supplier = $_POST['supplier'] ?? '';
+        $date = $_POST['date'] ?? '';
+        $name = !empty($_POST['customCreatedBy']) ? mysqli_real_escape_string($conn, $_POST['customCreatedBy'] ?? '') : mysqli_real_escape_string($conn, $_POST['createdBy'] ?? '');
 
         // Validate Inventory Data
-        if (empty($product_id) || $stock === '' || empty($transaction_type) || empty($status) || empty($supplier)) {
+        if (empty($product_id) || $stock === '' || empty($transaction_type) || empty($status) || empty($supplier) || empty($name)) {
             $error_message = 'All inventory fields are required.';
-        } elseif ((int)$stock <= 0) {
+        } elseif ((int) $stock <= 0) {
             $error_message = 'Stock quantity must be a positive number.';
         } else {
             $allowedStatus = ['In Stock', 'Low Stock'];
@@ -123,11 +147,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                     $product = $product_result->fetch_assoc();
                     $product_name = $product['name'];
                     $category = $product['category'];
-                    $current_stock = (int)$product['stock_quantity'];
+                    $current_stock = (int) $product['stock_quantity'];
                     $product_stmt->close();
 
                     // Determine stock change based on transaction type
-                    $stock_quantity = (int)$stock;
+                    $stock_quantity = (int) $stock;
                     $stock_change = ($transaction_type === 'Add Stock') ? $stock_quantity : -$stock_quantity;
 
                     // Validate stock availability for deductions
@@ -162,6 +186,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                     $update_stmt->execute();
                     $update_stmt->close();
 
+                    // Generate expense ID (EXP-YYYY-NNN)
+                    $year = date('Y', strtotime($date));
+                    $id_query = "SELECT COUNT(*) as count FROM expenses WHERE YEAR(date) = '$year'";
+                    $id_result = $conn->query($id_query);
+                    $count = $id_result ? ($id_result->fetch_assoc()['count'] + 1) : 1;
+                    $id = "EXP-$year-" . str_pad($count, 3, '0', STR_PAD_LEFT);
+                    $id_result->free();
+
+                    // Insert into database
+                    $exp_sql = "INSERT INTO expenses (id, date, category, addedBy, amount, vendor, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    $exp_stmt = $conn->prepare($exp_sql);
+                    $exp_stmt->bind_param("ssssdss", $id, $date, $category, $name, $amount, $supplier, $status);
+                    $exp_stmt->execute();
+                    $exp_stmt->close();
+
                     $conn->commit();
                     $success_message = 'Inventory record added successfully.';
                 } catch (Exception $e) {
@@ -184,7 +223,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         if (empty($id) || empty($name) || empty($category) || empty($mrp) || empty($gst_rate) || empty($selling_price) || empty($stock)) {
             $error_message = 'All fields are required.';
-        } elseif ((int)$stock < 0) {
+        } elseif ((int) $stock < 0) {
             $error_message = 'Stock quantity cannot be negative.';
         } else {
             $sql = "UPDATE products SET mrp = ?, name = ?, category = ?, gst_rate = ?, selling_price = ?, stock_quantity = ?, updated_at = CURRENT_TIMESTAMP 
@@ -442,7 +481,8 @@ if ($bar_result) {
     <div class="d-flex">
         <div class="input-group w-100 me-2">
             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Search..." onkeyup="filterTables()" />
+            <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Search..."
+                onkeyup="filterTables()" />
         </div>
         <div class="d-flex gap-2">
             <button class="btn btn-outline-primary d-flex" data-bs-toggle="modal" data-bs-target="#addProductModal">
@@ -461,6 +501,19 @@ if ($bar_result) {
     </div>
 </div>
 
+
+<?php
+// Get names for Add expense form dropdown
+$itemSql = "SELECT DISTINCT addedBy FROM expenses ORDER BY addedBy";
+$itemResult = $conn->query($itemSql);
+$items = [];
+if ($itemResult->num_rows > 0) {
+    while ($row = $itemResult->fetch_assoc()) {
+        $items[] = $row['addedBy'];
+    }
+}
+?>
+
 <!-- Add Product Modal -->
 <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -477,6 +530,10 @@ if ($bar_result) {
                         <input type="text" class="form-control" id="name" name="name" required>
                     </div>
                     <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="mb-3">
                         <label for="category" class="form-label">Category</label>
                         <input type="text" class="form-control" id="category" name="category" required>
                     </div>
@@ -490,14 +547,16 @@ if ($bar_result) {
                     </div>
                     <div class="mb-3">
                         <label for="selling_price" class="form-label">Selling Price (₹)</label>
-                        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price" required>
+                        <input type="number" step="0.01" class="form-control" id="selling_price" name="selling_price"
+                            required>
                     </div>
                     <div class="mb-3">
                         <label for="stock" class="form-label">Initial Stock Quantity</label>
                         <input type="number" class="form-control" id="stock" name="stock" required>
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="add_inventory" name="add_inventory" value="1">
+                        <input type="checkbox" class="form-check-input" id="add_inventory" name="add_inventory"
+                            value="1">
                         <label class="form-check-label" for="add_inventory">Add Initial Inventory Record</label>
                     </div>
                     <div class="mb-3" id="status_field" style="display: none;">
@@ -510,6 +569,20 @@ if ($bar_result) {
                     <div class="mb-3" id="supplier_field" style="display: none;">
                         <label for="supplier" class="form-label">Supplier</label>
                         <input type="text" class="form-control" id="supplier" name="supplier">
+                    </div>
+                    <div class="mb-3" id="name_field" style="display: none;">
+                        <label for="createdBy" class="form-label">Created by</label>
+                        <select class="form-control" id="createdBy" name="createdBy" onchange="toggleItemInput()">
+                            <option value="">Select Name</option>
+                            <?php foreach ($items as $item): ?>
+                                <option value="<?php echo htmlspecialchars($item); ?>">
+                                    <?php echo htmlspecialchars($item); ?>
+                                </option>
+                            <?php endforeach; ?>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="text" class="form-control mt-2" id="customCreatedBy" name="customCreatedBy"
+                            style="display:none;" placeholder="Enter new name">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -544,6 +617,24 @@ if ($bar_result) {
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createdBy" class="form-label">Created by</label>
+                        <select class="form-control" id="createdBy" name="createdBy" onchange="toggleItemInput()">
+                            <option value="">Select Name</option>
+                            <?php foreach ($items as $item): ?>
+                                <option value="<?php echo htmlspecialchars($item); ?>">
+                                    <?php echo htmlspecialchars($item); ?>
+                                </option>
+                            <?php endforeach; ?>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="text" class="form-control mt-2" id="customCreatedBy" name="customCreatedBy"
+                            style="display:none;" placeholder="Enter new name">
+                    </div>
+                    <div class="mb-3">
                         <label for="transaction_type" class="form-label">Transaction Type</label>
                         <select class="form-select" id="transaction_type" name="transaction_type" required>
                             <option value="Add Stock">Add Stock</option>
@@ -553,6 +644,10 @@ if ($bar_result) {
                     <div class="mb-3">
                         <label for="inv_stock" class="form-label">Stock Quantity</label>
                         <input type="number" min="1" class="form-control" id="inv_stock" name="stock" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
                     </div>
                     <div class="mb-3">
                         <label for="inv_status" class="form-label">Status</label>
@@ -574,6 +669,21 @@ if ($bar_result) {
         </div>
     </div>
 </div>
+
+<script>
+    function toggleItemInput() {
+        const createdBySelect = document.getElementById('createdBy');
+        const customCreatedByInput = document.getElementById('customCreatedBy');
+        if (createdBySelect.value === 'Other') {
+            customCreatedByInput.style.display = 'block';
+            customCreatedByInput.required = true;
+        } else {
+            customCreatedByInput.style.display = 'none';
+            customCreatedByInput.required = false;
+        }
+    }
+
+</script>
 
 <!-- Edit Product Modal -->
 <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductLabel" aria-hidden="true">
@@ -605,7 +715,8 @@ if ($bar_result) {
                     </div>
                     <div class="mb-3">
                         <label for="editSellingPrice" class="form-label">Selling Price (₹)</label>
-                        <input type="number" step="0.01" class="form-control" id="editSellingPrice" name="selling_price" required>
+                        <input type="number" step="0.01" class="form-control" id="editSellingPrice" name="selling_price"
+                            required>
                     </div>
                     <div class="mb-3">
                         <label for="editStock" class="form-label">Stock Quantity</label>
@@ -633,7 +744,8 @@ if ($bar_result) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this product? This action will not affect existing inventory transactions.</p>
+                    <p>Are you sure you want to delete this product? This action will not affect existing inventory
+                        transactions.</p>
                     <p><strong>Product ID:</strong> <span id="deleteProductIdDisplay"></span></p>
                     <p><strong>Name:</strong> <span id="deleteProductName"></span></p>
                 </div>
@@ -697,23 +809,21 @@ if ($bar_result) {
                             <td><?php echo htmlspecialchars($product['stock_quantity']); ?></td>
                             <td>
                                 <div class="d-flex gap-2">
-                                    <button class="btn btn-outline-primary btn-sm edit-product-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editProductModal"
-                                            data-id="<?php echo htmlspecialchars($product['id']); ?>"
-                                            data-name="<?php echo htmlspecialchars($product['name']); ?>"
-                                            data-category="<?php echo htmlspecialchars($product['category']); ?>"
-                                            data-mrp="<?php echo htmlspecialchars($product['mrp']); ?>"
-                                            data-gst-rate="<?php echo htmlspecialchars($product['gst_rate']); ?>"
-                                            data-selling-price="<?php echo htmlspecialchars($product['selling_price']); ?>"
-                                            data-stock="<?php echo htmlspecialchars($product['stock_quantity']); ?>">
+                                    <button class="btn btn-outline-primary btn-sm edit-product-btn" data-bs-toggle="modal"
+                                        data-bs-target="#editProductModal"
+                                        data-id="<?php echo htmlspecialchars($product['id']); ?>"
+                                        data-name="<?php echo htmlspecialchars($product['name']); ?>"
+                                        data-category="<?php echo htmlspecialchars($product['category']); ?>"
+                                        data-mrp="<?php echo htmlspecialchars($product['mrp']); ?>"
+                                        data-gst-rate="<?php echo htmlspecialchars($product['gst_rate']); ?>"
+                                        data-selling-price="<?php echo htmlspecialchars($product['selling_price']); ?>"
+                                        data-stock="<?php echo htmlspecialchars($product['stock_quantity']); ?>">
                                         <i class="fa-solid fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger btn-sm delete-product-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteProductModal"
-                                            data-id="<?php echo htmlspecialchars($product['id']); ?>"
-                                            data-name="<?php echo htmlspecialchars($product['name']); ?>">
+                                    <button class="btn btn-outline-danger btn-sm delete-product-btn" data-bs-toggle="modal"
+                                        data-bs-target="#deleteProductModal"
+                                        data-id="<?php echo htmlspecialchars($product['id']); ?>"
+                                        data-name="<?php echo htmlspecialchars($product['name']); ?>">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </div>
@@ -784,179 +894,182 @@ if ($bar_result) {
 </div>
 
 <script>
-// Search Functionality for Both Tables
-function filterTables() {
-    const input = document.getElementById('searchInput').value.toLowerCase();
+    // Search Functionality for Both Tables
+    function filterTables() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
 
-    // Filter Products Table
-    const productsTable = document.getElementById('productsTable');
-    const productRows = productsTable.getElementsByTagName('tr');
-    for (let i = 1; i < productRows.length; i++) {
-        const cells = productRows[i].getElementsByTagName('td');
-        const id = cells[0].textContent.toLowerCase();
-        const name = cells[1].textContent.toLowerCase();
-        const category = cells[2].textContent.toLowerCase();
+        // Filter Products Table
+        const productsTable = document.getElementById('productsTable');
+        const productRows = productsTable.getElementsByTagName('tr');
+        for (let i = 1; i < productRows.length; i++) {
+            const cells = productRows[i].getElementsByTagName('td');
+            const id = cells[0].textContent.toLowerCase();
+            const name = cells[1].textContent.toLowerCase();
+            const category = cells[2].textContent.toLowerCase();
 
-        if (id.includes(input) || name.includes(input) || category.includes(input)) {
-            productRows[i].style.display = '';
-        } else {
-            productRows[i].style.display = 'none';
+            if (id.includes(input) || name.includes(input) || category.includes(input)) {
+                productRows[i].style.display = '';
+            } else {
+                productRows[i].style.display = 'none';
+            }
         }
-    }
 
-    // Filter Inventory Table
-    const inventoryTable = document.getElementById('inventoryTable');
-    const inventoryRows = inventoryTable.getElementsByTagName('tr');
-    for (let i = 1; i < inventoryRows.length; i++) {
-        const cells = inventoryRows[i].getElementsByTagName('td');
-        const id = cells[0].textContent.toLowerCase();
-        const name = cells[1].textContent.toLowerCase();
-        const category = cells[2].textContent.toLowerCase();
-        const transaction_type = cells[4].textContent.toLowerCase();
-        const supplier = cells[6].textContent.toLowerCase();
+        // Filter Inventory Table
+        const inventoryTable = document.getElementById('inventoryTable');
+        const inventoryRows = inventoryTable.getElementsByTagName('tr');
+        for (let i = 1; i < inventoryRows.length; i++) {
+            const cells = inventoryRows[i].getElementsByTagName('td');
+            const id = cells[0].textContent.toLowerCase();
+            const name = cells[1].textContent.toLowerCase();
+            const category = cells[2].textContent.toLowerCase();
+            const transaction_type = cells[4].textContent.toLowerCase();
+            const supplier = cells[6].textContent.toLowerCase();
 
-        if (id.includes(input) || name.includes(input) || category.includes(input) || transaction_type.includes(input) || supplier.includes(input)) {
-            inventoryRows[i].style.display = '';
-        } else {
-            inventoryRows[i].style.display = 'none';
-        }
-    }
-}
-
-// Auto-Dismiss Alerts
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-dismiss alerts after 5 seconds
-    const alerts = document.querySelectorAll('.alert-dismissible');
-    alerts.forEach(alert => {
-        setTimeout(() => {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        }, 5000);
-    });
-
-    // Populate Edit Product Modal
-    document.querySelectorAll('.edit-product-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const name = this.dataset.name;
-            const category = this.dataset.category;
-            const mrp = this.dataset.mrp;
-            const gstRate = this.dataset.gstRate;
-            const sellingPrice = this.dataset.sellingPrice;
-            const stock = this.dataset.stock;
-
-            document.getElementById('editProductId').value = id;
-            document.getElementById('editName').value = name;
-            document.getElementById('editCategory').value = category;
-            document.getElementById('editMrp').value = mrp;
-            document.getElementById('editGstRate').value = gstRate;
-            document.getElementById('editSellingPrice').value = sellingPrice;
-            document.getElementById('editStock').value = stock;
-        });
-    });
-
-    // Populate Delete Product Modal
-    document.querySelectorAll('.delete-product-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const name = this.dataset.name;
-
-            document.getElementById('deleteProductId').value = id;
-            document.getElementById('deleteProductIdDisplay').textContent = id;
-            document.getElementById('deleteProductName').textContent = name;
-        });
-    });
-
-    // Show/Hide Status and Supplier Fields in Add Product Modal
-    document.getElementById('add_inventory').addEventListener('change', function() {
-        const statusField = document.getElementById('status_field');
-        const supplierField = document.getElementById('supplier_field');
-        statusField.style.display = this.checked ? 'block' : 'none';
-        supplierField.style.display = this.checked ? 'block' : 'none';
-    });
-
-    // Refresh Button
-    document.getElementById('refreshBtn').addEventListener('click', function() {
-        window.location.reload();
-    });
-
-    // View All Buttons
-    document.getElementById('viewAllProductsBtn').addEventListener('click', function() {
-        document.getElementById('searchInput').value = '';
-        let rows = document.querySelectorAll('#productsTable tbody tr');
-        rows.forEach(row => row.style.display = '');
-    });
-
-    document.getElementById('viewAllInventoryBtn').addEventListener('click', function() {
-        document.getElementById('searchInput').value = '';
-        let rows = document.querySelectorAll('#inventoryTable tbody tr');
-        rows.forEach(row => row.style.display = '');
-    });
-});
-
-// Pie Chart: Stock by Category
-const pieCtx = document.getElementById('pieChart').getContext('2d');
-new Chart(pieCtx, {
-    type: 'pie',
-    data: {
-        labels: <?php echo json_encode($pie_labels); ?>,
-        datasets: [{
-            data: <?php echo json_encode($pie_data); ?>,
-            backgroundColor: <?php echo json_encode($pie_colors); ?>
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    color: '#333',
-                    font: { size: 14 }
-                }
+            if (id.includes(input) || name.includes(input) || category.includes(input) || transaction_type.includes(input) || supplier.includes(input)) {
+                inventoryRows[i].style.display = '';
+            } else {
+                inventoryRows[i].style.display = 'none';
             }
         }
     }
-});
 
-// Bar Chart: Top 5 Products by Stock
-const barCtx = document.getElementById('barChart').getContext('2d');
-new Chart(barCtx, {
-    type: 'bar',
-    data: {
-        labels: <?php echo json_encode($bar_labels); ?>,
-        datasets: [{
-            label: 'Stock Quantity',
-            data: <?php echo json_encode($bar_data); ?>,
-            backgroundColor: '#0d6efd',
-            borderColor: '#0d6efd',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'Stock Quantity'
+    // Auto-Dismiss Alerts
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auto-dismiss alerts after 5 seconds
+        const alerts = document.querySelectorAll('.alert-dismissible');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        });
+
+        // Populate Edit Product Modal
+        document.querySelectorAll('.edit-product-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const category = this.dataset.category;
+                const mrp = this.dataset.mrp;
+                const gstRate = this.dataset.gstRate;
+                const sellingPrice = this.dataset.sellingPrice;
+                const stock = this.dataset.stock;
+
+                document.getElementById('editProductId').value = id;
+                document.getElementById('editName').value = name;
+                document.getElementById('editCategory').value = category;
+                document.getElementById('editMrp').value = mrp;
+                document.getElementById('editGstRate').value = gstRate;
+                document.getElementById('editSellingPrice').value = sellingPrice;
+                document.getElementById('editStock').value = stock;
+            });
+        });
+
+        // Populate Delete Product Modal
+        document.querySelectorAll('.delete-product-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+
+                document.getElementById('deleteProductId').value = id;
+                document.getElementById('deleteProductIdDisplay').textContent = id;
+                document.getElementById('deleteProductName').textContent = name;
+            });
+        });
+
+        // Show/Hide Status and Supplier Fields in Add Product Modal
+        document.getElementById('add_inventory').addEventListener('change', function () {
+            const statusField = document.getElementById('status_field');
+            const supplierField = document.getElementById('supplier_field');
+            const nameField = document.getElementById('name_field');
+            statusField.style.display = this.checked ? 'block' : 'none';
+            supplierField.style.display = this.checked ? 'block' : 'none';
+            nameField.style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Refresh Button
+        document.getElementById('refreshBtn').addEventListener('click', function () {
+            window.location.reload();
+        });
+
+        // View All Buttons
+        document.getElementById('viewAllProductsBtn').addEventListener('click', function () {
+            document.getElementById('searchInput').value = '';
+            let rows = document.querySelectorAll('#productsTable tbody tr');
+            rows.forEach(row => row.style.display = '');
+        });
+
+        document.getElementById('viewAllInventoryBtn').addEventListener('click', function () {
+            document.getElementById('searchInput').value = '';
+            let rows = document.querySelectorAll('#inventoryTable tbody tr');
+            rows.forEach(row => row.style.display = '');
+        });
+    });
+
+    // Pie Chart: Stock by Category
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: <?php echo json_encode($pie_labels); ?>,
+            datasets: [{
+                data: <?php echo json_encode($pie_data); ?>,
+                backgroundColor: <?php echo json_encode($pie_colors); ?>
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#333',
+                        font: { size: 14 }
+                    }
+                }
+            }
+        }
+    });
+
+    // Bar Chart: Top 5 Products by Stock
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: <?php echo json_encode($bar_labels); ?>,
+            datasets: [{
+                label: 'Stock Quantity',
+                data: <?php echo json_encode($bar_data); ?>,
+                backgroundColor: '#0d6efd',
+                borderColor: '#0d6efd',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Stock Quantity'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Product'
+                    }
                 }
             },
-            x: {
-                title: {
-                    display: true,
-                    text: 'Product'
+            plugins: {
+                legend: {
+                    display: false
                 }
             }
-        },
-        plugins: {
-            legend: {
-                display: false
-            }
         }
-    }
-});
+    });
 </script>
 </body>
+
 </html>

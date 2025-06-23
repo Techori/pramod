@@ -1,6 +1,6 @@
 <?php
 include '../../_conn.php';
-$pending_orders = $conn->query("SELECT COUNT(*) as count FROM factory_orders WHERE status='Ordered'")->fetch_assoc()['count'];
+$pending_orders = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered'")->fetch_assoc()['count'];
 
 // Get current and previous month for percentage calculations
 $currentMonth = date('Y-m');
@@ -303,20 +303,14 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
 
     <!-- Buttons -->
     <div class="row justify-content-center">
-        <div class="col-md-3 col-sm-6 mb-4">
+        <div class="col-md-4 col-sm-6 mb-4">
             <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal"
                 data-bs-target="#addStock">
                 <i class="fa-solid fa-plus"></i> Add Stock Entry
             </button>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
-            <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal"
-                data-bs-target="#stockTransfer">
-                <i class="fa-solid fa-arrow-trend-up"></i> Stock Transfer
-            </button>
-        </div>
 
-        <div class="col-md-3 col-sm-6 mb-4">
+        <div class="col-md-4 col-sm-6 mb-4">
             <form method="get" action="factory_stock.php">
                 <div class="form-group">
                     <label for="start_date">Start Date</label>
@@ -339,7 +333,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         $stock_count_result = $conn->query("SELECT SUM(quantity) as total_quantity FROM factory_stock");
         $stock_count = $stock_count_result->fetch_assoc()['total_quantity'];
         ?>
-        <div class="col-md-3 col-sm-6 mb-4">
+        <div class="col-md-4 col-sm-6 mb-4">
             <button type="button" class="btn btn-outline-primary btn-lg w-100">
                 <i class="fa-solid fa-clipboard"></i> Stock Count: <?php echo $stock_count; ?>
             </button>
@@ -393,65 +387,18 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                             <input type="number" min="0" step="0.01" class="form-control" id="value" name="value"
                                 required>
                         </div>
+                        <div class="mb-3">
+                            <label for="Status" class="form-label">Status</label>
+                            <select class="form-select" id="Status" name="Status" required>
+                                <option value="In stock">In stock</option>
+                                <option value="Low stock">Low stock</option>
+                                <option value="Out of stock">Out of stock</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary" name="addStockSubmit">Add Stock</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Stock Transfer Form -->
-    <div class="modal fade" id="stockTransfer" tabindex="-1" aria-labelledby="stockTransferLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form method="post" action="">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="stockTransferLabel">Stock Transfer</h5>
-                        <button type="button" .feedback-button { position: fixed; bottom: 20px; right: 20px;
-                            background-color: #007bff; color: white; border: none; border-radius: 50%; width: 60px;
-                            height: 60px; font-size: 24px; cursor: pointer; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                            display: flex; align-items: center; justify-content: center; transition: background-color
-                            0.3s; } .feedback-button:hover { background-color: #0056b3; } .feedback-button i { margin:
-                            0; } btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="stock_id" class="form-label">Stock Item</label>
-                            <select class="form-control" id="stock_id" name="stock_id" required>
-                                <option value="">Select Stock</option>
-                                <?php foreach ($stocks as $stock): ?>
-                                    <option value="<?php echo htmlspecialchars($stock['stock_id']); ?>">
-                                        <?php echo htmlspecialchars($stock['stock_id'] . ' - ' . $stock['item_name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="transfer_to" class="form-label">Transfer To</label>
-                            <select class="form-control" id="transfer_to" name="transfer_to"
-                                onchange="toggleTransferInput()">
-                                <option value="">Select Location</option>
-                                <?php foreach ($transferLocations as $location): ?>
-                                    <option value="<?php echo htmlspecialchars($location); ?>">
-                                        <?php echo htmlspecialchars($location); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                                <option value="Other">Other</option>
-                            </select>
-                            <input type="text" class="form-control mt-2" id="customTransferTo" name="customTransferTo"
-                                style="display:none;" placeholder="Enter new location">
-                        </div>
-                        <div class="mb-3">
-                            <label for="quantity" class="form-label">Quantity</label>
-                            <input type="number" min="1" class="form-control" id="quantity" name="quantity" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" name="transferStockSubmit">Transfer Stock</button>
                     </div>
                 </form>
             </div>
@@ -467,12 +414,12 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         $quantity = intval($_POST['quantity']);
         $value = floatval($_POST['value']);
         $record_date = date('Y-m-d');
+        $status = $conn->real_escape_string($_POST['Status']);
 
         // Validate inputs
         if (empty($item_name) || empty($category)) {
             echo "<script>alert('Please select or enter an item name and category.');</script>";
         } else {
-            $status = ($quantity == 0) ? 'Out of Stock' : ($quantity < 85 ? 'Low Stock' : 'In Stock');
 
             $insertSql = "INSERT INTO factory_stock (item_name, category, quantity, value, status, record_date) 
                           VALUES ('$item_name', '$category', $quantity, $value, '$status', '$record_date')";
@@ -481,35 +428,6 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
             } else {
                 echo "<script>alert('Error adding stock: " . $conn->error . "');</script>";
             }
-        }
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['transferStockSubmit'])) {
-        $stock_id = intval($_POST['stock_id']);
-        $transfer_to = !empty($_POST['customTransferTo']) ? $conn->real_escape_string($_POST['customTransferTo']) : $conn->real_escape_string($_POST['transfer_to']);
-        $quantity = intval($_POST['quantity']);
-
-        // Validate stock ID and quantity
-        $checkSql = "SELECT quantity FROM factory_stock WHERE stock_id = $stock_id";
-        $checkResult = $conn->query($checkSql);
-
-        if ($checkResult->num_rows > 0) {
-            $row = $checkResult->fetch_assoc();
-            $current_quantity = $row['quantity'];
-            if ($quantity <= $current_quantity) {
-                $new_quantity = $current_quantity - $quantity;
-                $status = ($new_quantity == 0) ? 'Out of Stock' : ($new_quantity < 85 ? 'Low Stock' : 'In Stock');
-                $updateSql = "UPDATE factory_stock SET quantity = $new_quantity, status = '$status' WHERE stock_id = $stock_id";
-                if ($conn->query($updateSql)) {
-                    echo "<script>alert('Stock transferred successfully to $transfer_to!'); window.location.href=window.location.href;</script>";
-                } else {
-                    echo "<script>alert('Error transferring stock: " . $conn->error . "');</script>";
-                }
-            } else {
-                echo "<script>alert('Insufficient quantity for transfer!');</script>";
-            }
-        } else {
-            echo "<script>alert('Stock ID not found!');</script>";
         }
     }
     ?>
@@ -537,7 +455,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                     <h1>Current Stock</h1>
                 </div>
                 <div class="justify-content-end">
-                    <a href="?view=<?php echo isset($_GET['view']) && $_GET['view'] === 'all' ? 'none' : 'all'; ?>"
+                    <a href="admin_dashboard.php?page=factory_stock&view=<?php echo isset($_GET['view']) && $_GET['view'] === 'all' ? 'none' : 'all'; ?>"
                         class="btn btn-outline-primary">
                         <?php echo isset($_GET['view']) && $_GET['view'] === 'all' ? 'Show Less' : 'View All'; ?>
                     </a>
@@ -588,6 +506,130 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
             </table>
         </div>
     </div>
+
+    <!-- Check low stock -->
+<?php
+$low_stock_items = [];
+
+$query = $conn->prepare("SELECT item_name, quantity, status FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock')");
+$query->execute();
+$result = $query->get_result();
+
+while ($row = $result->fetch_assoc()) {
+
+    if ($row['status'] === 'Out of Stock') {
+        $level = 'Critical';
+    } else {
+        $level = 'Low';
+    }
+
+    $low_stock_items[] = [
+        'item' => $row['item_name'],
+        'stock' => $row['quantity'], // e.g. '5 rolls'
+        'level' => $level
+    ];
+}
+
+$query->close();
+?>
+
+<!-- New Section: Low Stock and Supply Trends -->
+<div class="row g-4 mt-4">
+    <!-- Low Stock Alert Section -->
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5 class="fw-bold text-warning"><i class="bi bi-exclamation-circle"></i> Low Stock Alert</h5>
+            <div class="space-y-4">
+                <?php foreach ($low_stock_items as $item): ?>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="font-medium"><?php echo htmlspecialchars($item['item']); ?></span>
+                        <span
+                            class="<?php echo $item['level'] === 'Critical' ? 'text-danger' : 'text-warning'; ?> font-medium">
+                            <?php echo htmlspecialchars($item['level']); ?>
+                            (<?php echo htmlspecialchars($item['stock']); ?> left)
+                        </span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Check popular products -->
+    <?php
+    $popular_products = [];
+    $item_sales = [];
+
+    $startOfMonth = date('Y-m-01');
+    $endOfMonth = date('Y-m-t');
+
+    $query = $conn->prepare("
+        SELECT item_name, quantity 
+        FROM invoice
+        WHERE created_for = ? 
+        AND date BETWEEN ? AND ?
+    ");
+    $query->bind_param("sss", $user_name, $startOfMonth, $endOfMonth);
+    $query->execute();
+    $result = $query->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $items = explode(",", $row['item_name']);
+        $quantities = explode(",", $row['quantity']);
+
+        foreach ($items as $index => $item) {
+            $item = trim($item);
+            $qty = isset($quantities[$index]) ? (int) trim($quantities[$index]) : 0;
+
+            if (!isset($item_sales[$item])) {
+                $item_sales[$item] = 0;
+            }
+            $item_sales[$item] += $qty;
+        }
+    }
+    $query->close();
+
+    // Sort by sold quantity in descending order
+    arsort($item_sales);
+
+    // Take top 5 items
+    $top_items = array_slice($item_sales, 0, 5, true);
+
+    foreach ($top_items as $item => $qty) {
+        // Calculate percentage based on max 1000 units
+        $percentage = min(100, round(($qty / 1000) * 100));
+        $popular_products[] = [
+            'item' => $item,
+            'quantity' => $qty,
+            'percentage' => $percentage
+        ];
+    }
+
+    ?>
+
+    <!-- Supply Trends Card -->
+    <div class="col-md-6">
+        <div class="card p-3">
+            <h5 class="fw-bold text-primary"><i class="bi bi-graph-up"></i> Supply Trends</h5>
+            <p class="text-muted mb-4">Monthly procurement of top 5 raw materials</p>
+
+            <div class="space-y-3">
+                <?php foreach ($popular_products as $product): ?>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-sm font-medium"><?php echo htmlspecialchars($product['item']); ?></span>
+                            <span class="text-sm text-muted"><?php echo htmlspecialchars($product['quantity']); ?></span>
+                        </div>
+                        <div class="progress bg-light h-2">
+                            <div class="progress-bar bg-primary"
+                                style="width: <?php echo htmlspecialchars($product['percentage']); ?>%"></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 
 

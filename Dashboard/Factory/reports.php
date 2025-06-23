@@ -1,3 +1,12 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
+$user_name = $_SESSION['user_name'];
+
+?>
+
 <style>
     .tabs {
         display: flex;
@@ -31,19 +40,28 @@
 <h2>Factory Reports</h2>
 <p>Analyze production performance and factory operations</p>
 
-<!-- Buttons -->
-<div class="container-fluid d-flex justify-content-between align-items-center mb-3">
+<script>
+    function exportProductionTable() {
+        const table = document.getElementById("productionTable");
+        let csv = [];
+        for (let row of table.rows) {
+            let cols = Array.from(row.cells)
+                .slice(0, -1) // exclude last 'Actions' column
+                .map(cell => `"${cell.innerText.replace(/"/g, '""')}"`);
+            csv.push(cols.join(","));
+        }
+        let csvContent = csv.join("\n");
+        let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
-    <div class="d-flex w-75 gap-2">
-        <button class="btn btn-outline-primary"><i class="fa-solid fa-filter"></i> Filter</button>
-        <button class="btn btn-outline-primary" onclick="exportTableToCSV()"><i class="fa-solid fa-download"></i> Export</button>
-        <button class="btn btn-outline-primary"><i class="fa-regular fa-share-from-square"></i> Share</button>
-    </div>
-
-    <div>
-        <button class="btn btn-outline-primary"><i class="fa-solid fa-plus"></i> Create Report</button>
-    </div>
-</div>
+        // Download link
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Production_detail.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
 
 <!-- Report table -->
 <div class="col-md-12  card p-3 shadow-sm my-4 table-responsive">
@@ -56,381 +74,220 @@
 
     <!-- Production table -->
     <div id="production" class="report-tab-content active">
-        <div class="row mb-4">
-            <!-- Factory Performance -->
-            <div class="card shadow-sm col-md-6 col-sm-6 mx-3 mb-2">
-                <h5 class="mt-3">Factory Performance</h5>
-                <small>Last 30 days</small>
-                <div class="mt-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="justify-content-start">
-                            <strong><small>Production Output</small></strong>
-                        </div>
-                        <div class="justify-content-end">
-                            <small class="text-success">+7.8%</small> <!-- Dynamic value from database -->
-                        </div>
-                    </div>
-                    <div class="progress mt-1">
-                        <div class="progress-bar bg-primary" style="width: 95%"></div> <!-- Dynamic value -->
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="justify-content-start">
-                            <small>Target: 15,000 units</small> <!-- Dynamic value from database -->
-                        </div>
-                        <div class="justify-content-end">
-                            <strong><small>13,800 units</small></strong> <!-- Dynamic value from database -->
-                        </div>
-                    </div>
-                </div>
 
-                <div class="mt-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="justify-content-start">
-                            <strong><small>Production Efficiency</small></strong>
-                        </div>
-                        <div class="justify-content-end">
-                            <small class="text-success">86%</small> <!-- Dynamic value from database -->
-                        </div>
-                    </div>
-                    <div class="progress mt-1">
-                        <div class="progress-bar bg-primary" style="width: 86%"></div> <!-- Dynamic value -->
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="justify-content-start">
-                            <small>Target: 90%</small> <!-- Dynamic value from database -->
-                        </div>
-                        <div class="justify-content-end">
-                            <strong><small>86%</small></strong> <!-- Dynamic value from database -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="my-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="justify-content-start">
-                            <strong><small>Downtime</small></strong>
-                        </div>
-                        <div class="justify-content-end">
-                            <small class="text-success">4.2%</small> <!-- Dynamic value from database -->
-                        </div>
-                    </div>
-                    <div class="progress mt-1">
-                        <div class="progress-bar bg-primary" style="width: 42%"></div> <!-- Dynamic value -->
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="justify-content-start">
-                            <small>Target: 3%</small> <!-- Dynamic value from database -->
-                        </div>
-                        <div class="justify-content-end">
-                            <strong><small>4.2%</small></strong> <!-- Dynamic value from database -->
-                        </div>
-                    </div>
-                </div>
-                <hr />
-
-                <strong>Production by Product</strong>
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="justify-content-start">
-                        <small>Product X</small> <!-- Dynamic value from database -->
-                    </div>
-                    <div class="justify-content-end">
-                        <strong><small>5,200 units</small></strong> <!-- Dynamic value from database -->
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="justify-content-start">
-                        <small>Product Y</small> <!-- Dynamic value from database -->
-                    </div>
-                    <div class="justify-content-end">
-                        <strong><small>4,100 units</small></strong> <!-- Dynamic value from database -->
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="justify-content-start">
-                        <small>Product Z</small> <!-- Dynamic value from database -->
-                    </div>
-                    <div class="justify-content-end">
-                        <strong><small>3,800 units</small></strong> <!-- Dynamic value from database -->
-                    </div>
-                </div>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="fw-bold">Production Schedule</h2>
+                <p class="text-muted">Upcoming and in-progress production runs</p>
             </div>
+            <div>
+                <!-- Schedule Button -->
+                <button class="btn btn-outline-secondary me-2" onclick="exportProductionTable()">
+                    Export
+                </button>
 
-            <!-- Production Reports -->
-            <div class="card shadow-sm col-md-5 col-sm-6 ms-2 mb-2">
-                <h5 class="mt-3">Production Reports</h5>
-                <div class="mt-2">
-                    <div class="col-md-12 col-sm-6 mb-3 card shadow-sm p-2 cards">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-regular fa-file-lines text-primary"></i> Daily Production Log</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 col-sm-6 mb-3 card shadow-sm p-2 cards">
-                        <div class="d-flex justify-content-between align-items-center ">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-solid fa-chart-column text-success"></i> Machine Utilization</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 col-sm-6 mb-3 card shadow-sm p-2 cards">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-solid fa-arrow-up-right-dots text-primary"></i> Production Efficiency
-                                </h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-12 col-sm-6 mb-3 card shadow-sm p-2 cards">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-regular fa-file-word text-success"></i> Production Cost Analysis</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
-        <!-- Recent Report table -->
-        <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
+        <div class="table-responsive">
+            <table class="table align-middle" id="productionTable">
+                <thead>
+                    <tr class="text-muted">
+                        <th>ID</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
 
-            <div id="recent_reports">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="justify-content-start">
-                        <h5 class="mb-0">Recent Reports</h5>
-                    </div>
-                    <div class="justify-content-end">
-                         <button class="btn btn-outline-secondary" id="refreshBtn">Refresh</button>
-                    </div>
-                </div>
-                <table id="supplyTable" class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Report</th>
-                            <th>Created By</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Size</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><i class="fa-regular fa-file-lines"></i> Monthly Sales Summary – March 2023<br>
-                                <small class="text-muted">Sales Summary • REP-001</small>
-                            </td>
-                            <td>Rajesh Kumar</td>
-                            <td>2023-04-01 14:30</td> <!-- Dynamic data -->
-                            <td>Ready</td> <!-- Dynamic data -->
-                            <td>2.4 MB</td> <!-- Dynamic data -->
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-outline-primary btn-sm"><i
-                                            class="fa-regular fa-eye"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i
-                                            class="fa-solid fa-download"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i
-                                            class="fa-solid fa-print"></i></button>
+                    // Fetch transactions from the database
+                    $result = $conn->query("SELECT * FROM factory_production WHERE created_for = '$user_name' ORDER BY id DESC");
 
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            $status = htmlspecialchars($row['status']);
+                            $id = htmlspecialchars($row['id']);
+
+                            echo "<tr>";
+                            echo "<td>" . $id . "</td>";
+                            echo "<td>" . htmlspecialchars($row['product']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['quantity']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                            echo "<td>" . date('d-M-Y', strtotime($row['start_date'])) . "</td>";
+                            echo "<td>" . date('d-M-Y', strtotime($row['end_date'])) . "</td>";
+                            echo "<td>" . $status . "</td>";
+                            echo "<td>";
+                            if ($status !== 'Completed') {
+                                echo '<button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
+                                <i class="fa-regular fa-pen-to-square"></i>
+                            </button>';
+                            } else {
+                                echo '<button class="btn btn-outline-secondary btn-sm" disabled>
+                                <i class="fa-regular fa-pen-to-square"></i>
+                            </button>';
+                            }
+                            echo "</td>";
+
+                            // Modal for updating status
+                            if ($status !== 'Completed') {
+                                ?>
+                    <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
+                        aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <form method="POST" action="production.php">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="statusModalLabel<?= $id ?>">Update Status</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="tracking_id" value="<?= $id ?>">
+                                        <label class="form-label">Status</label>
+                                        <!-- <input type="date" name="delivery_date" class="form-control"
+                                                    placeholder="Delivery Date" required> -->
+                                        <select class="form-select" name="status" required>
+                                            <option value="">Select Status</option>
+                                            <?php if ($status === 'Scheduled') {
+                                                ?>
+                                            <option value="Pending">Pending</option>
+                                            <?php } else if ($status === 'Pending') { ?>
+                                            <option value="Scheduled">Scheduled</option>
+                                            <?php } ?>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" class="btn btn-primary" name="whatAction"
+                                            value="updateProduct">Update</button>
+                                        <button type="button" class="btn btn-secondary"
+                                            data-bs-dismiss="modal">Cancel</button>
+                                    </div>
                                 </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-               <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        // Export table data to CSV
-        function exportTableToCSV(filename = 'table-data.csv') {
-            const table = document.querySelector("#supplyTable");
-            if (!table) {
-                console.error("Table with id 'supplyTable' not found.");
-                return;
-            }
-
-            const rows = table.querySelectorAll("tr");
-            let csv = [];
-
-            rows.forEach(row => {
-                const cols = Array.from(row.querySelectorAll("th, td"))
-                    .map(col => `"${col.innerText.replace(/"/g, '""').trim()}"`);
-                csv.push(cols.join(","));
-            });
-
-            // Add BOM for Excel UTF-8 support
-            const csvContent = "\uFEFF" + csv.join("\n");
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.setAttribute("download", filename);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Attach export function to global scope (for use in onclick)
-        window.exportTableToCSV = exportTableToCSV;
-
-        // Refresh Button functionality
-        const refreshBtn = document.getElementById('refreshBtn');
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function () {
-                location.reload();
-            });
-        }
-    });
-</script>
-
-            </div>
+                            </form>
+                        </div>
+                    </div>
+                    <?php
+                            }
+                        }
+                    } else {
+                        echo "<tr><td colspan='7' class='text-center'>No production found</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <!-- Raw Materials table -->
     <div id="raw_materials" class="report-tab-content">
-        <h5 class="mt-3">Raw Materials Reports</h5>
-        <div class="row">
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-regular fa-file-word text-success"></i> Inventory Status</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="fw-bold">Raw Material Stock</h2>
+                <p class="text-muted">Current raw materials inventory status</p>
             </div>
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-solid fa-chart-column text-success"></i> Material Usage</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div>
+                <button class="btn btn-outline-secondary me-2" onclick="exportTableToCSV('rawmaterialsTable')">
+                    Export
+                </button>
+
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-regular fa-file-word text-success"></i> Stock Valuation</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-solid fa-chart-column text-danger"></i> Wastage Report</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="table-responsive">
+            <table class="table align-middle" id="rawmaterialsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Material</th>
+                        <th>Category</th>
+                        <th>Quantity</th>
+                        <th>Reorder Point</th>
+                        <th>Status</th>
+                        <th>Primary Supplier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+
+                    // Fetch transactions from the database
+                    $result = $conn->query("SELECT * FROM factory_raw_material ORDER BY id DESC");
+
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . htmlspecialchars($row['id']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['material']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['category']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['quantity']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['reorder_point']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['primary_supplier']) . "</td>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='7' class='text-center'>No material found</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <!-- Workers table -->
     <div id="workers" class="report-tab-content">
-        <h5 class="mt-3">Worker Reports</h5>
-        <div class="row">
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-regular fa-file-word text-success"></i> Attendance Report</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
+        <div id="workers">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h2 class="fw-bold">Workers Directory</h2>
+                    <p class="text-muted">Complete list of factory workers with status and details</p>
                 </div>
-            </div>
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-solid fa-chart-column text-success"></i> Performance Analysis</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                <div>
+                    <button class="btn btn-outline-secondary me-2" onclick="exportTableToCSV('supplyTable')">
+                        Export
+                    </button>
 
-        <div class="row">
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-regular fa-file-word text-danger"></i> Overtime Report</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
-            <div class="col-md-6 col-sm-12 my-4">
-                <div class="card stat-card cards shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="justify-content-start ps-2">
-                                <h4><i class="fa-solid fa-chart-column text-success"></i> Skills Matrix</h4>
-                            </div>
-                            <div class="justify-content-end pe-2">
-                                <h4><i class="fa-solid fa-download text-muted"></i></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="supplyTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Worker Name</th>
+                            <th>Department</th>
+                            <th>Role</th>
+                            <th>Shift</th>
+                            <!-- <th>Status</th>
+                            <th>Attendance</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+
+                        // Fetch transactions from the database
+                        $result = $conn->query("SELECT * FROM factory_workers ORDER BY id DESC");
+
+                        if ($result->num_rows > 0) {
+                            while ($row = $result->fetch_assoc()) {
+                                echo "<tr>";
+                                echo "<td>" . htmlspecialchars($row['id']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['department']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['role']) . "</td>";
+                                echo "<td>" . htmlspecialchars($row['shift']) . "</td>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='5' class='text-center'>No transactions found</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -451,5 +308,28 @@
 
         document.querySelector(`#${id}`).classList.add('active');
         document.querySelector(`[onclick="showReportTab('${id}')"]`).classList.add('active');
+    }
+</script>
+
+<!-- ✅ JavaScript to Export Table -->
+<script>
+    function exportTableToCSV(tableId) {
+        const table = document.getElementById(tableId);
+        let csv = [];
+        for (let row of table.rows) {
+            let cols = Array.from(row.cells)
+                .map(cell => `"${cell.innerText.replace(/"/g, '""')}"`);
+            csv.push(cols.join(","));
+        }
+        let csvContent = csv.join("\n");
+        let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+        // Download link
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "detail.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>

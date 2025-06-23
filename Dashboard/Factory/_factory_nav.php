@@ -171,7 +171,7 @@
         position: fixed !important;
         top: 0;
         left: 0;
-        width: 100%;
+        width: 87%;
         z-index: 1000;
     }
 

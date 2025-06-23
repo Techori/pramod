@@ -10,7 +10,7 @@ include './_conn.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shree Unnati Wires & Traders - Premium Wire Manufacturing</title>
     <script src="https://unpkg.com/sweetalert@2.1.2/dist/sweetalert.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .btn-fancy {
           background: linear-gradient(45deg, #6a11cb, #2575fc);
@@ -131,7 +131,7 @@ include './_conn.php';
         header("location:./index.php");
         exit;
     } else if ( (isset($_POST['email'])) && isset($_POST['password']) && isset($_POST['submit'])) {
-        echo "<script>console.log('Form submitted');</script>";
+        // echo "<script>console.log('Form submitted');</script>";
         $pass = $_POST['password'];
         $user_type = $_POST['user_type'];
         // $salt = bin2hex(random_bytes(16));
@@ -142,7 +142,7 @@ include './_conn.php';
 
         if (isset($_POST['email'])){
             $uniq_id = $_POST['email'];
-            $sql = "SELECT * FROM users WHERE email = '$uniq_id';";
+            $sql = "SELECT * FROM users WHERE email = '$uniq_id' AND user_type = '$user_type';";
         }
         
         $result = $conn->query($sql);
@@ -278,7 +278,7 @@ include './_conn.php';
                                 <label class="form-check-label" for="dropdownCheck">Remember me
                                 </label>
                             </div>
-                            <a href="#">Forgot your password</a>
+                            <a href="./forgotpass.php">Forgot your password</a>
                         </div>
                     </div>
                     <div class="text-center">

@@ -1,3 +1,89 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+include '../../_conn.php';
+$user_name = $_SESSION['user_name'];
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+
+    // Clean input data function
+    function clean($input)
+    {
+        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    }
+
+    if ($_POST['whatAction'] === 'addItem') {
+        // Collect data for transaction
+        $material = clean($_POST['materialName']);
+        $category = clean($_POST['category']);
+        $quantity = clean($_POST['materialquantity']);
+        $reorder_point = clean($_POST['materialReorder']);
+        $unit = clean($_POST['unit']);
+        $Status = clean($_POST['Status']);
+        $primary_supplier = clean($_POST['materialprimarysupplier']);
+        $description = $_POST['description'];
+        $amount = $_POST['amount'];
+        $date = $_POST['date'];
+        $Payment_Method = $_POST['method'];
+        $status = $_POST['status'];
+        $addedBy = !empty($_POST['customCreatedBy']) ? $conn->real_escape_string($_POST['customCreatedBy']) : $conn->real_escape_string($_POST['createdBy']);
+
+
+        // Generate a new material ID
+        $result = $conn->query("SELECT id FROM factory_raw_material ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['id'];
+            $num = (int) substr($lastId, 4);
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newMaterialId = 'RM-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        $stmt = $conn->prepare("INSERT INTO factory_raw_material 
+                (id, material, category, quantity, amount, reorder_point, unit, Status, primary_supplier) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt->bind_param("sssidisss", $newMaterialId, $material, $category, $quantity, $amount, $reorder_point, $unit, $Status, $primary_supplier);
+        $stmt->execute();
+
+        $conn->commit();
+        $stmt->close();
+
+        // Generate Expense ID
+        $result = $conn->query("SELECT id FROM factory_expenses ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['id']; // e.g. TRX-005
+            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newExpenseId = 'EXP-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        $stmt = $conn->prepare("INSERT INTO factory_expenses 
+                (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt->bind_param("ssssdssss", $newExpenseId, $description, $category, $addedBy, $amount, $date, $Payment_Method, $status, $user_name);
+        $stmt->execute();
+
+        $conn->commit();
+        $stmt->close();
+
+        @header("Location: factory_dashboard.php?page=raw_materials");
+        exit;
+
+    }
+}
+
+?>
+
 <style>
     .cards {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -105,428 +191,304 @@
     }
 </style>
 <h1>Raw Materials Management
-        </h1>
-        <p>Monitor and manage factory raw materials inventory</p>
-        <!-- Search bar & buttons -->
-        <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
+</h1>
+<p>Monitor and manage factory raw materials inventory</p>
 
-        
-            <div class="d-flex justify-content-start">
-            <div class="col-md-9">
-                <input type="text" id="searchInput" class="form-control"
-                    placeholder="Search supplies by ID, item, or supplier...">
-            </div>
-            </div>
 
-            <div class="justify-contnt-end">
-                <div class="d-flex mb-3">
-                    <select id="categoryFilter" class="form-select me-2 w-50">
-                        <option value="">All Categories</option>
-                        <option value="Metals">Copper Wire 1.5mm</option>
-                        <option value="Polymers">PVC Compound</option>
-                        <option value="Components">Aluminum Wire</option>
-                    </select>
-                    <button id="filterBtn" class="btn btn-outline-secondary w-50">Filter</button>
+<div class="row mb-2">
+
+    <!-- Search and Filters -->
+    <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
+        <div class="flex-grow-1">
+            <input type="hidden" name="page" value="billing">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                        class="fas fa-search"></i></span>
+                <input type="text" class="form-control border-start-0 table-search" data-table="rawmaterialsTable"
+                    placeholder="Search..." />
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <div>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="In Stock"
+                    data-table="rawmaterialsTable">In Stock</button>
+            </div>
+            <div>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="Low Stock"
+                    data-table="rawmaterialsTable">Low Stock</button>
+            </div>
+            <div>
+                <button class="btn btn-outline-primary gst-filter me-2" data-type="Out Of Stock"
+                    data-table="rawmaterialsTable">Out Of Stock</button>
+            </div>
+            <div>
+                <button class="btn btn-outline-danger reset-filters me-2" data-table="rawmaterialsTable">Remove
+                    Filters</button>
+            </div>
+        </div>
+    </div>
+    <script>
+
+
+        document.addEventListener("DOMContentLoaded", () => {
+
+            // 🔍 Live Search Function
+            document.querySelectorAll(".table-search").forEach(input => {
+                input.addEventListener("input", () => {
+                    const tableId = input.dataset.table;
+                    const value = input.value.toLowerCase();
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(value) ? "" : "none";
+                    });
+                });
+            });
+
+            // 🧾 GST Filter Buttons
+            document.querySelectorAll(".gst-filter").forEach(button => {
+                button.addEventListener("click", () => {
+                    const type = button.dataset.type.toLowerCase();
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        const docType = row.children[5]?.innerText.trim().toLowerCase();
+                        row.style.display = docType === type ? "" : "none";
+                    });
+                });
+            });
+
+            // ❌ Remove Filters Button
+            document.querySelectorAll(".reset-filters").forEach(button => {
+                button.addEventListener("click", () => {
+                    const tableId = button.dataset.table;
+                    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                    rows.forEach(row => {
+                        row.style.display = "";
+                    });
+
+                    // Also clear search inputs for that table
+                    document.querySelectorAll(`.table-search[data-table='${tableId}']`).forEach(input => {
+                        input.value = "";
+                    });
+                });
+            });
+
+            // ✅ Filter Helper Function
+            function filterTable(tableId, conditionFn) {
+                const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+                rows.forEach(row => {
+                    row.style.display = conditionFn(row) ? "" : "none";
+                });
+            }
+        });
+    </script>
+</div>
+
+<div class="mb-3">
+
+    <button class="btn btn-outline-primary" onclick="exportTableToCSV()"></i> Reports</button>
+    <!-- Add Material Button -->
+    <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addMaterialModal">
+        Add Materials
+    </button>
+
+    <?php
+    // Get names for Add expense form dropdown
+    $itemSql = "SELECT DISTINCT addedBy FROM factory_expenses ORDER BY addedBy";
+    $itemResult = $conn->query($itemSql);
+    $items = [];
+    if ($itemResult->num_rows > 0) {
+        while ($row = $itemResult->fetch_assoc()) {
+            $items[] = $row['addedBy'];
+        }
+    }
+    ?>
+
+    <!-- Modal Structure -->
+    <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addMaterialModalLabel">Add Materials</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <button class="btn btn-outline-primary"></i> Reports</button>
-                <!-- Add Material Button -->
-                <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#addMaterialModal">
-                    Add Materials
-                </button>
-
-                <!-- Modal Structure -->
-                <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel"
-                    aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <!-- Modal Header -->
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="addMaterialModalLabel">Add Materials</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-                            <!-- Modal Body -->
-                            <div class="modal-body">
-                                <!-- Form to add materials -->
-                                <form>
-                                    <div class="mb-3">
-                                        <label for="materialName" class="form-label">Material Name</label>
-                                        <input type="text" class="form-control" id="materialName"
-                                            placeholder="Enter material name">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="materialName" class="form-label">Category</label>
-                                        <input type="text" class="form-control" id="category"
-                                            placeholder="Enter Category">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="materialName" class="form-label">Quantity</label>
-                                        <input type="text" class="form-control" id="materialquantity"
-                                            placeholder="Enter Quantity">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="materialName" class="form-label">Status</label>
-                                        <input type="text" class="form-control" id="materialstatus"
-                                            placeholder="Enter Status">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="materialName" class="form-label">Primary Supplier</label>
-                                        <input type="text" class="form-control" id="materialprimarysupplier"
-                                            placeholder="Enter Primary Supplier">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="materialName" class="form-label">Reorder Point</label>
-                                        <input type="text" class="form-control" id="materialReorder"
-                                            placeholder="Enter material Reorder">
-                                    </div>
-
-                                    <button type="submit" class="btn btn-primary">Add Material</button>
-                                </form>
-                            </div>
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <!-- Form to add materials -->
+                    <form action="raw_materials.php" method="POST">
+                        <div class="mb-3">
+                            <label for="materialName" class="form-label">Material Name</label>
+                            <input type="text" class="form-control" id="materialName" name="materialName" required>
                         </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Cards -->
-        <div class="row">
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
-                    <div class="card-body">
-                        <h6 class="text-muted">Total Materials</h6>
-                        <h3 class="fw-bold">38</h3>
-                        <p class="text-success">+2</p><!-- Dynamic data -->
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
-                    <div class="card-body">
-                        <h6 class="text-muted">Low Stock Items</h6>
-                        <h3 class="fw-bold">7</h3>
-                        <p class="text-success">+3</p> <!-- Dynamic data -->
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6 mb-4">
-                <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
-                    <div class="card-body">
-                        <h6 class="text-muted"> Pending Orders</h6>
-                        <h3 class="fw-bold">85</h3> <!-- Dynamic data -->
-                        <p class="text-success">-12</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Popular products -->
-        <div class="col-md-12 my-4">
-            <div class="card p-3 shadow-sm">
-                <h5 class="mb-4">
-                    <strong>Low Stock Alert</strong>
-                </h5>
-                <div class="row">
-                    <div class="col-md-4 col-sm-12 mb-2">
-                        <div class="card stat-card cards shadow-sm" style="background-color:rgb(125, 206, 246);">
-                            <div class="card-body">
-                                <h5 class="text-muted">2 raw materials are below their reorder points and require
-                                    immediate
-                                    attention.</h5>
-                                <button type="button" class="btn btn-outline-danger">View All Low Stock</button>
-                            </div>
+                        <div class="mb-3">
+                            <label for="materialName" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="category" name="category" required>
                         </div>
-                    </div>
+                        <div class="mb-3">
+                            <label for="createdBy" class="form-label">Created by</label>
+                            <select class="form-control" id="createdBy" name="createdBy" onchange="toggleItemInput()">
+                                <option value="">Select Name</option>
+                                <?php foreach ($items as $item): ?>
+                                    <option value="<?php echo htmlspecialchars($item); ?>">
+                                        <?php echo htmlspecialchars($item); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <option value="Other">Other</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="customCreatedBy" name="customCreatedBy"
+                                style="display:none;" placeholder="Enter new name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="description" name="description" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="materialName" class="form-label">Quantity</label>
+                            <input type="text" class="form-control" id="materialquantity" name="materialquantity"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unit" class="form-label">Per Unit</label>
+                            <input type="text" class="form-control" id="unit" name="unit" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="text" class="form-control" id="amount" name="amount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="method" class="form-label">Method</label>
+                            <select class="form-select" id="method" name="method" required>
+                                <option value="" disabled selected>Select Payment Method</option>
+                                <option value="Digital payment">Digital payment</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Payment gateway">Payment gateway</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Status" class="form-label">Status</label>
+                            <select class="form-select" id="Status" name="Status" required>
+                                <option value="In stock">In stock</option>
+                                <option value="Low stock">Low stock</option>
+                                <option value="Out Of stock">Out Of stock</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status for expense</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="" disabled selected>Select Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="materialName" class="form-label">Primary Supplier</label>
+                            <input type="text" class="form-control" id="materialprimarysupplier"
+                                name="materialprimarysupplier" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="materialName" class="form-label">Reorder Point</label>
+                            <input type="text" class="form-control" id="materialReorder" name="materialReorder"
+                                required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" name="whatAction" value="addItem">Add
+                            Material</button>
+                    </form>
                 </div>
             </div>
         </div>
-                        <h4 class="mb-1">Raw Material Stock</h4>
-                        <p class="text-muted mb-0" style="font-size: 14px;">Current raw materials inventory status</p>
-                    <div class="header-buttons">
-                    <button id="refreshBtn" class="btn btn-outline-secondary me-2">Refresh</button>
-                    </div>
+    </div>
 
-                    <div class="table-responsive">
-                        <table class="table align-middle" id = "supplyTable">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Material</th>
-                                    <th>Category</th>
-                                    <th>Quantity</th>
-                                    <th>Reorder Point</th>
-                                    <th>Status</th>
-                                    <th>Primary Supplier</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>RM-001</strong></td>
-                                    <td>Copper Wire 1.5mm</td>
-                                    <td>Metals</td>
-                                    <td>1,250 kg</td>
-                                    <td>500 kg</td>
-                                    <td><span class="status-badge in-stock">In Stock</span></td>
-                                    <td>Hindalco Industries Ltd.</td>
-                                    <td><button class="btn btn-outline-primary btn-action">Update</button></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>RM-002</strong></td>
-                                    <td>PVC Compound</td>
-                                    <td>Polymers</td>
-                                    <td>850 kg</td>
-                                    <td>400 kg</td>
-                                    <td><span class="status-badge in-stock">In Stock</span></td>
-                                    <td>Reliance Polymers</td>
-                                    <td><button class="btn btn-outline-primary btn-action">Update</button></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>RM-003</strong></td>
-                                    <td>Aluminum Wire</td>
-                                    <td>Metals</td>
-                                    <td>320 kg</td>
-                                    <td>400 kg</td>
-                                    <td><span class="status-badge low-stock">Low Stock</span></td>
-                                    <td>Jindal Aluminium</td>
-                                    <td><button class="btn btn-warning btn-action">Order Now</button></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>RM-004</strong></td>
-                                    <td>Rubber Insulation</td>
-                                    <td>Polymers</td>
-                                    <td>210 kg</td>
-                                    <td>300 kg</td>
-                                    <td><span class="status-badge low-stock">Low Stock</span></td>
-                                    <td>MRF Rubber Co.</td>
-                                    <td><button class="btn btn-warning btn-action">Order Now</button></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>RM-005</strong></td>
-                                    <td>PVC Conduit Pieces</td>
-                                    <td>Components</td>
-                                    <td>2,500 units</td>
-                                    <td>1,000 units</td>
-                                    <td><span class="status-badge in-stock">In Stock</span></td>
-                                    <td>Finolex Pipes</td>
-                                    <td><button class="btn btn-outline-primary btn-action">Update</button></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+</div>
+
+<!-- ✅ JavaScript to Export Table -->
+<script>
+    function exportTableToCSV() {
+        const table = document.getElementById("rawmaterialsTable");
+        let csv = [];
+        for (let row of table.rows) {
+            let cols = Array.from(row.cells)
+                .map(cell => `"${cell.innerText.replace(/"/g, '""')}"`);
+            csv.push(cols.join(","));
+        }
+        let csvContent = csv.join("\n");
+        let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+        // Download link
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Raw_Material_detail.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+<div class="card p-3 mb-4 shadow-sm">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold">Raw Material Stock</h2>
+            <p class="text-muted">Current raw materials inventory status</p>
+        </div>
+        <div>
+            <button id="refreshBtn" class="btn btn-outline-secondary me-2">Refresh</button>
             <script>
-                  // Search Functionality
-            document.getElementById('searchInput').addEventListener('input', function () {
-                const searchText = this.value.toLowerCase();
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
-
-                rows.forEach(row => {
-                    const cells = row.getElementsByTagName('td');
-                    let match = false;
-                    for (let i = 0; i < cells.length; i++) {
-                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    row.style.display = match ? '' : 'none';
+                // Refresh Button (Reload page)
+                document.getElementById('refreshBtn').addEventListener('click', function () {
+                    location.reload();
                 });
-            });
-
-            // Filter Functionality (Filter by "Ordered" status)
-            document.getElementById('filterBtn').addEventListener('click', function () {
-                const rows = document.querySelectorAll('#supplyTable tbody tr');
-                rows.forEach(row => {
-                    const status = row.cells[5].textContent.trim().toLowerCase();
-                    if (status === 'ordered') {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-
-           
-
-            // Refresh Button (Reload page)
-            document.getElementById('refreshBtn').addEventListener('click', function () {
-                location.reload();
-            });
             </script>
 
         </div>
-            <div class="row g-4">
-                <!-- Material Consumption Rates -->
-                <div class="col-md-6">
-                    <div class="card">
-                        <h5 class="mb-1">Material Consumption Rates</h5>
-                        <p class="text-muted" style="font-size: 14px;">Weekly consumption of key raw materials</p>
+    </div>
 
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between">
-                                <span>Copper Wire</span>
-                                <small class="text-muted">245 kg/week</small>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" style="width: 80%;" aria-valuenow="80"
-                                    aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
+    <div class="table-responsive">
+        <table class="table align-middle" id="rawmaterialsTable">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Material</th>
+                    <th>Category</th>
+                    <th>Quantity</th>
+                    <th>Amount</th>
+                    <th>Reorder Point</th>
+                    <th>Status</th>
+                    <th>Primary Supplier</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
 
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between">
-                                <span>PVC Compound</span>
-                                <small class="text-muted">180 kg/week</small>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" style="width: 65%;" aria-valuenow="65"
-                                    aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
+                // Fetch transactions from the database
+                $result = $conn->query("SELECT * FROM factory_raw_material ORDER BY id DESC");
 
-                        <div class="mb-4">
-                            <div class="d-flex justify-content-between">
-                                <span>Aluminum Wire</span>
-                                <small class="text-muted">95 kg/week</small>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" style="width: 30%;" aria-valuenow="30"
-                                    aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <div class="d-flex justify-content-between">
-                                <span>Rubber Insulation</span>
-                                <small class="text-muted">65 kg/week</small>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" style="width: 20%;" aria-valuenow="20"
-                                    aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <!-- Upcoming Material Deliveries -->
-                <div class="col-md-6">
-                    <div class="card">
-                        <h5 class="mb-1">Upcoming Material Deliveries</h5>
-                        <p class="text-muted" style="font-size: 14px;">Expected raw material shipments</p>
-
-                        <div class="delivery-item d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="material-title">Copper Wire (5mm)</div>
-                                <div class="material-supplier">Supplier: Hindalco Industries Ltd.</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="material-weight">500 kg</div>
-                                <div class="material-date">28 Apr 2025</div>
-                            </div>
-                        </div>
-
-                        <div class="delivery-item d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="material-title">Aluminum Wire (2mm)</div>
-                                <div class="material-supplier">Supplier: Jindal Aluminium</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="material-weight">350 kg</div>
-                                <div class="material-date">30 Apr 2025</div>
-                            </div>
-                        </div>
-
-                        <div class="delivery-item d-flex justify-content-between align-items-start">
-                            <div>
-                                <div class="material-title">PVC Insulation (Red)</div>
-                                <div class="material-supplier">Supplier: Reliance Polymers</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="material-weight">750 kg</div>
-                                <div class="material-date">2 May 2025</div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    <script>
-        // Bar Chart
-        const barCtx = document.getElementById('barChart').getContext('2d');
-        new Chart(barCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Revenue',
-                    data: [12500, 9800, 15200, 11300, 18400, 25600, 16800],
-                    backgroundColor: '#0d6efd',
-                    borderColor: '#0d6efd',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    barThickness: 40
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 6500
-                        }
+                if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($row['id']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['material']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['category']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['quantity']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['amount']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['reorder_point']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['primary_supplier']) . "</td>";
                     }
+                } else {
+                    echo "<tr><td colspan='7' class='text-center'>No material found</td></tr>";
                 }
-            }
-        });
-
-        // Pie Chart
-        const pieCtx = document.getElementById('pieChart').getContext('2d');
-        new Chart(pieCtx, {
-            type: 'pie',
-            data: {
-                labels: ['Wires & Cables', 'Switches & Sockets', 'Lighting', 'Fans', 'MCBs & DBs', 'Accessories'],
-                datasets: [{
-                    data: [21, 16, 25, 19, 11, 9],
-                    backgroundColor: [
-                        '#0d6efd',  // Blue (Wires & Cables)
-                        '#20c997',  // Green (Switches & Sockets)
-                        '#ffc107',  // Orange (Lighting)
-                        '#fd7e14',  // Orange-dark (Fans)
-                        '#6f42c1',   // Violet (MCBs & DBs)
-                        '#C66EF9'   // Purple (Accessories)
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#333',
-                            font: { size: 14 }
-                        }
-                    }
-                }
-            }
-        });
-
-        function showRetailStoreTab(id) {
-            const tabs = document.querySelectorAll('.retailStoreTab');
-            const contents = document.querySelectorAll('.retailStore-tab-content');
-
-            tabs.forEach(tab => tab.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
-
-            document.querySelector(`#${id}`).classList.add('active');
-            document.querySelector(`[onclick="showRetailStoreTab('${id}')"]`).classList.add('active');
-        }
-    </script>
+                ?>
+            </tbody>
+        </table>
+    </div>
+</div>

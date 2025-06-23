@@ -473,7 +473,6 @@ $ticket_result = $conn->query($ticket_query);
                             <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Search..." />
                         </div>
                         <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#serviceTicket"><i class="fa-solid fa-plus"></i> New Ticket</button>
-                        <button type="button" class="btn btn-outline-primary me-2"><i class="fa-solid fa-file-lines"></i> Service Reports</button>
                     </div>
                 </div>
                 <table id="supplyTable" class="table table-bordered table-hover">
