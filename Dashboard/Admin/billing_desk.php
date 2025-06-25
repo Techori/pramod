@@ -9,7 +9,12 @@ $user_name = $_SESSION['user_name'];
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $whatAction = $data['whatAction'];
+    // Optional fallback if $data is still null (e.g., for form submissions)
+    if (!$data) {
+        $data = $_POST; // fallback to regular POST form
+    }
+
+    $whatAction = isset($data['whatAction']) ? $data['whatAction'] : null;
 
     if ($whatAction === 'createInvoice') {
         $table = $data['table'];
@@ -147,8 +152,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $updateInventory = $conn->query("UPDATE inventory SET Stock = Stock - $qty WHERE Product_Name = '$item'");
                 $updateProduct = $conn->query("UPDATE products SET stock_quantity = stock_quantity - $qty WHERE name = '$item'");
             }
-
-
         } else {
 
             // Fetch latest invoice ID for the current document type and current or previous year
@@ -271,6 +274,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 }
+
+
+
 ?>
 
 
@@ -524,7 +530,62 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                             }
                             ?>
                         </select>
+
+                        <!-- Add Customer Button -->
+                        <button id="showFormBtn" class="btn btn-primary my-2">+ Add Customer</button>
                     </div>
+
+
+                    <!-- Hidden Customer Form -->
+                    <div id="customerForm" class="card p-3 mb-4" style="display: none;">
+                        <form method="POST" action="save_customer.php">
+                            <div class="mb-3">
+                                <label class="form-label">Create for:</label>
+                                <select class="form-select" id="created_for" name="created_for" required>
+                                    <option>Select status</option>
+                                    <?php
+
+                                    // Fetch transactions from the database
+                                    $result = $conn->query("SELECT user_name FROM users");
+
+                                    if ($result->num_rows > 0) {
+                                        while ($row = $result->fetch_assoc()) {
+                                            echo "<option>" . $row['user_name'] . "</option>";
+                                        }
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" name="customer_name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Type</label>
+                                <select class="form-select" id="type" name="type" required>
+                                    <option value="Retail">Retail</option>
+                                    <option value="Wholesale">Wholesale</option>
+                                    <option value="Contractor">Contractor</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                            </div>
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                        </form>
+                    </div>
+
+                    <!-- JS to Toggle Form -->
+                    <script>
+                        document.getElementById("showFormBtn").addEventListener("click", function() {
+                            const form = document.getElementById("customerForm");
+                            form.style.display = (form.style.display === "none") ? "block" : "none";
+                        });
+                    </script>
+
+
 
                     <div class="col-md-6" id="vendor_section">
                         <label class="form-label">Vendor:</label>
@@ -629,7 +690,8 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                         </thead>
                         <tbody></tbody>
                     </table>
-                    <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                    <button class="btn btn-sm btn-outline-primary mb-2" onclick="addItem()">+ Add Item</button>
+                    <button class="btn btn-sm btn-outline-primary mb-2" onclick="redirect()">+ Add prouct</button>
                 </div>
 
                 <div class="mb-3">
@@ -680,7 +742,58 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                             }
                             ?>
                         </select>
+                        <button class="btn bg-primary text-white mt-2" type="submit" id="salesFromBtn">+ Add Customer</button>
                     </div>
+
+                    <!-- Hidden Form -->
+                    <div id="salesform" class="card p-3 mb-4" style="display: none;">
+                        <form method="POST" action="save_customer.php">
+                            <div class="mb-3">
+                                <label class="form-label">Create for:</label>
+                                <select class="form-select" id="created_for" name="created_for" required>
+                                    <option>Select status</option>
+                                    <?php
+
+                                    // Fetch transactions from the database
+                                    $result = $conn->query("SELECT user_name FROM users");
+
+                                    if ($result->num_rows > 0) {
+                                        while ($row = $result->fetch_assoc()) {
+                                            echo "<option>" . $row['user_name'] . "</option>";
+                                        }
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" name="customer_name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Type</label>
+                                <select class="form-select" id="type" name="type" required>
+                                    <option value="Retail">Retail</option>
+                                    <option value="Wholesale">Wholesale</option>
+                                    <option value="Contractor">Contractor</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                            </div>
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                        </form>
+                    </div>
+
+                    <!-- JS to Toggle Form -->
+                    <script>
+                        document.getElementById("salesFromBtn").addEventListener("click", function() {
+                            const showform = document.getElementById("salesform");
+                            showform.style.display = (showform.style.display === "none") ? "block" : "none";
+                        })
+                    </script>
+
 
                     <div id="sales_vendor_section">
                         <label class="form-label">Vendor:</label>
@@ -732,6 +845,7 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                         <tbody></tbody>
                     </table>
                     <button class="btn btn-sm btn-outline-primary" onclick="addSalesItem()">+ Add Item</button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="redirect()">+ Add Product</button>
                 </div>
 
                 <div class="mb-3">
@@ -1715,7 +1829,6 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
     ?>
 
     <script>
-
         // Bar Chart
         const barCtx = document.getElementById('barChart').getContext('2d');
         new Chart(barCtx, {
@@ -1735,7 +1848,9 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { display: false }
+                    legend: {
+                        display: false
+                    }
                 },
                 scales: {
                     y: {
@@ -1771,7 +1886,9 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                         position: 'bottom',
                         labels: {
                             color: '#333',
-                            font: { size: 14 }
+                            font: {
+                                size: 14
+                            }
                         }
                     }
                 }
@@ -1919,7 +2036,7 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
         }
 
         // Close form when clicking outside of it
-        window.onclick = function (event) {
+        window.onclick = function(event) {
             const modal = document.getElementById('invoiceModal');
             if (event.target === modal) {
                 closeInvoiceModal();
@@ -1927,7 +2044,11 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
         };
 
         function collectInvoiceData() {
-            let item_names = [], descriptions = [], quantities = [], prices = [], totals = [];
+            let item_names = [],
+                descriptions = [],
+                quantities = [],
+                prices = [],
+                totals = [];
 
             document.querySelectorAll("#itemTable tbody tr").forEach(row => {
                 item_names.push(row.children[0].querySelector("select").value);
@@ -1972,12 +2093,12 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
             };
 
             fetch("billing_desk.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
-            })
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                })
                 .then(res => res.text())
                 .then(msg => {
                     // alert(msg);  
@@ -2117,12 +2238,12 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
             };
 
             fetch("billing_desk.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
-            })
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                })
                 .then(res => res.text())
                 .then(msg => {
                     // alert(msg);
@@ -2132,4 +2253,7 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                 .catch(err => alert("Error submitting invoice."));
         }
 
+        function redirect() {
+            window.location.href = "admin_dashboard.php?page=inventory"
+        }
     </script>

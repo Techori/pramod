@@ -13,7 +13,6 @@ if (!(isset($_SESSION["uid"]) && isset($_SESSION["user_type"]) && isset($_SESSIO
     if (in_array($_SESSION["user_type"], ['Factory', 'Store', 'Vendor'])) {
         header("location:../index.php");
         exit;
-
     } else if (!($_SESSION["user_type"] == 'Admin')) {
         header("location:../../login.php");
         exit;
@@ -251,7 +250,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
             header("Location: admin_dashboard.php?page=admin_dashboard");
             exit;
-
         } catch (Exception $e) {
             $conn->rollback();
             http_response_code(500);
@@ -261,7 +259,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             ]);
             exit;
         }
-
     } else if ($_POST['whatAction'] === 'editPrice') {
         $itemId = clean($_POST['itemId']);
         $newPrice = clean($_POST['newPrice']);
@@ -273,7 +270,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $stmt->close();
 
         @header("Location: admin_dashboard.php?page=admin_dashboard");
-
     } else if ($_POST['whatAction'] === 'deleteItem') {
         $itemId = clean($_POST['itemId']);
         $inventory_of = clean($_POST['inventory_of']);
@@ -284,7 +280,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $stmt->close();
 
         @header("Location: admin_dashboard.php?page=admin_dashboard");
-
     } else if ($_POST['whatAction'] === 'requestStock') {
         // Collect data for transaction
         $created_for = clean($_POST['created_for']);
@@ -338,7 +333,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
             header("Location: admin_dashboard.php?page=admin_dashboard");
             exit;
-
         } catch (Exception $e) {
             $conn->rollback();
             http_response_code(500);
@@ -713,7 +707,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                     <select class="form-select" id="customer" name="customer" required>
                                         <option>Select customer</option>
                                         <?php
-
                                         // Fetch transactions from the database
                                         $result = $conn->query("SELECT name FROM customer ORDER BY customer_Id DESC");
 
@@ -724,7 +717,64 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                         }
                                         ?>
                                     </select>
+                                    <button class="btn bg-primary text-white mt-2" id="showFormBtn">+ Add Customer</button>
                                 </div>
+
+                                <!-- Hidden Form -->
+                                <div id="hiddenFrom" class="card p-3 mb-4" style="display: none;">
+                                    <form method="POST" action="save_customer.php">
+                                        <div class="mb-3">
+                                            <label class="form-label">Create for:</label>
+                                            <select class="form-select" id="created_for" name="created_for" required>
+                                                <option>Select status</option>
+                                                <?php
+
+                                                // Fetch transactions from the database
+                                                $result = $conn->query("SELECT user_name FROM users");
+
+                                                if ($result->num_rows > 0) {
+                                                    while ($row = $result->fetch_assoc()) {
+                                                        echo "<option>" . $row['user_name'] . "</option>";
+                                                    }
+                                                }
+                                                ?>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Customer Name</label>
+                                            <input type="text" name="customer_name" class="form-control" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="type" class="form-label">Type</label>
+                                            <select class="form-select" id="type" name="type" required>
+                                                <option value="Retail">Retail</option>
+                                                <option value="Wholesale">Wholesale</option>
+                                                <option value="Contractor">Contractor</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Phone</label>
+                                            <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                                        </div>
+                                        <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                                    </form>
+                                </div>
+
+                        <!-- JS toggle to show hideen form -->
+
+                        <script>
+                            document.getElementById("showFormBtn").addEventListener("click",function(){
+                                const showForm = document.getElementById("hiddenFrom");
+                                showForm.style.display = (showForm.style.display ==="none") ? "block" : "none";
+                            })
+                        </script>
+
+
+
+
+
+
                                 <div class="col-md-6">
                                     <label class="form-label">Payment Method:</label>
                                     <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod"
@@ -813,6 +863,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                     <tbody></tbody>
                                 </table>
                                 <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="redirect()">+ Add Product</button>
                             </div>
 
                             <div class="mb-3">
@@ -1015,7 +1066,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
                                     // Modal only for pending rows
                                     if ($status === 'Pending') {
-                                        ?>
+                            ?>
                                         <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
                                             aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
                                             <div class="modal-dialog">
@@ -1044,7 +1095,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                                 </form>
                                             </div>
                                         </div>
-                                        <?php
+                            <?php
                                     }
                                 }
                             } else {
@@ -2305,7 +2356,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $month = $date->format('m');
         $year = $date->format('Y');
         $label = $date->format('M'); // e.g., Jan, Feb
-    
+
         // Add to labels
         $monthLabels[] = "'$label'";
 
@@ -2359,7 +2410,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { display: false }
+                    legend: {
+                        display: false
+                    }
                 },
                 scales: {
                     y: {
@@ -2395,7 +2448,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                         position: 'bottom',
                         labels: {
                             color: '#333',
-                            font: { size: 14 }
+                            font: {
+                                size: 14
+                            }
                         }
                     }
                 }
@@ -2544,7 +2599,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
 
         // Close form when clicking outside of it
-        window.onclick = function (event) {
+        window.onclick = function(event) {
             const modal = document.getElementById('invoiceModal');
             if (event.target === modal) {
                 closeInvoiceModal();
@@ -2552,7 +2607,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         };
 
         function collectInvoiceData() {
-            let item_names = [], descriptions = [], quantities = [], prices = [], totals = [];
+            let item_names = [],
+                descriptions = [],
+                quantities = [],
+                prices = [],
+                totals = [];
 
             document.querySelectorAll("#itemTable tbody tr").forEach(row => {
                 item_names.push(row.children[0].querySelector("select").value);
@@ -2597,12 +2656,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             };
 
             fetch("billing_desk.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
-            })
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                })
                 .then(res => res.text())
                 .then(msg => {
                     // alert(msg);  
@@ -2614,7 +2673,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
 
         // Auto-Dismiss Alerts
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // Auto-dismiss alerts after 5 seconds
             const alerts = document.querySelectorAll('.alert-dismissible');
             alerts.forEach(alert => {
@@ -2626,7 +2685,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
             // Populate Edit Product Modal
             document.querySelectorAll('.edit-product-btn').forEach(button => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function() {
                     const id = this.dataset.id;
                     const name = this.dataset.name;
                     const category = this.dataset.category;
@@ -2647,7 +2706,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
             // Populate Delete Product Modal
             document.querySelectorAll('.delete-product-btn').forEach(button => {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function() {
                     const id = this.dataset.id;
                     const name = this.dataset.name;
 
@@ -2658,7 +2717,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             });
 
             // Show/Hide Status and Supplier Fields in Add Product Modal
-            document.getElementById('add_inventory').addEventListener('change', function () {
+            document.getElementById('add_inventory').addEventListener('change', function() {
                 const statusField = document.getElementById('status_field');
                 const supplierField = document.getElementById('supplier_field');
                 statusField.style.display = this.checked ? 'block' : 'none';
@@ -2666,13 +2725,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             });
 
             // View All Buttons
-            document.getElementById('viewAllProductsBtn').addEventListener('click', function () {
+            document.getElementById('viewAllProductsBtn').addEventListener('click', function() {
                 document.getElementById('searchInput').value = '';
                 let rows = document.querySelectorAll('#productsTable tbody tr');
                 rows.forEach(row => row.style.display = '');
             });
 
-            document.getElementById('viewAllInventoryBtn').addEventListener('click', function () {
+            document.getElementById('viewAllInventoryBtn').addEventListener('click', function() {
                 document.getElementById('searchInput').value = '';
                 let rows = document.querySelectorAll('#inventoryTable tbody tr');
                 rows.forEach(row => row.style.display = '');
@@ -2680,9 +2739,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         });
     </script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             var editModal = document.getElementById('editPriceModal');
-            editModal.addEventListener('show.bs.modal', function (event) {
+            editModal.addEventListener('show.bs.modal', function(event) {
                 var button = event.relatedTarget;
                 var itemId = button.getAttribute('data-id');
                 var itemName = button.getAttribute('data-name');
@@ -2695,6 +2754,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 document.getElementById('newPrice').value = itemPrice;
             });
         });
+
+        // to redirect
+
+        function redirect() {
+            window.location.href = "admin_dashboard.php?page=inventory"
+        }
     </script>
 
 </body>

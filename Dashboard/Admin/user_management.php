@@ -642,7 +642,7 @@ function exportTableToCSV(filename = 'table-data.csv') {
       const exportModal = new bootstrap.Modal(document.getElementById('exportSuccessModal'));
       exportModal.show();
     }, 2000); // 2 second delay
-  }
+  
 
   // Event listener for 'OK' button
   document.getElementById("okBtn").addEventListener("click", function () {
