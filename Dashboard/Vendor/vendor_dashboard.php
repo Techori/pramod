@@ -566,7 +566,45 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                             }
                                             ?>
                                         </select>
+                                        <button class="btn bg-primary mt-2 text-white" id="ADD"> + Add Customer</button>
                                     </div>
+
+                                 <!-- Hidden form -->
+                                 <div id="HiddenForm" class="card p-3 mb-4" style="display: none;">
+                        <form method="POST" action="save_customer.php">
+                    
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" name="customer_name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Type</label>
+                                <select class="form-select" id="type" name="type" required>
+                                    <option value="Retail">Retail</option>
+                                    <option value="Wholesale">Wholesale</option>
+                                    <option value="Contractor">Contractor</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                            </div>
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                        </form>
+                    </div>
+
+
+                                <!-- JS toggle form  -->
+                                   <script>
+                                    document.getElementById("ADD").addEventListener('click', function(){
+                                        const form = document.getElementById("HiddenForm")
+                                        form.style.display = (form.style.display=== "none") ? "block": "none"
+                                    })
+                                   </script>         
+
+                                            
+
+
                                     <div class="col-md-4">
                                         <label class="form-label">Payment Method:</label>
                                         <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod"

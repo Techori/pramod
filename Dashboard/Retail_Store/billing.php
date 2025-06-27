@@ -552,7 +552,44 @@ $types = ['All', 'Retail', 'Wholesale'];
                                 }
                                 ?>
                             </select>
+                            <button class="btn bg-primary text-white mt-2" id="ADD">+ Add Customer</button>
                         </div>
+
+                        <!-- Hidden form -->
+                            <div id="HiddenForm" class="card p-3 mb-4" style="display:none;">
+                        <form method="POST" action="save_customer.php">
+                    
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" name="customer_name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Type</label>
+                                <select class="form-select" id="type" name="type" required>
+                                    <option value="Retail">Retail</option>
+                                    <option value="Wholesale">Wholesale</option>
+                                    <option value="Contractor">Contractor</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                            </div>
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                        </form>
+                    </div>
+
+                    <!-- JS toggle  -->
+                    <script>
+                        document.getElementById("ADD").addEventListener("click", function(){
+                            const form = document.getElementById("HiddenForm");
+                            form.style.display = (form.style.display==="none")? "block": "none"
+                        })
+                    </script>
+                    
+
+
+
                         <div class="col-md-4">
                             <label class="form-label">Payment Method:</label>
                             <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod" required>
@@ -623,6 +660,8 @@ $types = ['All', 'Retail', 'Wholesale'];
                             <tbody></tbody>
                         </table>
                         <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="redirect()">+ Add Product</button>
+                        
                     </div>
 
                     <div class="mb-3">
@@ -2117,4 +2156,10 @@ $types = ['All', 'Retail', 'Wholesale'];
             })
             .catch(err => alert("Error submitting invoice."));
     }
+    // redirect form
+    function redirect(){
+        window.location.href = "store_dashboard.php?page=inventory"
+    }
+
+
 </script>

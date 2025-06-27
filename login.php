@@ -261,7 +261,7 @@ include './_conn.php';
                                 </div>
                                 <div class="dropdown-options" id="options">
                                 <div class="dropdown-option">Admin</div>
-                                <div class="dropdown-option">Retail Store</div>
+                                <div class="dropdown-option">Store</div>
                                 <div class="dropdown-option">Vendor</div>
                                 <div class="dropdown-option">Factory</div>
                                 </div>

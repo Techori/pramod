@@ -12,7 +12,7 @@ if (isset($_POST['whatAction'])) {
     $contact = clean($_POST['customer_phone']);
     $current_date = date("Y-m-d");
     $created_by = $_SESSION['user_name'];
-    $created_for = $_POST["created_for"]; 
+    $created_for = $_SESSION['user_name']; 
 
     $result = $conn->query("SELECT customer_Id FROM customer ORDER BY CAST(SUBSTRING(customer_Id, 6) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
@@ -35,7 +35,7 @@ if (isset($_POST['whatAction'])) {
     if ($stmt->execute()) {
         $stmt->close();
         $conn->close();
-        header("Location: admin_dashboard.php?page=billing_desk");
+        header("Location: store_dashboard.php?page=billing");
         exit();
     } else {
         echo "Error: " . $stmt->error;
