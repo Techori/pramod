@@ -610,10 +610,36 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                             <option>Select payment method</option>
                             <option>Digital payment</option>
                             <option>Cash</option>
-                            <option>BNPL</option>
+                            <option id="bnpl">BNPL</option>
                             <option>Payment gateway</option>
                         </select>
                     </div>
+                    <!-- BNPL -->
+                    <div id="bnplFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="interest_rate" class="form-label">Interest Rate %</label>
+                            <input type="number" id="interest_rate" class="form-control" name="interest_rate">
+                        </div>
+                    </div>
+                    <!-- JS TO SHOW -->
+                    <script>
+                        const paymentMethod = document.getElementById("invoicePaymentMethod")
+                        const bnplFields = document.getElementById("bnplFields")
+
+                        paymentMethod.addEventListener("change", function(){
+                        if(this.value === "BNPL"){
+                            bnplFields.style.display ="block" 
+                        }
+                        else{
+                            bnplFields.style.display = "none"
+                        }
+
+                       }
+                    )
+                       
+                    </script>
+
+
                     <div class="col-md-6" id="status_section">
                         <label class="form-label">Status:</label>
                         <select class="form-select" id="invoiceStatus" name="invoiceStatus" required>

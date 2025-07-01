@@ -24,7 +24,7 @@ if (isset($_POST['whatAction'])) {
         $newNum = 1;
     }
 
-    $newCustomerId = 'CUST-' . str_pad($newNum, 3, '0', STR_PAD_LEFT); // e.g., CUST-006
+    $newCustomerId = 'CUST-' . str_pad($newNum, 3, '0', STR_PAD_LEFT); 
 
     // Step 2: Prepare and execute insert query
     $stmt = $conn->prepare("INSERT INTO customer (customer_Id, name, type, contact, date, created_by, created_for)

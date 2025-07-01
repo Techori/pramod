@@ -130,7 +130,6 @@ if ($stockResult->num_rows > 0) {
         $stocks[] = $row;
     }
 }
-
 // Static list of transfer locations (can be made dynamic with a table)
 $transferLocations = ['Warehouse A', 'Warehouse B', 'Factory', 'Distribution Center'];
 ?>
@@ -180,7 +179,17 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
     exit;  // Stop further script execution
 }
 ?>
+  <!-- php for btn -->
+    <?php
+    include '../../_conn.php';
+    $sql = "SELECT email , user_name FROM users WHERE user_type = 'Factory'";
+    $result = mysqli_query($conn, $sql);
 
+    $factoryUser = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $factoryUsers[] = $row;
+    }
+    ?>
 
 
 <!DOCTYPE html>
@@ -255,6 +264,20 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
 <body>
     <h1>Factory Stock Dashboard</h1>
     <p>Monitor and manage production inventory</p>
+
+    <!-- btn-->
+   <div class="btn-group mb-3" role="group" aria-label="Factory User Filters">
+    <button class="btn btn-primary me-2">All</button>
+
+    <?php foreach ($factoryUsers as $user): ?>
+        <button class="btn btn-outline-primary me-2">
+            <?= htmlspecialchars($user['user_name']) ?>
+        </button>
+    <?php endforeach;?>
+</div>
+
+
+  
 
     <!-- Cards -->
     <div class="row">
@@ -378,6 +401,41 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                             <input type="text" class="form-control mt-2" id="customCategory" name="customCategory"
                                 style="display:none;" placeholder="Enter new category">
                         </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Create for:</label>
+                            <select class="form-select" id="created_for" name="created_for" required>
+                                <option>Select status</option>
+                                <?php
+
+                                // Fetch transactions from the database
+                                $result = $conn->query("SELECT user_name FROM users");
+
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo "<option>" . $row['user_name'] . "</option>";
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <!-- created by -->
+                        <div class="mb-3">
+                            <label for="createdBy" class="form-label">Created by</label>
+                            <select class="form-control" id="createdBy" name="createdBy" onchange="toggleCreatedByInput()">
+                                <option value="">Select Name</option>
+                                <?php foreach ($added as $addedby): ?>
+                                    <option value="<?php echo htmlspecialchars($addedby); ?>">
+                                        <?php echo htmlspecialchars($addedby); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <option value="Other">Other</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="customCreatedBy" name="customCreatedBy"
+                                style="display: none;" placeholder="Enter new name">
+                        </div>
+
+
                         <div class="mb-3">
                             <label for="quantity" class="form-label">Quantity</label>
                             <input type="number" min="0" class="form-control" id="quantity" name="quantity" required>
@@ -416,13 +474,18 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         $record_date = date('Y-m-d');
         $status = $conn->real_escape_string($_POST['Status']);
 
+        // created_for or created_by
+
+        $created_by = $conn->real_escape_string($_POST['customCreatedBy']);
+        $created_for = $conn->real_escape_string($_POST['created_for']);
+
         // Validate inputs
         if (empty($item_name) || empty($category)) {
             echo "<script>alert('Please select or enter an item name and category.');</script>";
         } else {
 
-            $insertSql = "INSERT INTO factory_stock (item_name, category, quantity, value, status, record_date) 
-                          VALUES ('$item_name', '$category', $quantity, $value, '$status', '$record_date')";
+            $insertSql = "INSERT INTO factory_stock (item_name, category, quantity, value, status, record_date ,createdby, createdfor) 
+                          VALUES ('$item_name', '$category', $quantity, $value, '$status', '$record_date','$created_by','$created_for')";
             if ($conn->query($insertSql)) {
                 echo "<script>alert('Stock added successfully!'); window.location.href=window.location.href;</script>";
             } else {
@@ -508,128 +571,128 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
     </div>
 
     <!-- Check low stock -->
-<?php
-$low_stock_items = [];
+    <?php
+    $low_stock_items = [];
 
-$query = $conn->prepare("SELECT item_name, quantity, status FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock')");
-$query->execute();
-$result = $query->get_result();
+    $query = $conn->prepare("SELECT item_name, quantity, status FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock')");
+    $query->execute();
+    $result = $query->get_result();
 
-while ($row = $result->fetch_assoc()) {
+    while ($row = $result->fetch_assoc()) {
 
-    if ($row['status'] === 'Out of Stock') {
-        $level = 'Critical';
-    } else {
-        $level = 'Low';
+        if ($row['status'] === 'Out of Stock') {
+            $level = 'Critical';
+        } else {
+            $level = 'Low';
+        }
+
+        $low_stock_items[] = [
+            'item' => $row['item_name'],
+            'stock' => $row['quantity'], // e.g. '5 rolls'
+            'level' => $level
+        ];
     }
 
-    $low_stock_items[] = [
-        'item' => $row['item_name'],
-        'stock' => $row['quantity'], // e.g. '5 rolls'
-        'level' => $level
-    ];
-}
+    $query->close();
+    ?>
 
-$query->close();
-?>
-
-<!-- New Section: Low Stock and Supply Trends -->
-<div class="row g-4 mt-4">
-    <!-- Low Stock Alert Section -->
-    <div class="col-md-6">
-        <div class="card p-3">
-            <h5 class="fw-bold text-warning"><i class="bi bi-exclamation-circle"></i> Low Stock Alert</h5>
-            <div class="space-y-4">
-                <?php foreach ($low_stock_items as $item): ?>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="font-medium"><?php echo htmlspecialchars($item['item']); ?></span>
-                        <span
-                            class="<?php echo $item['level'] === 'Critical' ? 'text-danger' : 'text-warning'; ?> font-medium">
-                            <?php echo htmlspecialchars($item['level']); ?>
-                            (<?php echo htmlspecialchars($item['stock']); ?> left)
-                        </span>
-                    </div>
-                <?php endforeach; ?>
+    <!-- New Section: Low Stock and Supply Trends -->
+    <div class="row g-4 mt-4">
+        <!-- Low Stock Alert Section -->
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h5 class="fw-bold text-warning"><i class="bi bi-exclamation-circle"></i> Low Stock Alert</h5>
+                <div class="space-y-4">
+                    <?php foreach ($low_stock_items as $item): ?>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="font-medium"><?php echo htmlspecialchars($item['item']); ?></span>
+                            <span
+                                class="<?php echo $item['level'] === 'Critical' ? 'text-danger' : 'text-warning'; ?> font-medium">
+                                <?php echo htmlspecialchars($item['level']); ?>
+                                (<?php echo htmlspecialchars($item['stock']); ?> left)
+                            </span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Check popular products -->
-    <?php
-    $popular_products = [];
-    $item_sales = [];
+        <!-- Check popular products -->
+        <?php
+        $popular_products = [];
+        $item_sales = [];
 
-    $startOfMonth = date('Y-m-01');
-    $endOfMonth = date('Y-m-t');
+        $startOfMonth = date('Y-m-01');
+        $endOfMonth = date('Y-m-t');
 
-    $query = $conn->prepare("
+        $query = $conn->prepare("
         SELECT item_name, quantity 
         FROM invoice
         WHERE created_for = ? 
         AND date BETWEEN ? AND ?
     ");
-    $query->bind_param("sss", $user_name, $startOfMonth, $endOfMonth);
-    $query->execute();
-    $result = $query->get_result();
+        $query->bind_param("sss", $user_name, $startOfMonth, $endOfMonth);
+        $query->execute();
+        $result = $query->get_result();
 
-    while ($row = $result->fetch_assoc()) {
-        $items = explode(",", $row['item_name']);
-        $quantities = explode(",", $row['quantity']);
+        while ($row = $result->fetch_assoc()) {
+            $items = explode(",", $row['item_name']);
+            $quantities = explode(",", $row['quantity']);
 
-        foreach ($items as $index => $item) {
-            $item = trim($item);
-            $qty = isset($quantities[$index]) ? (int) trim($quantities[$index]) : 0;
+            foreach ($items as $index => $item) {
+                $item = trim($item);
+                $qty = isset($quantities[$index]) ? (int) trim($quantities[$index]) : 0;
 
-            if (!isset($item_sales[$item])) {
-                $item_sales[$item] = 0;
+                if (!isset($item_sales[$item])) {
+                    $item_sales[$item] = 0;
+                }
+                $item_sales[$item] += $qty;
             }
-            $item_sales[$item] += $qty;
         }
-    }
-    $query->close();
+        $query->close();
 
-    // Sort by sold quantity in descending order
-    arsort($item_sales);
+        // Sort by sold quantity in descending order
+        arsort($item_sales);
 
-    // Take top 5 items
-    $top_items = array_slice($item_sales, 0, 5, true);
+        // Take top 5 items
+        $top_items = array_slice($item_sales, 0, 5, true);
 
-    foreach ($top_items as $item => $qty) {
-        // Calculate percentage based on max 1000 units
-        $percentage = min(100, round(($qty / 1000) * 100));
-        $popular_products[] = [
-            'item' => $item,
-            'quantity' => $qty,
-            'percentage' => $percentage
-        ];
-    }
+        foreach ($top_items as $item => $qty) {
+            // Calculate percentage based on max 1000 units
+            $percentage = min(100, round(($qty / 1000) * 100));
+            $popular_products[] = [
+                'item' => $item,
+                'quantity' => $qty,
+                'percentage' => $percentage
+            ];
+        }
 
-    ?>
+        ?>
 
-    <!-- Supply Trends Card -->
-    <div class="col-md-6">
-        <div class="card p-3">
-            <h5 class="fw-bold text-primary"><i class="bi bi-graph-up"></i> Supply Trends</h5>
-            <p class="text-muted mb-4">Monthly procurement of top 5 raw materials</p>
+        <!-- Supply Trends Card -->
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h5 class="fw-bold text-primary"><i class="bi bi-graph-up"></i> Supply Trends</h5>
+                <p class="text-muted mb-4">Monthly procurement of top 5 raw materials</p>
 
-            <div class="space-y-3">
-                <?php foreach ($popular_products as $product): ?>
-                    <div>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-sm font-medium"><?php echo htmlspecialchars($product['item']); ?></span>
-                            <span class="text-sm text-muted"><?php echo htmlspecialchars($product['quantity']); ?></span>
+                <div class="space-y-3">
+                    <?php foreach ($popular_products as $product): ?>
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-sm font-medium"><?php echo htmlspecialchars($product['item']); ?></span>
+                                <span class="text-sm text-muted"><?php echo htmlspecialchars($product['quantity']); ?></span>
+                            </div>
+                            <div class="progress bg-light h-2">
+                                <div class="progress-bar bg-primary"
+                                    style="width: <?php echo htmlspecialchars($product['percentage']); ?>%"></div>
+                            </div>
                         </div>
-                        <div class="progress bg-light h-2">
-                            <div class="progress-bar bg-primary"
-                                style="width: <?php echo htmlspecialchars($product['percentage']); ?>%"></div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
-    </div>
 
-</div>
+    </div>
 
 
 
@@ -687,7 +750,9 @@ $query->close();
                         position: 'bottom',
                         labels: {
                             color: '#333',
-                            font: { size: 14 }
+                            font: {
+                                size: 14
+                            }
                         }
                     }
                 }
@@ -718,14 +783,16 @@ $query->close();
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { display: false }
+                    legend: {
+                        display: false
+                    }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
                             stepSize: 250000,
-                            callback: function (value) {
+                            callback: function(value) {
                                 return '₹' + value.toLocaleString();
                             }
                         }
@@ -733,6 +800,24 @@ $query->close();
                 }
             }
         });
+
+        function toggleCreatedByInput() {
+            const select = document.getElementById("createdBy");
+            const customInput = document.getElementById("customCreatedBy");
+
+            if (select && customInput) {
+                if (select.value === "Other") {
+                    customInput.style.display = "block"
+                    customInput.required = true;
+                } else {
+                    customInput.style.display = "none";
+                    customInput.required = false
+                }
+            }
+
+
+
+        }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -396,7 +396,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                         </div>
                         <div class="mb-3">
                             <label for="createdBy" class="form-label">Created by</label>
-                            <select class="form-control" id="createdBy" name="createdBy" onchange="toggleItemInput()">
+                            <select class="form-control" id="createdBy" name="createdBy" onchange="toggleCreatedByInput()">
                                 <option value="">Select Name</option>
                                 <?php foreach ($added as $addedby): ?>
                                     <option value="<?php echo htmlspecialchars($addedby); ?>">
@@ -406,8 +406,9 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                                 <option value="Other">Other</option>
                             </select>
                             <input type="text" class="form-control mt-2" id="customCreatedBy" name="customCreatedBy"
-                                style="display:none;" placeholder="Enter new name">
+                                style="display: none;" placeholder="Enter new name">
                         </div>
+
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
                             <input type="text" class="form-control" id="description" name="description" required>
@@ -461,21 +462,26 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
             </div>
         </div>
     </div>
-
     <script>
-        function toggleItemInput() {
-            const createdBySelect = document.getElementById('createdBy');
-            const customCreatedByInput = document.getElementById('customCreatedBy');
-            if (createdBySelect.value === 'Other') {
-                customCreatedByInput.style.display = 'block';
-                customCreatedByInput.required = true;
-            } else {
-                customCreatedByInput.style.display = 'none';
-                customCreatedByInput.required = false;
+        function toggleCreatedByInput() {
+            const select = document.getElementById('createdBy');
+            const customInput = document.getElementById('customCreatedBy');
+
+            if (select && customInput) {
+                if (select.value === 'Other') {
+                    customInput.style.display = 'block';
+                    customInput.required = true;
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.required = false;
+                }
             }
         }
 
+        // Run this once on page load in case "Other" is already selected
+        window.addEventListener('DOMContentLoaded', toggleCreatedByInput);
     </script>
+
 
     <!-- Form Processing -->
     <?php
@@ -492,14 +498,16 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         $date = $_POST['date'];
         $Payment_Method = $_POST['method'];
         $Status = $_POST['status'];
+        $created_for = $_SESSION['user_name'];
+        $created_by = $_POST['customCreatedBy'];
 
         // Validate inputs
         if (empty($item_name) || empty($category)) {
             echo "<script>alert('Please select or enter an item name and category.');</script>";
         } else {
 
-            $insertSql = "INSERT INTO factory_stock (item_name, category, quantity, value, status, record_date) 
-                          VALUES ('$item_name', '$category', $quantity, $value, '$status', '$record_date')";
+            $insertSql = "INSERT INTO factory_stock (item_name, category, quantity, value, status, record_date, createdby, createdfor) 
+                          VALUES ('$item_name', '$category', $quantity, $value, '$status', '$record_date' , '$created_by', '$created_for')";
             if ($conn->query($insertSql)) {
 
                 // Generate Expense ID
@@ -789,7 +797,9 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                         position: 'bottom',
                         labels: {
                             color: '#333',
-                            font: { size: 14 }
+                            font: {
+                                size: 14
+                            }
                         }
                     }
                 }
@@ -820,14 +830,16 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { display: false }
+                    legend: {
+                        display: false
+                    }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
                             stepSize: 250000,
-                            callback: function (value) {
+                            callback: function(value) {
                                 return '₹' + value.toLocaleString();
                             }
                         }
