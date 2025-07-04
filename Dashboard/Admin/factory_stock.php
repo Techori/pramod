@@ -1,195 +1,237 @@
 <?php
-include '../../_conn.php';
-$pending_orders = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered'")->fetch_assoc()['count'];
-
-// Get current and previous month for percentage calculations
-$currentMonth = date('Y-m');
-$previousMonth = date('Y-m', strtotime('-1 month'));
-
-// Get total stock value (current month)
-$totalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock";
-$totalValueResult = $conn->query($totalValueSql);
-$totalValue = 0;
-if ($totalValueResult->num_rows > 0) {
-    $row = $totalValueResult->fetch_assoc();
-    $totalValue = $row['total_value'] ?? 0;
-}
-
-// Get total stock value (previous month) for percentage change
-$prevTotalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock WHERE DATE_FORMAT(record_date, '%Y-%m') =
-'$previousMonth'";
-$prevTotalValueResult = $conn->query($prevTotalValueSql);
-$prevTotalValue = 0;
-if ($prevTotalValueResult->num_rows > 0) {
-    $row = $prevTotalValueResult->fetch_assoc();
-    $prevTotalValue = $row['total_value'] ?? 0;
-}
-$totalValuePercent = ($prevTotalValue > 0) ? (($totalValue - $prevTotalValue) / $prevTotalValue * 100) : 0;
-
-// Get stock value by category
-$categoryValueSql = "SELECT category, SUM(value) AS category_value FROM factory_stock GROUP BY category";
-$categoryValueResult = $conn->query($categoryValueSql);
-$categoryValues = [];
-if ($categoryValueResult->num_rows > 0) {
-    while ($row = $categoryValueResult->fetch_assoc()) {
-        $categoryValues[$row['category']] = $row['category_value'];
-    }
-}
-
-// Get low stock items (current month)
-$lowStockSql = "SELECT COUNT(*) AS low_stock_count FROM factory_stock WHERE status = 'Low Stock'";
-$lowStockResult = $conn->query($lowStockSql);
-$lowStockCount = 0;
-if ($lowStockResult->num_rows > 0) {
-    $row = $lowStockResult->fetch_assoc();
-    $lowStockCount = $row['low_stock_count'];
-}
-
-// Get low stock items (previous month) for percentage change
-$prevLowStockSql = "SELECT COUNT(*) AS low_stock_count FROM factory_stock WHERE status = 'Low Stock' AND
-DATE_FORMAT(record_date, '%Y-%m') = '$previousMonth'";
-$prevLowStockResult = $conn->query($prevLowStockSql);
-$prevLowStockCount = 0;
-if ($prevLowStockResult->num_rows > 0) {
-    $row = $prevLowStockResult->fetch_assoc();
-    $prevLowStockCount = $row['low_stock_count'];
-}
-$lowStockPercent = ($prevLowStockCount > 0) ? (($lowStockCount - $prevLowStockCount) / $prevLowStockCount * 100) : 0;
-
-// Get monthly production (current month)
-$monthlyProductionSql = "SELECT SUM(quantity) AS total_quantity FROM factory_stock WHERE DATE_FORMAT(record_date,
-'%Y-%m') = '$currentMonth'";
-$monthlyProductionResult = $conn->query($monthlyProductionSql);
-$monthlyProduction = 0;
-if ($monthlyProductionResult->num_rows > 0) {
-    $row = $monthlyProductionResult->fetch_assoc();
-    $monthlyProduction = $row['total_quantity'] ?? 0;
-}
-
-// Get monthly production (previous month) for percentage change
-$prevMonthlyProductionSql = "SELECT SUM(quantity) AS total_quantity FROM factory_stock WHERE DATE_FORMAT(record_date,
-'%Y-%m') = '$previousMonth'";
-$prevMonthlyProductionResult = $conn->query($prevMonthlyProductionSql);
-$prevMonthlyProduction = 0;
-if ($prevMonthlyProductionResult->num_rows > 0) {
-    $row = $prevMonthlyProductionResult->fetch_assoc();
-    $prevMonthlyProduction = $row['total_quantity'] ?? 0;
-}
-$monthlyProductionPercent = ($prevMonthlyProduction > 0) ? (($monthlyProduction - $prevMonthlyProduction) /
-    $prevMonthlyProduction * 100) : 0;
-
-// Get stock value trend (last 6 months)
-$trendSql = "SELECT DATE_FORMAT(record_date, '%Y-%m') AS month_year, SUM(value) AS total_value
-FROM factory_stock
-WHERE record_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-GROUP BY DATE_FORMAT(record_date, '%Y-%m')
-ORDER BY DATE_FORMAT(record_date, '%Y-%m') ASC";
-$trendResult = $conn->query($trendSql);
-$trendLabels = [];
-$trendData = [];
-$months = [];
-while ($row = $trendResult->fetch_assoc()) {
-    $monthYear = $row['month_year'];
-    $months[$monthYear] = $row['total_value'];
-}
-
-// Generate labels and data for the last 6 months
-for ($i = 5; $i >= 0; $i--) {
-    $month = date('Y-m', strtotime("-$i months"));
-    $monthName = date('M', strtotime("-$i months"));
-    $trendLabels[] = $monthName;
-    $trendData[] = isset($months[$month]) ? $months[$month] : 0;
-}
-
-// Get item names for Add Stock form dropdown
-$itemSql = "SELECT DISTINCT item_name FROM factory_stock ORDER BY item_name";
-$itemResult = $conn->query($itemSql);
-$items = [];
-if ($itemResult->num_rows > 0) {
-    while ($row = $itemResult->fetch_assoc()) {
-        $items[] = $row['item_name'];
-    }
-}
-
-// Get categories for Add Stock form dropdown
-$categorySql = "SELECT DISTINCT category FROM factory_stock ORDER BY category";
-$categoryResult = $conn->query($categorySql);
-$categories = [];
-if ($categoryResult->num_rows > 0) {
-    while ($row = $categoryResult->fetch_assoc()) {
-        $categories[] = $row['category'];
-    }
-}
-
-// Get stock items for Stock Transfer form dropdown
-$stockSql = "SELECT stock_id, item_name FROM factory_stock ORDER BY item_name";
-$stockResult = $conn->query($stockSql);
-$stocks = [];
-if ($stockResult->num_rows > 0) {
-    while ($row = $stockResult->fetch_assoc()) {
-        $stocks[] = $row;
-    }
-}
-// Static list of transfer locations (can be made dynamic with a table)
-$transferLocations = ['Warehouse A', 'Warehouse B', 'Factory', 'Distribution Center'];
-?>
-<!-- csv downlodable report -->
-<?php
-if (isset($_GET['export']) && $_GET['export'] === '1') {
-    $start_date = $_GET['start_date'];
-    $end_date = $_GET['end_date'];
-
-    // Check if dates are set and valid
-    if (empty($start_date) || empty($end_date)) {
-        die('Please select both start and end dates.');
-    }
-
-    // Check if dates are in valid format (YYYY-MM-DD)
-    if (!preg_match("/\d{4}-\d{2}-\d{2}/", $start_date) || !preg_match("/\d{4}-\d{2}-\d{2}/", $end_date)) {
-        die('Invalid date format. Please use YYYY-MM-DD.');
-    }
-
-    // Set the headers to force download
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment;filename="stock_report.csv"');
-
-    // Open PHP output stream (for CSV file creation)
-    $output = fopen('php://output', 'w');
-
-    // Add CSV headers
-    fputcsv($output, ['Stock ID', 'Item Name', 'Category', 'Quantity', 'Value', 'Status']);
-
-    // SQL query to filter stock records by the selected date range
-    $query = "SELECT * FROM factory_stock WHERE record_date BETWEEN ? AND ?";
-
-    // Prepare and execute the query
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param('ss', $start_date, $end_date);
-    $stmt->execute();
-
-    $result = $stmt->get_result();
-
-    // Output the result rows as CSV
-    while ($row = $result->fetch_assoc()) {
-        fputcsv($output, $row);  // Write each row to CSV
-    }
-
-    // Close the output stream
-    fclose($output);
-    exit;  // Stop further script execution
-}
-?>
-  <!-- php for btn -->
-    <?php
     include '../../_conn.php';
-    $sql = "SELECT email , user_name FROM users WHERE user_type = 'Factory'";
-    $result = mysqli_query($conn, $sql);
 
-    $factoryUser = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $factoryUsers[] = $row;
+$selectedEmail = isset($_GET['user']) ? $_GET['user'] : 'all';
+$filterByFactory = $selectedEmail !== 'all';
+
+// This will be appended to WHERE clauses
+$factoryFilter = $filterByFactory ? " AND stock_id = '" . mysqli_real_escape_string($conn, $selectedEmail) . "'" : '';
+
+
+
+    $pending_orders = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered'")->fetch_assoc()['count'];
+
+    // Get current and previous month for percentage calculations
+    $currentMonth = date('Y-m');
+    $previousMonth = date('Y-m', strtotime('-1 month'));
+
+    // Get total stock value (current month)
+    $totalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock WHERE 1=1 $factoryFilter";
+
+    $totalValueResult = $conn->query($totalValueSql);
+    $totalValue = 0;
+    if ($totalValueResult->num_rows > 0) {
+        $row = $totalValueResult->fetch_assoc();
+        $totalValue = $row['total_value'] ?? 0;
+    }
+
+    // Get total stock value (previous month) for percentage change
+    $prevTotalValueSql = "SELECT SUM(value) AS total_value 
+    FROM factory_stock 
+    WHERE DATE_FORMAT(record_date, '%Y-%m') = '$previousMonth' $factoryFilter";
+
+    $prevTotalValueResult = $conn->query($prevTotalValueSql);
+    $prevTotalValue = 0;
+    if ($prevTotalValueResult->num_rows > 0) {
+        $row = $prevTotalValueResult->fetch_assoc();
+        $prevTotalValue = $row['total_value'] ?? 0;
+    }
+    $totalValuePercent = ($prevTotalValue > 0) ? (($totalValue - $prevTotalValue) / $prevTotalValue * 100) : 0;
+
+    // Get stock value by category
+    $categoryValueSql = "SELECT category, SUM(value) AS category_value 
+    FROM factory_stock 
+    WHERE 1=1 $factoryFilter 
+    GROUP BY category";
+    $categoryValueResult = $conn->query($categoryValueSql);
+    $categoryValues = [];
+    if ($categoryValueResult->num_rows > 0) {
+        while ($row = $categoryValueResult->fetch_assoc()) {
+            $categoryValues[$row['category']] = $row['category_value'];
+        }
+    }
+
+    // Get low stock items (current month)
+   $lowStockSql = "SELECT COUNT(*) AS low_stock_count 
+FROM factory_stock 
+WHERE status = 'Low Stock' $factoryFilter";
+
+$prevLowStockSql = "SELECT COUNT(*) AS low_stock_count 
+FROM factory_stock 
+WHERE status = 'Low Stock' AND DATE_FORMAT(record_date, '%Y-%m') = '$previousMonth' $factoryFilter";
+
+    $lowStockResult = $conn->query($lowStockSql);
+    $lowStockCount = 0;
+    if ($lowStockResult->num_rows > 0) {
+        $row = $lowStockResult->fetch_assoc();
+        $lowStockCount = $row['low_stock_count'];
+    }
+
+    // Get low stock items (previous month) for percentage change
+    $prevLowStockSql = "SELECT COUNT(*) AS low_stock_count FROM factory_stock WHERE status = 'Low Stock' AND
+    DATE_FORMAT(record_date, '%Y-%m') = '$previousMonth'";
+    $prevLowStockResult = $conn->query($prevLowStockSql);
+    $prevLowStockCount = 0;
+    if ($prevLowStockResult->num_rows > 0) {
+        $row = $prevLowStockResult->fetch_assoc();
+        $prevLowStockCount = $row['low_stock_count'];
+    }
+    $lowStockPercent = ($prevLowStockCount > 0) ? (($lowStockCount - $prevLowStockCount) / $prevLowStockCount * 100) : 0;
+
+    // Get monthly production (current month)
+    $monthlyProductionSql = "SELECT SUM(quantity) AS total_quantity 
+    FROM factory_stock 
+    WHERE DATE_FORMAT(record_date, '%Y-%m') = '$currentMonth' $factoryFilter";
+
+   $prevMonthlyProductionSql = "SELECT SUM(quantity) AS total_quantity 
+   FROM factory_stock 
+   WHERE DATE_FORMAT(record_date, '%Y-%m') = '$previousMonth' $factoryFilter";
+
+    $monthlyProductionResult = $conn->query($monthlyProductionSql);
+    $monthlyProduction = 0;
+    if ($monthlyProductionResult->num_rows > 0) {
+        $row = $monthlyProductionResult->fetch_assoc();
+        $monthlyProduction = $row['total_quantity'] ?? 0;
+    }
+
+    // Get monthly production (previous month) for percentage change
+    $prevMonthlyProductionSql = "SELECT SUM(quantity) AS total_quantity FROM factory_stock WHERE DATE_FORMAT(record_date,
+    '%Y-%m') = '$previousMonth'";
+    $prevMonthlyProductionResult = $conn->query($prevMonthlyProductionSql);
+    $prevMonthlyProduction = 0;
+    if ($prevMonthlyProductionResult->num_rows > 0) {
+        $row = $prevMonthlyProductionResult->fetch_assoc();
+        $prevMonthlyProduction = $row['total_quantity'] ?? 0;
+    }
+    $monthlyProductionPercent = ($prevMonthlyProduction > 0) ? (($monthlyProduction - $prevMonthlyProduction) /
+        $prevMonthlyProduction * 100) : 0;
+
+    // Get stock value trend (last 6 months)
+    $trendSql = "SELECT DATE_FORMAT(record_date, '%Y-%m') AS month_year, SUM(value) AS total_value
+    FROM factory_stock
+    WHERE record_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) $factoryFilter
+   GROUP BY DATE_FORMAT(record_date, '%Y-%m')
+   ORDER BY DATE_FORMAT(record_date, '%Y-%m') ASC";
+
+    $trendResult = $conn->query($trendSql);
+    $trendLabels = [];
+    $trendData = [];
+    $months = [];
+    while ($row = $trendResult->fetch_assoc()) {
+        $monthYear = $row['month_year'];
+        $months[$monthYear] = $row['total_value'];
+    }
+
+    // Generate labels and data for the last 6 months
+    for ($i = 5; $i >= 0; $i--) {
+        $month = date('Y-m', strtotime("-$i months"));
+        $monthName = date('M', strtotime("-$i months"));
+        $trendLabels[] = $monthName;
+        $trendData[] = isset($months[$month]) ? $months[$month] : 0;
+    }
+
+    // Get item names for Add Stock form dropdown
+    $itemSql = "SELECT DISTINCT item_name FROM factory_stock ORDER BY item_name";
+    $itemResult = $conn->query($itemSql);
+    $items = [];
+    if ($itemResult->num_rows > 0) {
+        while ($row = $itemResult->fetch_assoc()) {
+            $items[] = $row['item_name'];
+        }
+    }
+
+    // Get categories for Add Stock form dropdown
+    $categorySql = "SELECT DISTINCT category FROM factory_stock ORDER BY category";
+    $categoryResult = $conn->query($categorySql);
+    $categories = [];
+    if ($categoryResult->num_rows > 0) {
+        while ($row = $categoryResult->fetch_assoc()) {
+            $categories[] = $row['category'];
+        }
+    }
+
+    // Get stock items for Stock Transfer form dropdown
+    $stockSql = "SELECT stock_id, item_name FROM factory_stock ORDER BY item_name";
+    $stockResult = $conn->query($stockSql);
+    $stocks = [];
+    if ($stockResult->num_rows > 0) {
+        while ($row = $stockResult->fetch_assoc()) {
+            $stocks[] = $row;
+        }
+    }
+    // Static list of transfer locations (can be made dynamic with a table)
+    $transferLocations = ['Warehouse A', 'Warehouse B', 'Factory', 'Distribution Center'];
+    ?>
+    <!-- csv downlodable report -->
+    <?php
+    if (isset($_GET['export']) && $_GET['export'] === '1') {
+        $start_date = $_GET['start_date'];
+        $end_date = $_GET['end_date'];
+
+        // Check if dates are set and valid
+        if (empty($start_date) || empty($end_date)) {
+            die('Please select both start and end dates.');
+        }
+
+        // Check if dates are in valid format (YYYY-MM-DD)
+        if (!preg_match("/\d{4}-\d{2}-\d{2}/", $start_date) || !preg_match("/\d{4}-\d{2}-\d{2}/", $end_date)) {
+            die('Invalid date format. Please use YYYY-MM-DD.');
+        }
+
+        // Set the headers to force download
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment;filename="stock_report.csv"');
+
+        // Open PHP output stream (for CSV file creation)
+        $output = fopen('php://output', 'w');
+
+        // Add CSV headers
+        fputcsv($output, ['Stock ID', 'Item Name', 'Category', 'Quantity', 'Value', 'Status']);
+
+        // SQL query to filter stock records by the selected date range
+        $query = "SELECT * FROM factory_stock WHERE record_date BETWEEN ? AND ?";
+
+        // Prepare and execute the query
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param('ss', $start_date, $end_date);
+        $stmt->execute();
+
+        $result = $stmt->get_result();
+
+        // Output the result rows as CSV
+        while ($row = $result->fetch_assoc()) {
+            fputcsv($output, $row);  // Write each row to CSV
+        }
+
+        // Close the output stream
+        fclose($output);
+        exit;  // Stop further script execution
     }
     ?>
+
+    <!-- Fetch Factory Users -->
+ <?php
+include '../../_conn.php';
+
+// Get selected user (from URL ?user=email)
+$selectedEmail = isset($_GET['user']) ? $_GET['user'] : 'all';
+
+// Fetch all factory users
+$sql = "SELECT email, user_name FROM users WHERE user_type = 'Factory'";
+$result = mysqli_query($conn, $sql);
+
+$factoryUsers = [];
+while ($row = mysqli_fetch_assoc($result)) {
+    $factoryUsers[] = $row;
+}
+
+// Rebuild current query string without 'user' (to preserve other params if needed)
+parse_str($_SERVER['QUERY_STRING'], $query);
+unset($query['user']);
+$baseUrl = $_SERVER['PHP_SELF'] . '?' . http_build_query($query);
+?>
+
+
 
 
 <!DOCTYPE html>
@@ -201,6 +243,12 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Bootstrap JS Bundle (with Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <style>
         .cards {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -265,17 +313,45 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
     <h1>Factory Stock Dashboard</h1>
     <p>Monitor and manage production inventory</p>
 
-    <!-- btn-->
-   <div class="btn-group mb-3" role="group" aria-label="Factory User Filters">
-    <button class="btn btn-primary me-2">All</button>
+   <!-- Dropdown -->
+<!-- Dropdown -->
+<div class="dropdown mb-3">
+  <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton"
+    data-bs-toggle="dropdown" aria-expanded="false">
+    <?php
+    if ($selectedEmail === 'all') {
+        echo "All";
+    } else {
+        // Show selected user name
+        foreach ($factoryUsers as $user) {
+            if ($user['email'] === $selectedEmail) {
+                echo htmlspecialchars($user['user_name']);
+                break;
+            }
+        }
+    }
+    ?>
+  </button>
 
+  <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+    <!-- All option -->
+    <li>
+      <a class="dropdown-item <?= $selectedEmail === 'all' ? 'active' : '' ?>" href="<?= $baseUrl ?>&user=all">
+        All
+      </a>
+    </li>
+
+    <!-- Factory users -->
     <?php foreach ($factoryUsers as $user): ?>
-        <button class="btn btn-outline-primary me-2">
-            <?= htmlspecialchars($user['user_name']) ?>
-        </button>
-    <?php endforeach;?>
+      <li>
+        <a class="dropdown-item <?= $selectedEmail === $user['email'] ? 'active' : '' ?>"
+           href="<?= $baseUrl ?>&user=<?= urlencode($user['email']) ?>">
+          <?= htmlspecialchars($user['user_name']) ?>
+        </a>
+      </li>
+    <?php endforeach; ?>
+  </ul>
 </div>
-
 
   
 
@@ -813,7 +889,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                     customInput.style.display = "none";
                     customInput.required = false
                 }
-            }
+            }   
 
 
 
