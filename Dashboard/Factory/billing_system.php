@@ -134,7 +134,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             echo "Error: " . $stmt->error;
         }
-
     }
 }
 
@@ -174,8 +173,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 
     <script>
-
-
         document.addEventListener("DOMContentLoaded", () => {
 
             // 🔍 Live Search Function
@@ -293,7 +290,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             csv.push(cols.join(","));
         }
         let csvContent = csv.join("\n");
-        let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        let blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;"
+        });
 
         // Download link
         let link = document.createElement("a");
@@ -504,7 +503,41 @@ $formattedBilling = formatINR($totalBilling);
                             }
                             ?>
                         </select>
+                        <!--Add customer btn -->
+                        <button class="btn bg-primary text-white mt-2" id="ADD">+ Add Customer</button>
                     </div>
+
+
+                    <!-- Hidden Customer Form -->
+                    <div id="customerForm" class="card p-3 mb-4" style="display: none;">
+                        <form method="POST" action="save_customer.php">
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" name="customer_name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Type</label>
+                                <select class="form-select" id="type" name="type" required>
+                                    <option value="Retail">Retail</option>
+                                    <option value="Wholesale">Wholesale</option>
+                                    <option value="Contractor">Contractor</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                            </div>
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                        </form>
+                    </div>
+
+                    <!-- JS to Toggle Form -->
+                    <script>
+                        document.getElementById("ADD").addEventListener('click', function() {
+                            const form = document.getElementById("customerForm")
+                            form.style.display = (form.style.display === "none") ? "block" : "none"
+                        })
+                    </script>
                     <div class="col-md-4">
                         <label class="form-label">Payment Method:</label>
                         <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod" required>
@@ -575,6 +608,7 @@ $formattedBilling = formatINR($totalBilling);
                         <tbody></tbody>
                     </table>
                     <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="Redirect()">+ Add Product</button>
                 </div>
 
                 <div class="mb-3">
@@ -695,7 +729,7 @@ $formattedBilling = formatINR($totalBilling);
     }
 
     // Close form when clicking outside of it
-    window.onclick = function (event) {
+    window.onclick = function(event) {
         const modal = document.getElementById('invoiceModal');
         if (event.target === modal) {
             closeInvoiceModal();
@@ -749,12 +783,12 @@ $formattedBilling = formatINR($totalBilling);
         };
 
         fetch("billing_system.php", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        })
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
             .then(res => res.text())
             .then(msg => {
                 // alert(msg);
@@ -763,5 +797,9 @@ $formattedBilling = formatINR($totalBilling);
                 location.reload();
             })
             .catch(err => alert("Error submitting invoice."));
+    }
+
+    function Redirect() {
+        window.location.href = "factory_dashboard.php?page=inventory"
     }
 </script>
