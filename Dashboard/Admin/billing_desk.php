@@ -476,8 +476,8 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
 <!-- Buttons -->
 <div class="row justify-content-center">
     <div class="col-md-4 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openSalesModal(event)" id="sales_return"><i class="fa-solid fa-file"></i> Create
-            Sales Return</button>
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openInvoiceModal(event)" id="invoice"><i class="fa-solid fa-file"></i> Create
+            New Invoice</button>
     </div>
     <div class="col-md-4 col-sm-6 mb-4">
         <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openSalesModal(event)"
