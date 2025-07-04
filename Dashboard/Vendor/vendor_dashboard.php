@@ -209,8 +209,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                 </div>
 
                                 <script>
-
-
                                     document.addEventListener("DOMContentLoaded", () => {
 
                                         // 🔍 Live Search Function
@@ -340,7 +338,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                             });
 
                                             // Create a Blob from the CSV string
-                                            let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+                                            let csvFile = new Blob([csv.join("\n")], {
+                                                type: "text/csv"
+                                            });
 
                                             // Create a temporary link to trigger download
                                             let downloadLink = document.createElement("a");
@@ -352,7 +352,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                             downloadLink.click();
                                             document.body.removeChild(downloadLink);
                                         }
-
                                     </script>
                                 </div>
                             </div>
@@ -390,8 +389,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                 </div>
 
                                 <script>
-
-
                                     document.addEventListener("DOMContentLoaded", () => {
 
                                         // 🔍 Live Search Function
@@ -495,7 +492,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
                                                     // Modal only for pending rows
                                                     if ($status === 'Pending') {
-                                                        ?>
+                                            ?>
                                                         <div class="modal fade" id="statusModal<?= $id ?>" tabindex="-1"
                                                             aria-labelledby="statusModalLabel<?= $id ?>" aria-hidden="true">
                                                             <div class="modal-dialog">
@@ -525,7 +522,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                                                 </form>
                                                             </div>
                                                         </div>
-                                                        <?php
+                                            <?php
                                                     }
                                                 }
                                             } else {
@@ -569,41 +566,36 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                         <button class="btn bg-primary mt-2 text-white" id="ADD"> + Add Customer</button>
                                     </div>
 
-                                 <!-- Hidden form -->
-                                 <div id="HiddenForm" class="card p-3 mb-4" style="display: none;">
-                        <form method="POST" action="save_customer.php">
-                    
-                            <div class="mb-3">
-                                <label class="form-label">Customer Name</label>
-                                <input type="text" name="customer_name" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="type" class="form-label">Type</label>
-                                <select class="form-select" id="type" name="type" required>
-                                    <option value="Retail">Retail</option>
-                                    <option value="Wholesale">Wholesale</option>
-                                    <option value="Contractor">Contractor</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Phone</label>
-                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
-                            </div>
-                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
-                        </form>
-                    </div>
+                                    <!-- Hidden form -->
+                                    <div id="HiddenForm" class="card p-3 mb-4" style="display: none;">
+                                        <form method="POST" action="save_customer.php">
 
-
-                                <!-- JS toggle form  -->
-                                   <script>
-                                    document.getElementById("ADD").addEventListener('click', function(){
-                                        const form = document.getElementById("HiddenForm")
-                                        form.style.display = (form.style.display=== "none") ? "block": "none"
-                                    })
-                                   </script>         
-
-                                            
-
+                                            <div class="mb-3">
+                                                <label class="form-label">Customer Name</label>
+                                                <input type="text" name="customer_name" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="type" class="form-label">Type</label>
+                                                <select class="form-select" id="type" name="type" required>
+                                                    <option value="Retail">Retail</option>
+                                                    <option value="Wholesale">Wholesale</option>
+                                                    <option value="Contractor">Contractor</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Phone</label>
+                                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                                            </div>
+                                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                                        </form>
+                                    </div>
+                                    <!-- JS toggle form  -->
+                                    <script>
+                                        document.getElementById("ADD").addEventListener('click', function() {
+                                            const form = document.getElementById("HiddenForm")
+                                            form.style.display = (form.style.display === "none") ? "block" : "none"
+                                        })
+                                    </script>
 
                                     <div class="col-md-4">
                                         <label class="form-label">Payment Method:</label>
@@ -676,6 +668,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                         <tbody></tbody>
                                     </table>
                                     <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="Redirect()">+ Add Product</button>
                                 </div>
 
                                 <div class="mb-3">
@@ -788,7 +781,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $month = $date->format('m');
         $year = $date->format('Y');
         $label = $date->format('M'); // e.g., Jan, Feb
-    
+
         // Add to labels
         $monthLabels[] = "'$label'";
 
@@ -827,7 +820,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { display: false }
+                    legend: {
+                        display: false
+                    }
                 },
                 scales: {
                     y: {
@@ -839,7 +834,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 }
             }
         });
-
     </script>
     <script>
         // Sidebar Toggle
@@ -866,10 +860,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 }
             });
         });
-
     </script>
     <script>
-
         let activeInvoiceButtonId = null;
 
         // To open form
@@ -973,7 +965,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
 
         // Close form when clicking outside of it
-        window.onclick = function (event) {
+        window.onclick = function(event) {
             const modal = document.getElementById('invoiceModal');
             if (event.target === modal) {
                 closeInvoiceModal();
@@ -1027,12 +1019,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             };
 
             fetch("invoices.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
-            })
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                })
                 .then(res => res.text())
                 .then(msg => {
                     // alert(msg);
@@ -1043,7 +1035,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 .catch(err => alert("Error submitting invoice."));
         }
 
+        function Redirect(){
+            window.location.href ="vendor_dashboard.php?page=products"
+        }
     </script>
 </body>
-
 </html>

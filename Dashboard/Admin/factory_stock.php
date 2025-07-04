@@ -628,11 +628,11 @@ $baseUrl = $_SERVER['PHP_SELF'] . '?' . http_build_query($query);
                                     <td>" . htmlspecialchars($row['quantity']) . "</td>
                                     <td>₹" . number_format($row['value'], 2) . "</td>
                                     <td>";
-                            if ($status == 'In Stock') {
+                            if ($status == 'In stock') {
                                 echo '<span class="badge rounded-pill" style="background-color: #198754; color: white; padding: 8px 16px;">In Stock</span>';
-                            } elseif ($status == 'Low Stock') {
+                            } elseif ($status == 'Low stock') {
                                 echo '<span class="badge rounded-pill" style="background-color: #ffc107; color: white; padding: 8px 16px;">Low Stock</span>';
-                            } elseif ($status == 'Out of Stock') {
+                            } elseif ($status == 'Out of stock') {
                                 echo '<span class="badge rounded-pill" style="background-color: #dc3545; color: white; padding: 8px 16px;">Out of Stock</span>';
                             }
                             echo "</td></tr>";

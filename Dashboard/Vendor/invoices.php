@@ -135,7 +135,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
             echo "Error: " . $stmt->error;
         }
-
     }
 }
 
@@ -186,7 +185,39 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             }
                             ?>
                         </select>
+                        <button class="btn bg-primary text-white mt-2" id="ADD">+ Add Customer</button>
                     </div>
+
+                    <!-- Hidden form -->
+                    <div id="HiddenForm" class="card p-3 mb-4" style="display: none;">
+                        <form method="POST" action="save_customer.php">
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" name="customer_name" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="type" class="form-label">Type</label>
+                                <select class="form-select" id="type" name="type" required>
+                                    <option value="Retail">Retail</option>
+                                    <option value="Wholesale">Wholesale</option>
+                                    <option value="Contractor">Contractor</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
+                            </div>
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                        </form>
+                    </div>
+                    <!-- JS toggle form  -->
+                    <script>
+                        document.getElementById("ADD").addEventListener('click', function() {
+                            const form = document.getElementById("HiddenForm")
+                            form.style.display = (form.style.display === "none") ? "block" : "none"
+                        })
+                    </script>
+
                     <div class="col-md-4">
                         <label class="form-label">Payment Method:</label>
                         <select class="form-select" id="invoicePaymentMethod" name="invoicePaymentMethod" required>
@@ -257,6 +288,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <tbody></tbody>
                     </table>
                     <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="Redirect()">+ Add Product</button>
                 </div>
 
                 <div class="mb-3">
@@ -289,13 +321,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <!-- Search and Filters -->
         <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
             <div class="flex-grow-1">
-                    <input type="hidden" name="page" value="billing">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0" id="searchInput"><i
-                                class="fas fa-search"></i></span>
-                        <input type="text" class="form-control border-start-0 table-search" data-table="invoicesTable"
-                            placeholder="Search..." />
-                    </div>
+                <input type="hidden" name="page" value="billing">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                            class="fas fa-search"></i></span>
+                    <input type="text" class="form-control border-start-0 table-search" data-table="invoicesTable"
+                        placeholder="Search..." />
+                </div>
             </div>
             <div class="d-flex gap-2">
                 <div>
@@ -316,8 +348,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
 
         <script>
-
-
             document.addEventListener("DOMContentLoaded", () => {
 
                 // 🔍 Live Search Function
@@ -435,19 +465,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </tbody>
             </table>
             <script>
-
                 // Export table data to CSV function
                 function exportTableToCSV(filename = 'table-data.csv') {
                     const rows = document.querySelectorAll("#invoicesTable tr");
                     let csv = [];
                     rows.forEach(row => {
                         let cols = Array.from(row.querySelectorAll("th, td"))
-                            .map(col => `"${col.innerText.trim().replace(/"/g, '""')}"`);  // Escape quotes
+                            .map(col => `"${col.innerText.trim().replace(/"/g, '""')}"`); // Escape quotes
                         csv.push(cols.join(","));
                     });
 
                     // Create a Blob from the CSV string
-                    let csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+                    let csvFile = new Blob([csv.join("\n")], {
+                        type: "text/csv"
+                    });
 
                     // Create a temporary link to trigger download
                     let downloadLink = document.createElement("a");
@@ -551,7 +582,7 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
                         <span>Download All</span>
                     </button>
                     <script>
-                        document.getElementById("downloadAllBtn").addEventListener("click", function () {
+                        document.getElementById("downloadAllBtn").addEventListener("click", function() {
                             const rows = document.querySelectorAll("#invoicesTable tr");
                             let csv = [];
 
@@ -562,7 +593,9 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
                             });
 
                             const csvContent = csv.join("\n");
-                            const blob = new Blob([csvContent], { type: "text/csv" });
+                            const blob = new Blob([csvContent], {
+                                type: "text/csv"
+                            });
                             const url = URL.createObjectURL(blob);
 
                             const a = document.createElement("a");
@@ -621,7 +654,9 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
                             }
 
                             // Create and download the CSV file
-                            const blob = new Blob([csv], { type: 'text/csv' });
+                            const blob = new Blob([csv], {
+                                type: 'text/csv'
+                            });
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
@@ -681,7 +716,9 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
                             }
 
                             // Create and download the CSV file
-                            const blob = new Blob([csv], { type: 'text/csv' });
+                            const blob = new Blob([csv], {
+                                type: 'text/csv'
+                            });
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
@@ -728,7 +765,6 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
 </style>
 
 <script>
-
     let activeInvoiceButtonId = null;
 
     // To open form
@@ -832,7 +868,7 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
     }
 
     // Close form when clicking outside of it
-    window.onclick = function (event) {
+    window.onclick = function(event) {
         const modal = document.getElementById('invoiceModal');
         if (event.target === modal) {
             closeInvoiceModal();
@@ -886,12 +922,12 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
         };
 
         fetch("invoices.php", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        })
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
             .then(res => res.text())
             .then(msg => {
                 // alert(msg);
@@ -902,4 +938,7 @@ $outstanding_amount = $outstanding_result->fetch_assoc()['total_outstanding'] ??
             .catch(err => alert("Error submitting invoice."));
     }
 
+    function Redirect() {
+        window.location.href = "vendor_dashboard.php?page=products"
+    }
 </script>
