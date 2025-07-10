@@ -6,9 +6,9 @@ include '../../_conn.php';
 $user_name = $_SESSION['user_name'];
 
 // Count stats
-$pending = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered'")->fetch_assoc()['count'];
-$in_transit = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='In Transit'")->fetch_assoc()['count'];
-$delivered = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Received' AND received_date <= CURDATE() AND received_date >= CURDATE() - INTERVAL 30 DAY")->fetch_assoc()['count'];
+$pending = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered' AND request_to = '$user_name'")->fetch_assoc()['count'];
+$in_transit = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='In Transit' AND request_to = '$user_name'")->fetch_assoc()['count'];
+$delivered = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Received' AND request_to = '$user_name' AND received_date <= CURDATE() AND received_date >= CURDATE() - INTERVAL 30 DAY")->fetch_assoc()['count'];
 ?>
 
 <?php

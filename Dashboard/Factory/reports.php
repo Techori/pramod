@@ -216,7 +216,7 @@ $user_name = $_SESSION['user_name'];
                     <?php
 
                     // Fetch transactions from the database
-                    $result = $conn->query("SELECT * FROM factory_raw_material ORDER BY id DESC");
+                    $result = $conn->query("SELECT * FROM factory_raw_material WHERE created_for  = '$user_name' ORDER BY id DESC");
 
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
@@ -271,7 +271,7 @@ $user_name = $_SESSION['user_name'];
                         <?php
 
                         // Fetch transactions from the database
-                        $result = $conn->query("SELECT * FROM factory_workers ORDER BY id DESC");
+                        $result = $conn->query("SELECT * FROM factory_workers WHERE created_for  = '$user_name' ORDER BY id DESC");
 
                         if ($result->num_rows > 0) {
                             while ($row = $result->fetch_assoc()) {

@@ -222,12 +222,12 @@ $stmt->bind_param("ssssids", $newSupplierId, $name, $type, $items, $orders, $spe
   <div class="col-md-3">
     <button class="btn btn-light dashboard-btn">Add Supplier</button>
   </div>
-  <div class="col-md-3">
+  <!-- <div class="col-md-3">
     <button class="btn btn-light dashboard-btn">Supplier Report</button>
   </div>
   <div class="col-md-3">
     <button class="btn btn-light dashboard-btn">Order Status</button>
-  </div>
+  </div> -->
 </div>
 
 <div class="row mt-4">

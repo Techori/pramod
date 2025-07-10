@@ -19,7 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $category = clean($_POST['category']);
         $quantity = clean($_POST['materialquantity']);
         $reorder_point = clean($_POST['materialReorder']);
-        $unit = clean($_POST['unit']);
+        $unit = !empty($_POST['customUnit']) ? $conn->real_escape_string($_POST['customUnit']) : $conn->real_escape_string($_POST['unit']);
         $Status = clean($_POST['Status']);
         $primary_supplier = clean($_POST['materialprimarysupplier']);
         $description = $_POST['description'];
@@ -44,10 +44,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $newMaterialId = 'RM-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
         $stmt = $conn->prepare("INSERT INTO factory_raw_material 
-                (id, material, category, quantity, amount, reorder_point, unit, Status, primary_supplier) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                (id, material, category, quantity, amount, reorder_point, unit, Status, primary_supplier, created_for) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("sssidisss", $newMaterialId, $material, $category, $quantity, $amount, $reorder_point, $unit, $Status, $primary_supplier);
+        $stmt->bind_param("sssidissss", $newMaterialId, $material, $category, $quantity, $amount, $reorder_point, $unit, $Status, $primary_supplier, $user_name);
         $stmt->execute();
 
         $conn->commit();
@@ -304,6 +304,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
     }
     ?>
+    <?php
+    // Get names for Add expense form dropdown
+    $unitSql = "SELECT DISTINCT unit FROM factory_raw_material ORDER BY unit";
+    $unitResult = $conn->query($unitSql);
+    $units = [];
+    if ($unitResult->num_rows > 0) {
+        while ($row = $unitResult->fetch_assoc()) {
+            $units[] = $row['unit'];
+        }
+    }
+    ?>
 
     <!-- Modal Structure -->
     <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel"
@@ -350,9 +361,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                             <input type="text" class="form-control" id="materialquantity" name="materialquantity"
                                 required>
                         </div>
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label for="unit" class="form-label">Per Unit</label>
                             <input type="text" class="form-control" id="unit" name="unit" required>
+                        </div> -->
+                        <div class="mb-3">
+                            <label for="unit" class="form-label">Per Unit</label>
+                            <select class="form-control" id="unit" name="unit" onchange="toggleUnitInput()">
+                                <option value="">Select Unit</option>
+                                <?php foreach ($units as $unit): ?>
+                                    <option value="<?php echo htmlspecialchars($unit); ?>">
+                                        <?php echo htmlspecialchars($unit); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <option value="Other">Other</option>
+                            </select>
+                            <input type="text" class="form-control mt-2" id="customUnit" name="customUnit"
+                                style="display:none;" placeholder="Enter new unit">
                         </div>
                         <div class="mb-3">
                             <label for="amount" class="form-label">Amount</label>
@@ -407,6 +432,43 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             </div>
         </div>
     </div>
+    <script>
+        function toggleItemInput() {
+            const select = document.getElementById('createdBy');
+            const customInput = document.getElementById('customCreatedBy');
+
+            if (select && customInput) {
+                if (select.value === 'Other') {
+                    customInput.style.display = 'block';
+                    customInput.required = true;
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.required = false;
+                }
+            }
+        }
+
+        // Run this once on page load in case "Other" is already selected
+        window.addEventListener('DOMContentLoaded', toggleItemInput);
+    
+        function toggleUnitInput() {
+            const unit = document.getElementById('unit');
+            const customUnit = document.getElementById('customUnit');
+
+            if (unit && customUnit) {
+                if (unit.value === 'Other') {
+                    customUnit.style.display = 'block';
+                    customUnit.required = true;
+                } else {
+                    customUnit.style.display = 'none';
+                    customUnit.required = false;
+                }
+            }
+        }
+
+        // Run this once on page load in case "Other" is already selected
+        window.addEventListener('DOMContentLoaded', toggleUnitInput);
+    </script>
 
 </div>
 
@@ -470,7 +532,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 <?php
 
                 // Fetch transactions from the database
-                $result = $conn->query("SELECT * FROM factory_raw_material ORDER BY id DESC");
+                $result = $conn->query("SELECT * FROM factory_raw_material WHERE created_for  = '$user_name' ORDER BY id DESC");
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
@@ -485,7 +547,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                         echo "<td>" . htmlspecialchars($row['primary_supplier']) . "</td>";
                     }
                 } else {
-                    echo "<tr><td colspan='7' class='text-center'>No material found</td></tr>";
+                    echo "<tr><td colspan='8' class='text-center'>No material found</td></tr>";
                 }
                 ?>
             </tbody>

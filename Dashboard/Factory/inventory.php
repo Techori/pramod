@@ -4,14 +4,14 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 include '../../_conn.php';
 $user_name = $_SESSION['user_name'];
-$pending_orders = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered'")->fetch_assoc()['count'];
+$pending_orders = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered' AND request_to = '$user_name'")->fetch_assoc()['count'];
 
 // Get current and previous month for percentage calculations
 $currentMonth = date('Y-m');
 $previousMonth = date('Y-m', strtotime('-1 month'));
 
 // Get total stock value (current month)
-$totalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock";
+$totalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock WHERE created_for = '$user_name' AND DATE_FORMAT(record_date, '%Y-%m') = '$currentMonth'";
 $totalValueResult = $conn->query($totalValueSql);
 $totalValue = 0;
 if ($totalValueResult->num_rows > 0) {
@@ -20,7 +20,7 @@ if ($totalValueResult->num_rows > 0) {
 }
 
 // Get total stock value (previous month) for percentage change
-$prevTotalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock WHERE DATE_FORMAT(record_date, '%Y-%m') =
+$prevTotalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock WHERE created_for = '$user_name' AND DATE_FORMAT(record_date, '%Y-%m') =
 '$previousMonth'";
 $prevTotalValueResult = $conn->query($prevTotalValueSql);
 $prevTotalValue = 0;
@@ -31,7 +31,7 @@ if ($prevTotalValueResult->num_rows > 0) {
 $totalValuePercent = ($prevTotalValue > 0) ? (($totalValue - $prevTotalValue) / $prevTotalValue * 100) : 0;
 
 // Get stock value by category
-$categoryValueSql = "SELECT category, SUM(value) AS category_value FROM factory_stock GROUP BY category";
+$categoryValueSql = "SELECT category, SUM(value) AS category_value FROM factory_stock WHERE created_for = '$user_name' GROUP BY category";
 $categoryValueResult = $conn->query($categoryValueSql);
 $categoryValues = [];
 if ($categoryValueResult->num_rows > 0) {
@@ -41,7 +41,7 @@ if ($categoryValueResult->num_rows > 0) {
 }
 
 // Get low stock items (current month)
-$lowStockSql = "SELECT COUNT(*) AS low_stock_count FROM factory_stock WHERE status = 'Low Stock'";
+$lowStockSql = "SELECT COUNT(*) AS low_stock_count FROM factory_stock WHERE created_for = '$user_name' AND status = 'Low Stock'";
 $lowStockResult = $conn->query($lowStockSql);
 $lowStockCount = 0;
 if ($lowStockResult->num_rows > 0) {
@@ -50,7 +50,7 @@ if ($lowStockResult->num_rows > 0) {
 }
 
 // Get low stock items (previous month) for percentage change
-$prevLowStockSql = "SELECT COUNT(*) AS low_stock_count FROM factory_stock WHERE status = 'Low Stock' AND
+$prevLowStockSql = "SELECT COUNT(*) AS low_stock_count FROM factory_stock WHERE created_for = '$user_name' AND status = 'Low Stock' AND
 DATE_FORMAT(record_date, '%Y-%m') = '$previousMonth'";
 $prevLowStockResult = $conn->query($prevLowStockSql);
 $prevLowStockCount = 0;
@@ -61,7 +61,7 @@ if ($prevLowStockResult->num_rows > 0) {
 $lowStockPercent = ($prevLowStockCount > 0) ? (($lowStockCount - $prevLowStockCount) / $prevLowStockCount * 100) : 0;
 
 // Get monthly production (current month)
-$monthlyProductionSql = "SELECT SUM(quantity) AS total_quantity FROM factory_stock WHERE DATE_FORMAT(record_date,
+$monthlyProductionSql = "SELECT SUM(quantity) AS total_quantity FROM factory_stock WHERE created_for = '$user_name' AND DATE_FORMAT(record_date,
 '%Y-%m') = '$currentMonth'";
 $monthlyProductionResult = $conn->query($monthlyProductionSql);
 $monthlyProduction = 0;
@@ -71,7 +71,7 @@ if ($monthlyProductionResult->num_rows > 0) {
 }
 
 // Get monthly production (previous month) for percentage change
-$prevMonthlyProductionSql = "SELECT SUM(quantity) AS total_quantity FROM factory_stock WHERE DATE_FORMAT(record_date,
+$prevMonthlyProductionSql = "SELECT SUM(quantity) AS total_quantity FROM factory_stock WHERE created_for = '$user_name' AND DATE_FORMAT(record_date,
 '%Y-%m') = '$previousMonth'";
 $prevMonthlyProductionResult = $conn->query($prevMonthlyProductionSql);
 $prevMonthlyProduction = 0;
@@ -85,7 +85,7 @@ $monthlyProductionPercent = ($prevMonthlyProduction > 0) ? (($monthlyProduction 
 // Get stock value trend (last 6 months)
 $trendSql = "SELECT DATE_FORMAT(record_date, '%Y-%m') AS month_year, SUM(value) AS total_value
 FROM factory_stock
-WHERE record_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+WHERE created_for = '$user_name' AND record_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
 GROUP BY DATE_FORMAT(record_date, '%Y-%m')
 ORDER BY DATE_FORMAT(record_date, '%Y-%m') ASC";
 $trendResult = $conn->query($trendSql);
@@ -106,7 +106,7 @@ for ($i = 5; $i >= 0; $i--) {
 }
 
 // Get item names for Add Stock form dropdown
-$itemSql = "SELECT DISTINCT item_name FROM factory_stock ORDER BY item_name";
+$itemSql = "SELECT DISTINCT item_name FROM factory_stock WHERE created_for = '$user_name' ORDER BY item_name";
 $itemResult = $conn->query($itemSql);
 $items = [];
 if ($itemResult->num_rows > 0) {
@@ -116,7 +116,7 @@ if ($itemResult->num_rows > 0) {
 }
 
 // Get categories for Add Stock form dropdown
-$categorySql = "SELECT DISTINCT category FROM factory_stock ORDER BY category";
+$categorySql = "SELECT DISTINCT category FROM factory_stock WHERE created_for = '$user_name' ORDER BY category";
 $categoryResult = $conn->query($categorySql);
 $categories = [];
 if ($categoryResult->num_rows > 0) {
@@ -126,7 +126,7 @@ if ($categoryResult->num_rows > 0) {
 }
 
 // Get stock items for Stock Transfer form dropdown
-$stockSql = "SELECT stock_id, item_name FROM factory_stock ORDER BY item_name";
+$stockSql = "SELECT stock_id, item_name FROM factory_stock WHERE created_for = '$user_name' ORDER BY item_name";
 $stockResult = $conn->query($stockSql);
 $stocks = [];
 if ($stockResult->num_rows > 0) {
@@ -334,7 +334,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
 
 
         <?php
-        $stock_count_result = $conn->query("SELECT SUM(quantity) as total_quantity FROM factory_stock");
+        $stock_count_result = $conn->query("SELECT SUM(quantity) as total_quantity FROM factory_stock WHERE created_for = '$user_name'");
         $stock_count = $stock_count_result->fetch_assoc()['total_quantity'];
         ?>
         <div class="col-md-4 col-sm-6 mb-4">
@@ -395,25 +395,6 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                                 style="display:none;" placeholder="Enter new category">
                         </div>
                         <div class="mb-3">
-                            <label for="createdBy" class="form-label">Created by</label>
-                            <select class="form-control" id="createdBy" name="createdBy" onchange="toggleCreatedByInput()">
-                                <option value="">Select Name</option>
-                                <?php foreach ($added as $addedby): ?>
-                                    <option value="<?php echo htmlspecialchars($addedby); ?>">
-                                        <?php echo htmlspecialchars($addedby); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                                <option value="Other">Other</option>
-                            </select>
-                            <input type="text" class="form-control mt-2" id="customCreatedBy" name="customCreatedBy"
-                                style="display: none;" placeholder="Enter new name">
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <input type="text" class="form-control" id="description" name="description" required>
-                        </div>
-                        <div class="mb-3">
                             <label for="quantity" class="form-label">Quantity</label>
                             <input type="number" min="0" class="form-control" id="quantity" name="quantity" required>
                         </div>
@@ -423,34 +404,11 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                                 required>
                         </div>
                         <div class="mb-3">
-                            <label for="date" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="date" name="date" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="method" class="form-label">Method</label>
-                            <select class="form-select" id="method" name="method" required>
-                                <option value="" disabled selected>Select Payment Method</option>
-                                <option value="Digital payment">Digital payment</option>
-                                <option value="Cash">Cash</option>
-                                <option value="Payment gateway">Payment gateway</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
                             <label for="Status" class="form-label">Status</label>
                             <select class="form-select" id="Status" name="Status" required>
                                 <option value="In stock">In stock</option>
                                 <option value="Low stock">Low stock</option>
                                 <option value="Out of stock">Out of stock</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status for expense</label>
-                            <select class="form-select" id="status" name="status" required>
-                                <option value="" disabled selected>Select Status</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Approved">Approved</option>
-                                <option value="Rejected">Rejected</option>
                             </select>
                         </div>
                     </div>
@@ -489,17 +447,10 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         // Prioritize custom inputs if provided
         $item_name = !empty($_POST['customItemName']) ? $conn->real_escape_string($_POST['customItemName']) : $conn->real_escape_string($_POST['itemName']);
         $category = !empty($_POST['customCategory']) ? $conn->real_escape_string($_POST['customCategory']) : $conn->real_escape_string($_POST['category']);
-        $addedBy = !empty($_POST['customCreatedBy']) ? $conn->real_escape_string($_POST['customCreatedBy']) : $conn->real_escape_string($_POST['createdBy']);
         $quantity = intval($_POST['quantity']);
         $value = floatval($_POST['value']);
         $record_date = date('Y-m-d');
         $status = $conn->real_escape_string($_POST['Status']);
-        $description = $_POST['description'];
-        $date = $_POST['date'];
-        $Payment_Method = $_POST['method'];
-        $Status = $_POST['status'];
-        $created_for = $_SESSION['user_name'];
-        $created_by = $_POST['customCreatedBy'];
 
         // Validate inputs
         if (empty($item_name) || empty($category)) {
@@ -507,28 +458,28 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         } else {
 
             $insertSql = "INSERT INTO factory_stock (item_name, category, quantity, value, status, record_date, createdby, createdfor) 
-                          VALUES ('$item_name', '$category', $quantity, $value, '$status', '$record_date' , '$created_by', '$created_for')";
+                          VALUES ('$item_name', '$category', $quantity, $value, '$status', '$record_date' , '$user_name', '$user_name')";
             if ($conn->query($insertSql)) {
 
-                // Generate Expense ID
-                $result = $conn->query("SELECT id FROM factory_expenses ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+                // // Generate Expense ID
+                // $result = $conn->query("SELECT id FROM factory_expenses ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
-                if ($result && $row = $result->fetch_assoc()) {
-                    $lastId = $row['id']; // e.g. TRX-005
-                    $num = (int) substr($lastId, 4);   // get "005" → 5
-                    $newNum = $num + 1;
-                } else {
-                    $newNum = 1;
-                }
+                // if ($result && $row = $result->fetch_assoc()) {
+                //     $lastId = $row['id']; // e.g. TRX-005
+                //     $num = (int) substr($lastId, 4);   // get "005" → 5
+                //     $newNum = $num + 1;
+                // } else {
+                //     $newNum = 1;
+                // }
 
-                $newExpenseId = 'EXP-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+                // $newExpenseId = 'EXP-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
-                $stmt = $conn->prepare("INSERT INTO factory_expenses 
-                (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                // $stmt = $conn->prepare("INSERT INTO factory_expenses 
+                // (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for) 
+                // VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-                $stmt->bind_param("ssssdssss", $newExpenseId, $description, $category, $addedBy, $value, $date, $Payment_Method, $Status, $user_name);
-                $stmt->execute();
+                // $stmt->bind_param("ssssdssss", $newExpenseId, $description, $category, $addedBy, $value, $date, $Payment_Method, $Status, $user_name);
+                // $stmt->execute();
 
                 $conn->commit();
                 $stmt->close();
@@ -586,7 +537,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                     <?php
                     // Adjust SQL query to limit to 5 or show all
                     $limit = (isset($_GET['view']) && $_GET['view'] === 'all') ? '' : 'LIMIT 5';
-                    $sql = "SELECT * FROM factory_stock ORDER BY stock_id DESC $limit";
+                    $sql = "SELECT * FROM factory_stock WHERE created_for = '$user_name' ORDER BY stock_id DESC $limit";
                     $result = $conn->query($sql);
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
@@ -620,7 +571,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
     <?php
     $low_stock_items = [];
 
-    $query = $conn->prepare("SELECT item_name, quantity, status FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock')");
+    $query = $conn->prepare("SELECT item_name, quantity, status FROM factory_stock WHERE created_for = '$user_name' AND status IN ('Low Stock', 'Out of Stock')");
     $query->execute();
     $result = $query->get_result();
 

@@ -223,7 +223,7 @@ $salesQuery = $conn->prepare("
     SELECT 
         SUM(CASE WHEN MONTH(date) = ? AND YEAR(date) = ? THEN amount ELSE 0 END) as current_sales,
         SUM(CASE WHEN MONTH(date) = ? AND YEAR(date) = ? THEN amount ELSE 0 END) as last_sales
-    FROM factory_expenses
+    FROM factory_expenses WHERE created_for = '$user_name'
 ");
 $salesQuery->bind_param("iiii", $currMonth, $currYear, $lastMonth, $lastYear);
 $salesQuery->execute();
@@ -237,7 +237,7 @@ $salesTrend = $salesChange >= 0 ? 'success' : 'danger';
 $invQuery = $conn->query("
     SELECT 
         SUM(amount) as total_value 
-    FROM factory_expenses WHERE category IN ('Raw Materials', 'raw materials')
+    FROM factory_expenses WHERE created_for = '$user_name'
 ");
 $inv = $invQuery->fetch_assoc();
 $invAmount = $inv['total_value'] ?: 0;
@@ -259,7 +259,7 @@ $invTrend = $invChange >= 0 ? 'success' : 'danger';
 $utilities = $conn->query("
     SELECT 
         SUM(amount) as total_value 
-    FROM factory_expenses WHERE category IN ('Utilities', 'utilities')
+    FROM factory_expenses WHERE category IN ('Utilities', 'utilities') AND created_for = '$user_name'
 ");
 $utl = $utilities->fetch_assoc();
 $utlAmount = $utl['total_value'] ?: 0;
@@ -268,7 +268,7 @@ $utlAmount = $utl['total_value'] ?: 0;
 $utlLastQuery = $conn->prepare("
     SELECT SUM(amount) as last_value 
     FROM factory_expenses 
-    WHERE MONTH(date) = ? AND YEAR(date) = ? AND category IN ('Utilities', 'utilities')
+    WHERE MONTH(date) = ? AND YEAR(date) = ? AND category IN ('Utilities', 'utilities') AND created_for = '$user_name'
 ");
 $utlLastQuery->bind_param("ii", $lastMonth, $lastYear);
 $utlLastQuery->execute();
@@ -280,10 +280,10 @@ $utlTrend = $utlChange >= 0 ? 'success' : 'danger';
 
 
 // Get Active Suppliers
-$suppliers = $conn->query("SELECT COUNT(*) as count FROM factory_expenses WHERE Status = 'Pending'")->fetch_assoc();
+$suppliers = $conn->query("SELECT COUNT(*) as count FROM factory_expenses WHERE Status = 'Pending' AND created_for = '$user_name'")->fetch_assoc();
 $supplierCount = $suppliers['count'] ?: 0;
 
-$pending = $conn->query("SELECT SUM(amount) as amount FROM factory_expenses WHERE Status = 'Pending'")->fetch_assoc();
+$pending = $conn->query("SELECT SUM(amount) as amount FROM factory_expenses WHERE Status = 'Pending' AND created_for = '$user_name'")->fetch_assoc();
 $pendingCount = $pending['amount'] ?: 0;
 
 ?>
@@ -304,11 +304,8 @@ $pendingCount = $pending['amount'] ?: 0;
     <div class="col-md-3 col-sm-6 mb-4">
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
             <div class="card-body">
-                <h6 class="text-muted">Raw Materials</h6>
+                <h6 class="text-muted">Total Expense</h6>
                 <h3 class="fw-bold">₹<?= number_format($invAmount, 2) ?></h3>
-                <p class="text-<?= $invTrend ?>">
-                    <?= ($invChange >= 0 ? '+' : '') . $invChange ?>% vs last month
-                </p>
             </div>
         </div>
     </div>
@@ -339,7 +336,7 @@ $pendingCount = $pending['amount'] ?: 0;
 $today_expenses_query = "
     SELECT SUM(amount) as total 
     FROM factory_expenses 
-    WHERE DATE(date) = CURDATE()
+    WHERE DATE(date) = CURDATE() AND created_for = '$user_name'
 ";
 $today_expenses_result = $conn->query($today_expenses_query);
 $today_expenses = $today_expenses_result ? ($today_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
@@ -349,7 +346,7 @@ $today_expenses_result->free();
 $yesterday_expenses_query = "
     SELECT SUM(amount) as total 
     FROM factory_expenses 
-    WHERE DATE(date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+    WHERE DATE(date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) AND created_for = '$user_name'
 ";
 $yesterday_expenses_result = $conn->query($yesterday_expenses_query);
 $yesterday_expenses = $yesterday_expenses_result ? ($yesterday_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
@@ -373,7 +370,7 @@ $today_expense_class = $today_expense_percent >= 0
 $current_week_expenses_query = "
     SELECT SUM(amount) as total 
     FROM factory_expenses 
-    WHERE YEARWEEK(date, 1) = YEARWEEK(CURDATE(), 1)
+    WHERE YEARWEEK(date, 1) = YEARWEEK(CURDATE(), 1) AND created_for = '$user_name'
 ";
 $current_week_expenses_result = $conn->query($current_week_expenses_query);
 $current_week_expenses = $current_week_expenses_result ? ($current_week_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
@@ -383,7 +380,7 @@ $current_week_expenses_result->free();
 $last_week_expenses_query = "
     SELECT SUM(amount) as total 
     FROM factory_expenses 
-    WHERE YEARWEEK(date, 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1)
+    WHERE YEARWEEK(date, 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1) AND created_for = '$user_name'
 ";
 $last_week_expenses_result = $conn->query($last_week_expenses_query);
 $last_week_expenses = $last_week_expenses_result ? ($last_week_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
@@ -404,13 +401,13 @@ $week_expense_class = $week_expense_percent >= 0
     : 'text-danger';
 
 // Card 3: Monthly Expenses
-$monthly_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())";
+$monthly_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE()) AND created_for = '$user_name'";
 $monthly_expenses_result = $conn->query($monthly_expenses_query);
 $monthly_expenses = $monthly_expenses_result ? ($monthly_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
 $monthly_expenses_result->free();
 
 // Monthly Expenses comparison (last month)
-$last_month_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE MONTH(date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))";
+$last_month_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE MONTH(date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AND created_for = '$user_name'";
 $last_month_expenses_result = $conn->query($last_month_expenses_query);
 $last_month_expenses = $last_month_expenses_result ? ($last_month_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
 $last_month_expenses_result->free();
@@ -419,13 +416,13 @@ $monthly_expenses_text = $monthly_expenses_percent >= 0 ? "+{$monthly_expenses_p
 $monthly_expenses_class = $monthly_expenses_percent >= 0 ? 'text-danger' : 'text-success';
 
 // Card 4: YTD Expenses
-$ytd_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE YEAR(date) = YEAR(CURDATE())";
+$ytd_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE YEAR(date) = YEAR(CURDATE()) AND created_for = '$user_name'";
 $ytd_expenses_result = $conn->query($ytd_expenses_query);
 $ytd_expenses = $ytd_expenses_result ? ($ytd_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
 $ytd_expenses_result->free();
 
 // YTD Expenses comparison (last year)
-$last_year_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR))";
+$last_year_expenses_query = "SELECT SUM(amount) as total FROM factory_expenses WHERE YEAR(date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 YEAR)) AND created_for = '$user_name'";
 $last_year_expenses_result = $conn->query($last_year_expenses_query);
 $last_year_expenses = $last_year_expenses_result ? ($last_year_expenses_result->fetch_assoc()['total'] ?? 0) : 0;
 $last_year_expenses_result->free();

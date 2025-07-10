@@ -232,7 +232,7 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
 ?>
 
 <!-- Cards -->
-<div class="row">
+<!-- <div class="row">
     <div class="col-md-3 col-sm-6 mb-4">
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #0d6efd;">
             <div class="card-body">
@@ -245,7 +245,7 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #198754;">
             <div class="card-body">
                 <h6 class="text-muted">Present Today</h6>
-                <h3 class="fw-bold">42</h3> <!-- Dynamic value from database -->
+                <h3 class="fw-bold">42</h3> 
             </div>
         </div>
     </div>
@@ -253,7 +253,7 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #ffc107;">
             <div class="card-body">
                 <h6 class="text-muted">Absent</h6>
-                <h3 class="fw-bold">6</h3> <!-- Dynamic value from database -->
+                <h3 class="fw-bold">6</h3>
             </div>
         </div>
     </div>
@@ -261,11 +261,11 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
         <div class="card stat-card cards card-border shadow-sm" style="border-left: 5px solid #6f42c1;">
             <div class="card-body">
                 <h6 class="text-muted">Attendance Rate</h6>
-                <h3 class="fw-bold">87.5%</h3> <!-- Dynamic value from database -->
+                <h3 class="fw-bold">87.5%</h3>
             </div>
         </div>
     </div>
-</div>
+</div> -->
 
 <!-- Production Lines Status -->
 <div class="card mb-4">
@@ -412,7 +412,7 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
                 <?php
 
                 // Fetch transactions from the database
-                $result = $conn->query("SELECT * FROM factory_workers ORDER BY id DESC");
+                $result = $conn->query("SELECT * FROM factory_workers WHERE created_for  = '$user_name' ORDER BY id DESC");
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
