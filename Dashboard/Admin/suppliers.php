@@ -2,6 +2,55 @@
 include '../../_conn.php';
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+// 1. Active Suppliers
+$activeSuppliers = 0;
+$sql = "SELECT COUNT(*) AS count FROM suppliers WHERE Actions = 'Active'";
+$result = $conn->query($sql);
+if ($row = $result->fetch_assoc()) {
+  $activeSuppliers = $row['count'];
+}
+
+// 2. Open Orders
+$openOrders = 0;
+$sql = "SELECT COUNT(*) AS count FROM purchase_order WHERE Status IN ('Ordered', 'In Transit')";
+$result = $conn->query($sql);
+if ($row = $result->fetch_assoc()) {
+  $openOrders = $row['count'];
+}
+
+// 3. This Month's Spending
+$thisMonthSpending = 0;
+$currentMonth = date('Y-m');
+$sql = "SELECT SUM(Amount) AS total FROM purchase_order WHERE DATE_FORMAT(Date, '%Y-%m') = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $currentMonth);
+$stmt->execute();
+$result = $stmt->get_result();
+if ($row = $result->fetch_assoc()) {
+  $thisMonthSpending = $row['total'] ?? 0;
+}
+$stmt->close();
+
+// 4. Delivery Success Rate
+$successRate = 0;
+$totalOrders = 0;
+$successfulDeliveries = 0;
+
+$sql = "SELECT COUNT(*) AS total FROM purchase_order";
+$result = $conn->query($sql);
+if ($row = $result->fetch_assoc()) {
+  $totalOrders = $row['total'];
+}
+
+$sql = "SELECT COUNT(*) AS delivered FROM purchase_order WHERE Status = 'Received'";
+$result = $conn->query($sql);
+if ($row = $result->fetch_assoc()) {
+  $successfulDeliveries = $row['delivered'];
+}
+
+if ($totalOrders > 0) {
+  $successRate = round(($successfulDeliveries / $totalOrders) * 100, 1); // percentage
+}
 function clean($input)
 {
   return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
@@ -100,7 +149,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       (Supplier_ID, Supplier_Name, Type, Items, Orders, Spending, Actions) 
       VALUES (?, ?, ?, ?, ?, ?, ?)");
 
-$stmt->bind_param("ssssids", $newSupplierId, $name, $type, $items, $orders, $spending, $actions);
+      $stmt->bind_param("ssssids", $newSupplierId, $name, $type, $items, $orders, $spending, $actions);
       // sssids: 7 variables, correct data types
 
       $stmt->execute();
@@ -171,43 +220,44 @@ $stmt->bind_param("ssssids", $newSupplierId, $name, $type, $items, $orders, $spe
       <div class="d-flex justify-content-between">
         <div>
           <h6>Active Suppliers</h6>
-          <h4>38</h4>
-          <small class="text-success">+3 vs last month</small>
+          <h4><?= $activeSuppliers ?></h4>
+          <!-- Optional: add trend comparison -->
         </div>
         <div class="card-icon"><i class="fa-brands fa-creative-commons-by"></i></div>
       </div>
     </div>
   </div>
+
   <div class="col-md-3">
     <div class="card p-3">
       <div class="d-flex justify-content-between">
         <div>
           <h6>Open Orders</h6>
-          <h4>12</h4>
+          <h4><?= $openOrders ?></h4>
         </div>
         <div class="card-icon"><i class="fa-solid fa-door-open"></i></div>
       </div>
     </div>
   </div>
+
   <div class="col-md-3">
     <div class="card p-3">
       <div class="d-flex justify-content-between">
         <div>
           <h6>This Month Spending</h6>
-          <h4>₹2,85,400</h4>
-          <small class="text-danger">8.5% vs last month</small>
+          <h4>₹<?= number_format($thisMonthSpending, 2) ?></h4>
         </div>
         <div class="card-icon"><i class="fa-solid fa-calendar-days"></i></div>
       </div>
     </div>
   </div>
+
   <div class="col-md-3">
     <div class="card p-3">
       <div class="d-flex justify-content-between">
         <div>
           <h6>Delivery Success</h6>
-          <h4>95.2%</h4>
-          <small class="text-success">+2.3% vs last month</small>
+          <h4><?= $successRate ?>%</h4>
         </div>
         <div class="card-icon"><i class="fa-solid fa-check"></i></div>
       </div>

@@ -6,7 +6,6 @@ include '../../_conn.php';
 $user_name = $_SESSION['user_name'];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
-
     if ($_POST['whatAction'] === 'addExpense') {
 
         $category = $_POST['category'];
@@ -17,13 +16,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $Status = $_POST['status'];
         $addedBy = !empty($_POST['customCreatedBy']) ? $conn->real_escape_string($_POST['customCreatedBy']) : $conn->real_escape_string($_POST['createdBy']);
 
+        // Optional fields
+        $bankName = $_POST['bankName'] ?? null;
+        $accountNumber = $_POST['accountNumber'] ?? null;
+        $senderName = $_POST['senderName'] ?? null;
 
-        // Generate Expense ID
+        // Generate unique ID
         $result = $conn->query("SELECT id FROM factory_expenses ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
 
         if ($result && $row = $result->fetch_assoc()) {
-            $lastId = $row['id']; // e.g. TRX-005
-            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $lastId = $row['id'];
+            $num = (int) substr($lastId, 4);
             $newNum = $num + 1;
         } else {
             $newNum = 1;
@@ -31,17 +34,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         $newExpenseId = 'EXP-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
+        // INSERT with extra fields
         $stmt = $conn->prepare("INSERT INTO factory_expenses 
-                (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for, bankName, accountNumber, senderName) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("ssssdssss", $newExpenseId, $description, $category, $addedBy, $amount, $date, $Payment_Method, $Status, $user_name);
+        $stmt->bind_param("ssssdsssssss", $newExpenseId, $description, $category, $addedBy, $amount, $date, $Payment_Method, $Status, $user_name, $bankName, $accountNumber, $senderName);
         $stmt->execute();
 
         $conn->commit();
         $stmt->close();
 
-        @header("Location: factory_dashboard.php?page=expenses");
+        header("Location: factory_dashboard.php?page=expenses");
         exit;
 
     } else if ($_POST['whatAction'] === 'editExpense') {
@@ -49,7 +53,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         $amount = mysqli_real_escape_string($conn, $_POST['amount'] ?? '');
         $status = mysqli_real_escape_string($conn, $_POST['status'] ?? '');
 
-        // Basic validation
         if (empty($expense_id) || empty($amount) || empty($status)) {
             $error_message = 'All fields are required.';
         } else {
@@ -58,11 +61,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             if ($stmt) {
                 $stmt->bind_param("dss", $amount, $status, $expense_id);
                 $stmt->execute();
-
                 $conn->commit();
                 $stmt->close();
-
-                @header("Location: factory_dashboard.php?page=expenses");
+                header("Location: factory_dashboard.php?page=expenses");
                 exit;
             } else {
                 $error_message = 'Error preparing statement: ' . $conn->error;
@@ -70,7 +71,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
     }
 }
-
 ?>
 
 <h2>Factory Expenses</h2>
@@ -82,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     <div class="d-flex w-75">
         <div class="input-group w-100 me-2">
             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-            <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Search..." />
+            <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search in table...">
         </div>
     </div>
 
@@ -152,15 +152,68 @@ if ($itemResult->num_rows > 0) {
                         <input type="date" class="form-control" id="date" name="date" required>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="method" class="form-label">Method</label>
-                        <select class="form-select" id="method" name="method" required>
-                            <option value="" disabled selected>Select Payment Method</option>
-                            <option value="Digital payment">Digital payment</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Payment gateway">Payment gateway</option>
-                        </select>
-                    </div>
+                    <!DOCTYPE html>
+                    <html lang="en">
+
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Payment Method Form</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+                            rel="stylesheet">
+                    </head>
+
+                    <body>
+                        <div class="container mt-5">
+                            <form>
+                                <!-- Payment Method Dropdown -->
+                                <div class="mb-3">
+                                    <label for="method" class="form-label">Method</label>
+                                    <select class="form-select" id="method" name="method" required
+                                        onchange="togglePaymentFields()">
+                                        <option value="" disabled selected>Select Payment Method</option>
+                                        <option value="Digital payment">Digital payment</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Payment gateway">Payment gateway</option>
+                                    </select>
+                                </div>
+
+                                <!-- Fields for Digital Payment -->
+                                <div id="digitalFields" style="display: none;">
+                                    <div class="mb-3">
+                                        <label for="bankName" class="form-label">Bank Account Name</label>
+                                        <input type="text" class="form-control" id="bankName" name="bankName">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="accountNumber" class="form-label">Account Number</label>
+                                        <input type="text" class="form-control" id="accountNumber" name="accountNumber">
+                                    </div>
+                                </div>
+
+                                <!-- Field for Cash -->
+                                <div id="cashFields" style="display: none;">
+                                    <div class="mb-3">
+                                        <label for="senderName" class="form-label">Sender Name</label>
+                                        <input type="text" class="form-control" id="senderName" name="senderName">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- ✅ JavaScript Code -->
+                        <script>
+                            function togglePaymentFields() {
+                                const method = document.getElementById("method").value;
+                                const digitalFields = document.getElementById("digitalFields");
+                                const cashFields = document.getElementById("cashFields");
+
+                                digitalFields.style.display = (method === "Digital payment") ? "block" : "none";
+                                cashFields.style.display = (method === "Cash") ? "block" : "none";
+                            }
+                        </script>
+                    </body>
+
+                    </html>
+
 
                     <div class="mb-3">
                         <label for="status" class="form-label">Status</label>
@@ -459,7 +512,8 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
                 <h6 class="text-muted">Monthly Expenses</h6>
                 <h3 class="fw-bold">₹<?php echo number_format($monthly_expenses, 0); ?></h3>
                 <p class="<?php echo $monthly_expenses_class; ?>">
-                    <?php echo htmlspecialchars($monthly_expenses_text); ?> vs last month</p>
+                    <?php echo htmlspecialchars($monthly_expenses_text); ?> vs last month
+                </p>
             </div>
         </div>
     </div>
@@ -484,6 +538,33 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
                 <h5 class="mb-0">Recent Expenses</h5>
             </div>
         </div>
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <input type="text" id="filterCategory" class="form-control" placeholder="Filter by Category">
+            </div>
+            <div class="col-md-3">
+                <input type="text" id="filterDate" class="form-control"
+                    placeholder="Filter by Date (e.g. 11 Jul, 2025)">
+            </div>
+        </div>
+        <script>
+            $(document).ready(function () {
+                var table = $('#supplyTable').DataTable({
+                    // You can add options here
+                });
+
+                // Category filter (Column index 1)
+                $('#filterCategory').on('keyup change', function () {
+                    table.column(1).search(this.value).draw();
+                });
+
+                // Date filter (Column index 5)
+                $('#filterDate').on('keyup change', function () {
+                    table.column(5).search(this.value).draw();
+                });
+            });
+        </script>
+
         <p>Track all factory expenses and payments</p>
         <table class="table table-bordered table-hover" id="supplyTable">
             <thead>
@@ -495,10 +576,14 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
                     <th>Expensed By</th>
                     <th>Date</th>
                     <th>Payment Method</th>
+                    <th>Bank Name</th>
+                    <th>Account No.</th>
+                    <th>Sender Name</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
+
             <tbody>
                 <?php
                 $expenses_query = "SELECT * FROM factory_expenses WHERE created_for = '$user_name' ORDER BY id DESC";
@@ -513,6 +598,9 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
                             <td><?php echo htmlspecialchars($expense['addedBy']); ?></td>
                             <td><?php echo htmlspecialchars(date('d M, Y', strtotime($expense['date']))); ?></td>
                             <td><?php echo htmlspecialchars($expense['Payment_Method']); ?></td>
+                            <td><?php echo htmlspecialchars($expense['bankName'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($expense['accountNumber'] ?? '-'); ?></td>
+                            <td><?php echo htmlspecialchars($expense['senderName'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($expense['Status']); ?></td>
                             <td>
                                 <button class="btn btn-outline-primary btn-sm edit-expense-btn" data-bs-toggle="modal"
@@ -527,31 +615,37 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="8">No expenses found.</td>
+                        <td colspan="12">No expenses found.</td>
                     </tr>
                 <?php endif; ?>
                 <?php $expenses_result->free(); ?>
             </tbody>
+
         </table>
         <script>
-            // Search Functionality
-            document.getElementById('searchInput').addEventListener('input', function () {
-                const searchText = this.value.toLowerCase();
+            document.addEventListener('DOMContentLoaded', function () {
+                const searchInput = document.getElementById('searchInput');
                 const rows = document.querySelectorAll('#supplyTable tbody tr');
 
-                rows.forEach(row => {
-                    const cells = row.getElementsByTagName('td');
-                    let match = false;
-                    for (let i = 0; i < cells.length; i++) {
-                        if (cells[i].textContent.toLowerCase().includes(searchText)) {
-                            match = true;
-                            break;
-                        }
-                    }
-                    row.style.display = match ? '' : 'none';
+                searchInput.addEventListener('input', function () {
+                    const searchText = this.value.trim().toLowerCase();
+
+                    rows.forEach(row => {
+                        const cells = row.querySelectorAll('td');
+                        let matchFound = false;
+
+                        cells.forEach(cell => {
+                            if (cell.textContent.toLowerCase().includes(searchText)) {
+                                matchFound = true;
+                            }
+                        });
+
+                        row.style.display = matchFound ? '' : 'none';
+                    });
                 });
             });
         </script>
+
     </div>
 </div>
 

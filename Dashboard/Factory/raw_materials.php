@@ -14,25 +14,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     }
 
     if ($_POST['whatAction'] === 'addItem') {
-        // Collect data for transaction
+        // Collect and sanitize input
         $material = clean($_POST['materialName']);
         $category = clean($_POST['category']);
-        $quantity = clean($_POST['materialquantity']);
+        $quantity = floatval(clean($_POST['materialquantity']));
+        $cost = floatval(clean($_POST['cost']));
+        $amount = $cost * $quantity; // Dynamically calculate amount
+        $number = clean($_POST['number']);
         $reorder_point = clean($_POST['materialReorder']);
         $unit = !empty($_POST['customUnit']) ? $conn->real_escape_string($_POST['customUnit']) : $conn->real_escape_string($_POST['unit']);
         $Status = clean($_POST['Status']);
         $primary_supplier = clean($_POST['materialprimarysupplier']);
-        $description = $_POST['description'];
-        $amount = $_POST['amount'];
-        $date = $_POST['date'];
-        $Payment_Method = $_POST['method'];
-        $status = $_POST['status'];
+        $description = clean($_POST['description']);
+        $date = clean($_POST['date']);
+        $Payment_Method = clean($_POST['method']);
+        $status = clean($_POST['status']);
         $addedBy = !empty($_POST['customCreatedBy']) ? $conn->real_escape_string($_POST['customCreatedBy']) : $conn->real_escape_string($_POST['createdBy']);
 
+        // Optional fields
+        $bankName = isset($_POST['bankName']) ? clean($_POST['bankName']) : null;
+        $accountNumber = isset($_POST['accountNumber']) ? clean($_POST['accountNumber']) : null;
+        $senderName = isset($_POST['senderName']) ? clean($_POST['senderName']) : null;
 
-        // Generate a new material ID
+        // Generate new material ID
         $result = $conn->query("SELECT id FROM factory_raw_material ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
-
         if ($result && $row = $result->fetch_assoc()) {
             $lastId = $row['id'];
             $num = (int) substr($lastId, 4);
@@ -40,49 +45,59 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         } else {
             $newNum = 1;
         }
-
         $newMaterialId = 'RM-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
+        // Insert into factory_raw_material
         $stmt = $conn->prepare("INSERT INTO factory_raw_material 
-                (id, material, category, quantity, amount, reorder_point, unit, Status, primary_supplier, created_for) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (id, material, category, quantity, cost, amount, number, reorder_point, unit, Status, primary_supplier) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("sssidissss", $newMaterialId, $material, $category, $quantity, $amount, $reorder_point, $unit, $Status, $primary_supplier, $user_name);
+        $stmt->bind_param(
+            "sssdidsssss",
+            $newMaterialId,
+            $material,
+            $category,
+            $quantity,
+            $cost,
+            $amount,
+            $number,
+            $reorder_point,
+            $unit,
+            $Status,
+            $primary_supplier
+        );
+
+
         $stmt->execute();
-
-        $conn->commit();
         $stmt->close();
 
-        // Generate Expense ID
+        // Generate new expense ID
         $result = $conn->query("SELECT id FROM factory_expenses ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
-
         if ($result && $row = $result->fetch_assoc()) {
-            $lastId = $row['id']; // e.g. TRX-005
-            $num = (int) substr($lastId, 4);   // get "005" → 5
+            $lastId = $row['id'];
+            $num = (int) substr($lastId, 4);
             $newNum = $num + 1;
         } else {
             $newNum = 1;
         }
-
         $newExpenseId = 'EXP-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
 
+        // Insert into factory_expenses including optional fields
         $stmt = $conn->prepare("INSERT INTO factory_expenses 
-                (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-        $stmt->bind_param("ssssdssss", $newExpenseId, $description, $category, $addedBy, $amount, $date, $Payment_Method, $status, $user_name);
+            (id, Payment_Method, Status, created_for) 
+            VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("sssssss", $newExpenseId, $Payment_Method, $status, $user_name);
         $stmt->execute();
+        $stmt->close();
 
         $conn->commit();
-        $stmt->close();
 
         @header("Location: factory_dashboard.php?page=raw_materials");
         exit;
-
     }
 }
-
 ?>
+
 
 <style>
     .cards {
@@ -357,14 +372,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                             <input type="text" class="form-control" id="description" name="description" required>
                         </div>
                         <div class="mb-3">
-                            <label for="materialName" class="form-label">Quantity</label>
-                            <input type="text" class="form-control" id="materialquantity" name="materialquantity"
-                                required>
-                        </div>
-                        <!-- <div class="mb-3">
                             <label for="unit" class="form-label">Per Unit</label>
                             <input type="text" class="form-control" id="unit" name="unit" required>
-                        </div> -->
+                        </div> 
                         <div class="mb-3">
                             <label for="unit" class="form-label">Per Unit</label>
                             <select class="form-control" id="unit" name="unit" onchange="toggleUnitInput()">
@@ -380,57 +390,143 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                 style="display:none;" placeholder="Enter new unit">
                         </div>
                         <div class="mb-3">
+                            <label for="materialquantity" class="form-label">Quantity</label>
+                            <input type="number" step="0.01" class="form-control" id="materialquantity"
+                                name="materialquantity">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="cost" class="form-label">Cost per Unit</label>
+                            <input type="number" step="0.01" class="form-control" id="cost" name="cost">
+                        </div>
+
+                        <div class="mb-3">
                             <label for="amount" class="form-label">Amount</label>
-                            <input type="text" class="form-control" id="amount" name="amount" required>
+                            <input type="text" class="form-control" id="amount" name="amount" readonly>
+                        </div>
+                        <script>
+                            const quantityInput = document.getElementById('materialquantity');
+                            const costInput = document.getElementById('cost');
+                            const amountInput = document.getElementById('amount');
+
+                            function updateAmount() {
+                                const quantity = parseFloat(quantityInput.value) || 0;
+                                const cost = parseFloat(costInput.value) || 0;
+                                const amount = quantity * cost;
+                                amountInput.value = amount.toFixed(2);
+                            }
+
+                            quantityInput.addEventListener('input', updateAmount);
+                            costInput.addEventListener('input', updateAmount);
+                        </script>
+                        <div class="mb-3">
+                            <label for="number" class="form-label">Mobile Number</label>
+                            <input type="text" class="form-control" id="number" name="number">
                         </div>
                         <div class="mb-3">
                             <label for="date" class="form-label">Date</label>
                             <input type="date" class="form-control" id="date" name="date" required>
                         </div>
+                        <!DOCTYPE html>
+                        <html lang="en">
 
-                        <div class="mb-3">
-                            <label for="method" class="form-label">Method</label>
-                            <select class="form-select" id="method" name="method" required>
-                                <option value="" disabled selected>Select Payment Method</option>
-                                <option value="Digital payment">Digital payment</option>
-                                <option value="Cash">Cash</option>
-                                <option value="Payment gateway">Payment gateway</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="Status" class="form-label">Status</label>
-                            <select class="form-select" id="Status" name="Status" required>
-                                <option value="In stock">In stock</option>
-                                <option value="Low stock">Low stock</option>
-                                <option value="Out Of stock">Out Of stock</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status for expense</label>
-                            <select class="form-select" id="status" name="status" required>
-                                <option value="" disabled selected>Select Status</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Approved">Approved</option>
-                                <option value="Rejected">Rejected</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="materialName" class="form-label">Primary Supplier</label>
-                            <input type="text" class="form-control" id="materialprimarysupplier"
-                                name="materialprimarysupplier" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="materialName" class="form-label">Reorder Point</label>
-                            <input type="text" class="form-control" id="materialReorder" name="materialReorder"
-                                required>
-                        </div>
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>Payment Method Form</title>
+                            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+                                rel="stylesheet">
+                        </head>
 
-                        <button type="submit" class="btn btn-primary" name="whatAction" value="addItem">Add
-                            Material</button>
-                    </form>
+                        <body>
+                            <div class="container mt-5">
+                                <form method="POST" action="your_php_file.php"> <!-- replace with actual PHP handler -->
+                                    <!-- Payment Method Dropdown -->
+                                    <div class="mb-3">
+                                        <label for="method" class="form-label">Method</label>
+                                        <select class="form-select" id="method" name="method" required
+                                            onchange="togglePaymentFields()">
+                                            <option value="" disabled selected>Select Payment Method</option>
+                                            <option value="Digital payment">Digital payment</option>
+                                            <option value="Cash">Cash</option>
+                                            <option value="Payment gateway">Payment gateway</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Fields for Digital Payment -->
+                                    <div id="digitalFields" style="display: none;">
+                                        <div class="mb-3">
+                                            <label for="bankName" class="form-label">Bank Account Name</label>
+                                            <input type="text" class="form-control" id="bankName" name="bankName">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="accountNumber" class="form-label">Account Number</label>
+                                            <input type="text" class="form-control" id="accountNumber"
+                                                name="accountNumber">
+                                        </div>
+                                    </div>
+
+                                    <!-- Field for Cash -->
+                                    <div id="cashFields" style="display: none;">
+                                        <div class="mb-3">
+                                            <label for="senderName" class="form-label">Sender Name</label>
+                                            <input type="text" class="form-control" id="senderName" name="senderName">
+                                        </div>
+                                    </div>
+                                    <!-- ✅ JavaScript for conditional fields -->
+                                    <script>
+                                        function togglePaymentFields() {
+                                            const method = document.getElementById("method").value;
+                                            const digitalFields = document.getElementById("digitalFields");
+                                            const cashFields = document.getElementById("cashFields");
+
+                                            digitalFields.style.display = (method === "Digital payment") ? "block" : "none";
+                                            cashFields.style.display = (method === "Cash") ? "block" : "none";
+                                        }
+                                    </script>
+                                    <!-- Material Fields -->
+                                    <div class="mb-3">
+                                        <label for="Status" class="form-label">Stock Status</label>
+                                        <select class="form-select" id="Status" name="Status" required>
+                                            <option value="In stock">In stock</option>
+                                            <option value="Low stock">Low stock</option>
+                                            <option value="Out Of stock">Out Of stock</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="status" class="form-label">Expense Status</label>
+                                        <select class="form-select" id="status" name="status" required>
+                                            <option value="" disabled selected>Select Status</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Approved">Approved</option>
+                                            <option value="Rejected">Rejected</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="materialprimarysupplier" class="form-label">Primary Supplier</label>
+                                        <input type="text" class="form-control" id="materialprimarysupplier"
+                                            name="materialprimarysupplier" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="materialReorder" class="form-label">Reorder Point</label>
+                                        <input type="text" class="form-control" id="materialReorder"
+                                            name="materialReorder" required>
+                                    </div>
+
+                                    <!-- Submit Button -->
+                                    <button type="submit" class="btn btn-primary" name="whatAction" value="addItem">Add
+                                        Material</button>
+                                </form>
+
+
+
+                            </div>
                 </div>
             </div>
         </div>
+
     </div>
     <script>
         function toggleItemInput() {
@@ -470,87 +566,89 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         window.addEventListener('DOMContentLoaded', toggleUnitInput);
     </script>
 
-</div>
+    <!-- ✅ JavaScript to Export Table -->
+    <script>
+        function exportTableToCSV() {
+            const table = document.getElementById("rawmaterialsTable");
+            let csv = [];
+            for (let row of table.rows) {
+                let cols = Array.from(row.cells)
+                    .map(cell => `"${cell.innerText.replace(/"/g, '""')}"`);
+                csv.push(cols.join(","));
+            }
+            let csvContent = csv.join("\n");
+            let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
-<!-- ✅ JavaScript to Export Table -->
-<script>
-    function exportTableToCSV() {
-        const table = document.getElementById("rawmaterialsTable");
-        let csv = [];
-        for (let row of table.rows) {
-            let cols = Array.from(row.cells)
-                .map(cell => `"${cell.innerText.replace(/"/g, '""')}"`);
-            csv.push(cols.join(","));
+            // Download link
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Raw_Material_detail.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
-        let csvContent = csv.join("\n");
-        let blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    </script>
 
-        // Download link
-        let link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "Raw_Material_detail.csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-</script>
+    <div class="card p-3 mb-4 shadow-sm">
 
-<div class="card p-3 mb-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="fw-bold">Raw Material Stock</h2>
+                <p class="text-muted">Current raw materials inventory status</p>
+            </div>
+            <div>
+                <button id="refreshBtn" class="btn btn-outline-secondary me-2">Refresh</button>
+                <script>
+                    // Refresh Button (Reload page)
+                    document.getElementById('refreshBtn').addEventListener('click', function () {
+                        location.reload();
+                    });
+                </script>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h2 class="fw-bold">Raw Material Stock</h2>
-            <p class="text-muted">Current raw materials inventory status</p>
+            </div>
         </div>
-        <div>
-            <button id="refreshBtn" class="btn btn-outline-secondary me-2">Refresh</button>
-            <script>
-                // Refresh Button (Reload page)
-                document.getElementById('refreshBtn').addEventListener('click', function () {
-                    location.reload();
-                });
-            </script>
 
-        </div>
-    </div>
+        <div class="table-responsive">
+            <table class="table align-middle" id="rawmaterialsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Material</th>
+                        <th>Category</th>
+                        <th>Quantity</th>
+                        <th>Cost</th>
+                        <th>Amount</th>
+                        <th>Number</th>
+                        <th>Reorder Point</th>
+                        <th>Status</th>
+                        <th>Primary Supplier</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
 
-    <div class="table-responsive">
-        <table class="table align-middle" id="rawmaterialsTable">
-            <thead class="table-light">
-                <tr>
-                    <th>ID</th>
-                    <th>Material</th>
-                    <th>Category</th>
-                    <th>Quantity</th>
-                    <th>Amount</th>
-                    <th>Reorder Point</th>
-                    <th>Status</th>
-                    <th>Primary Supplier</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
+                    // Fetch transactions from the database
+                    $result = $conn->query("SELECT * FROM factory_raw_material ORDER BY id DESC");
 
-                // Fetch transactions from the database
-                $result = $conn->query("SELECT * FROM factory_raw_material WHERE created_for  = '$user_name' ORDER BY id DESC");
-
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        echo "<tr>";
-                        echo "<td>" . htmlspecialchars($row['id']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['material']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['category']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['quantity']) . " " . htmlspecialchars($row['unit']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['amount']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['reorder_point']) . " " . htmlspecialchars($row['unit']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['primary_supplier']) . "</td>";
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . htmlspecialchars($row['id']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['material']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['category']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['quantity']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['cost']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['amount']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['number']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['reorder_point']) . " " . htmlspecialchars($row['unit']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['primary_supplier']) . "</td>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='7' class='text-center'>No material found</td></tr>";
                     }
-                } else {
-                    echo "<tr><td colspan='8' class='text-center'>No material found</td></tr>";
-                }
-                ?>
-            </tbody>
-        </table>
+                    ?>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
