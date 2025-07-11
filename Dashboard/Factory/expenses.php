@@ -152,17 +152,6 @@ if ($itemResult->num_rows > 0) {
                         <input type="date" class="form-control" id="date" name="date" required>
                     </div>
 
-                    <!DOCTYPE html>
-                    <html lang="en">
-
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>Payment Method Form</title>
-                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-                            rel="stylesheet">
-                    </head>
-
-                    <body>
                         <div class="container mt-5">
                             <form>
                                 <!-- Payment Method Dropdown -->
@@ -210,9 +199,6 @@ if ($itemResult->num_rows > 0) {
                                 cashFields.style.display = (method === "Cash") ? "block" : "none";
                             }
                         </script>
-                    </body>
-
-                    </html>
 
 
                     <div class="mb-3">

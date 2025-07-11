@@ -17,8 +17,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         // Collect and sanitize input
         $material = clean($_POST['materialName']);
         $category = clean($_POST['category']);
-        $quantity = floatval(clean($_POST['materialquantity']));
-        $cost = floatval(clean($_POST['cost']));
+        $quantity = clean($_POST['materialquantity']);
+        $cost = clean($_POST['cost']);
         $amount = $cost * $quantity; // Dynamically calculate amount
         $number = clean($_POST['number']);
         $reorder_point = clean($_POST['materialReorder']);
@@ -53,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param(
-            "sssdidssssss",
+            "sssiddssssss",
             $newMaterialId,
             $material,
             $category,
@@ -85,10 +85,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         // Insert into factory_expenses including optional fields
         $stmt = $conn->prepare("INSERT INTO factory_expenses 
-            (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for, bankName, accountNumber, senderName) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("ssssdssss", $newExpenseId, $description, $category, $addedBy, $amount, $date, $Payment_Method, $status, $user_name);
+        $stmt->bind_param("ssssdsssssss", $newExpenseId, $description, $category, $addedBy, $amount, $date, $Payment_Method, $status, $user_name, $bankName, $accountNumber, $senderName);
         $stmt->execute();
         $stmt->close();
 
@@ -373,10 +373,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                             <label for="description" class="form-label">Description</label>
                             <input type="text" class="form-control" id="description" name="description" required>
                         </div>
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label for="unit" class="form-label">Per Unit</label>
                             <input type="text" class="form-control" id="unit" name="unit" required>
-                        </div> 
+                        </div>  -->
                         <div class="mb-3">
                             <label for="unit" class="form-label">Per Unit</label>
                             <select class="form-control" id="unit" name="unit" onchange="toggleUnitInput()">
@@ -404,7 +404,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
                         <div class="mb-3">
                             <label for="amount" class="form-label">Amount</label>
-                            <input type="text" class="form-control" id="amount" name="amount" readonly>
+                            <input type="number" class="form-control" id="amount" name="amount" readonly>
                         </div>
                         <script>
                             const quantityInput = document.getElementById('materialquantity');
@@ -423,108 +423,97 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                         </script>
                         <div class="mb-3">
                             <label for="number" class="form-label">Mobile Number</label>
-                            <input type="text" class="form-control" id="number" name="number">
+                            <input type="number" class="form-control" id="number" name="number">
                         </div>
                         <div class="mb-3">
                             <label for="date" class="form-label">Date</label>
                             <input type="date" class="form-control" id="date" name="date" required>
                         </div>
-                        <!DOCTYPE html>
-                        <html lang="en">
 
-                        <head>
-                            <meta charset="UTF-8">
-                            <title>Payment Method Form</title>
-                            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-                                rel="stylesheet">
-                        </head>
-
-                        <body>
-                            <div class="container mt-5">
-                                <form method="POST" action="your_php_file.php"> <!-- replace with actual PHP handler -->
-                                    <!-- Payment Method Dropdown -->
-                                    <div class="mb-3">
-                                        <label for="method" class="form-label">Method</label>
-                                        <select class="form-select" id="method" name="method" required
-                                            onchange="togglePaymentFields()">
-                                            <option value="" disabled selected>Select Payment Method</option>
-                                            <option value="Digital payment">Digital payment</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="Payment gateway">Payment gateway</option>
-                                        </select>
-                                    </div>
-
-                                    <!-- Fields for Digital Payment -->
-                                    <div id="digitalFields" style="display: none;">
-                                        <div class="mb-3">
-                                            <label for="bankName" class="form-label">Bank Account Name</label>
-                                            <input type="text" class="form-control" id="bankName" name="bankName">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="accountNumber" class="form-label">Account Number</label>
-                                            <input type="text" class="form-control" id="accountNumber"
-                                                name="accountNumber">
-                                        </div>
-                                    </div>
-
-                                    <!-- Field for Cash -->
-                                    <div id="cashFields" style="display: none;">
-                                        <div class="mb-3">
-                                            <label for="senderName" class="form-label">Sender Name</label>
-                                            <input type="text" class="form-control" id="senderName" name="senderName">
-                                        </div>
-                                    </div>
-                                    <!-- ✅ JavaScript for conditional fields -->
-                                    <script>
-                                        function togglePaymentFields() {
-                                            const method = document.getElementById("method").value;
-                                            const digitalFields = document.getElementById("digitalFields");
-                                            const cashFields = document.getElementById("cashFields");
-
-                                            digitalFields.style.display = (method === "Digital payment") ? "block" : "none";
-                                            cashFields.style.display = (method === "Cash") ? "block" : "none";
-                                        }
-                                    </script>
-                                    <!-- Material Fields -->
-                                    <div class="mb-3">
-                                        <label for="Status" class="form-label">Stock Status</label>
-                                        <select class="form-select" id="Status" name="Status" required>
-                                            <option value="In stock">In stock</option>
-                                            <option value="Low stock">Low stock</option>
-                                            <option value="Out Of stock">Out Of stock</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label for="status" class="form-label">Expense Status</label>
-                                        <select class="form-select" id="status" name="status" required>
-                                            <option value="" disabled selected>Select Status</option>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Approved">Approved</option>
-                                            <option value="Rejected">Rejected</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label for="materialprimarysupplier" class="form-label">Primary Supplier</label>
-                                        <input type="text" class="form-control" id="materialprimarysupplier"
-                                            name="materialprimarysupplier" required>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label for="materialReorder" class="form-label">Reorder Point</label>
-                                        <input type="text" class="form-control" id="materialReorder"
-                                            name="materialReorder" required>
-                                    </div>
-
-                                    <!-- Submit Button -->
-                                    <button type="submit" class="btn btn-primary" name="whatAction" value="addItem">Add
-                                        Material</button>
-                                </form>
-
-
-
+                        <div class="container mt-5">
+                            <!-- <form method="POST" action="your_php_file.php"> replace with actual PHP handler -->
+                            <!-- Payment Method Dropdown -->
+                            <div class="mb-3">
+                                <label for="method" class="form-label">Method</label>
+                                <select class="form-select" id="method" name="method" required
+                                    onchange="togglePaymentFields()">
+                                    <option value="" disabled selected>Select Payment Method</option>
+                                    <option value="Digital payment">Digital payment</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Payment gateway">Payment gateway</option>
+                                </select>
                             </div>
+
+                            <!-- Fields for Digital Payment -->
+                            <div id="digitalFields" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="bankName" class="form-label">Bank Account Name</label>
+                                    <input type="text" class="form-control" id="bankName" name="bankName">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="accountNumber" class="form-label">Account Number</label>
+                                    <input type="text" class="form-control" id="accountNumber" name="accountNumber">
+                                </div>
+                            </div>
+
+                            <!-- Field for Cash -->
+                            <div id="cashFields" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="senderName" class="form-label">Sender Name</label>
+                                    <input type="text" class="form-control" id="senderName" name="senderName">
+                                </div>
+                            </div>
+                            <!-- ✅ JavaScript for conditional fields -->
+                            <script>
+                                function togglePaymentFields() {
+                                    const method = document.getElementById("method").value;
+                                    const digitalFields = document.getElementById("digitalFields");
+                                    const cashFields = document.getElementById("cashFields");
+
+                                    digitalFields.style.display = (method === "Digital payment") ? "block" : "none";
+                                    cashFields.style.display = (method === "Cash") ? "block" : "none";
+                                }
+                            </script>
+                            <!-- Material Fields -->
+                            <div class="mb-3">
+                                <label for="Status" class="form-label">Stock Status</label>
+                                <select class="form-select" id="Status" name="Status" required>
+                                    <option value="In stock">In stock</option>
+                                    <option value="Low stock">Low stock</option>
+                                    <option value="Out Of stock">Out Of stock</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Expense Status</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="" disabled selected>Select Status</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="materialprimarysupplier" class="form-label">Primary Supplier</label>
+                                <input type="text" class="form-control" id="materialprimarysupplier"
+                                    name="materialprimarysupplier" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="materialReorder" class="form-label">Reorder Point</label>
+                                <input type="text" class="form-control" id="materialReorder" name="materialReorder"
+                                    required>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="btn btn-primary" name="whatAction" value="addItem">Add
+                                Material</button>
+
+
+
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -548,7 +537,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         // Run this once on page load in case "Other" is already selected
         window.addEventListener('DOMContentLoaded', toggleItemInput);
-    
+
         function toggleUnitInput() {
             const unit = document.getElementById('unit');
             const customUnit = document.getElementById('customUnit');
