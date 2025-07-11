@@ -49,11 +49,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         // Insert into factory_raw_material
         $stmt = $conn->prepare("INSERT INTO factory_raw_material 
-    (id, material, category, quantity, cost, amount, number, reorder_point, unit, Status, primary_supplier) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (id, material, category, quantity, cost, amount, number, reorder_point, unit, Status, primary_supplier, created_for) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->bind_param(
-            "sssdidsssss",
+            "sssdidssssss",
             $newMaterialId,
             $material,
             $category,
@@ -64,7 +64,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             $reorder_point,
             $unit,
             $Status,
-            $primary_supplier
+            $primary_supplier,
+            $user_name
         );
 
 
@@ -84,9 +85,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
         // Insert into factory_expenses including optional fields
         $stmt = $conn->prepare("INSERT INTO factory_expenses 
-            (id, Payment_Method, Status, created_for) 
-            VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("sssssss", $newExpenseId, $Payment_Method, $status, $user_name);
+            (id, description, category, addedBy, amount, date, Payment_Method, Status, created_for) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt->bind_param("ssssdssss", $newExpenseId, $description, $category, $addedBy, $amount, $date, $Payment_Method, $status, $user_name);
         $stmt->execute();
         $stmt->close();
 
