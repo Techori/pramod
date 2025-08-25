@@ -42,14 +42,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             $quantity = (int) $row["quantity"];
             $itemName = $row["item_name"];
 
-            $updateStockStmt = $conn->prepare("
-                UPDATE factory_stock 
-                SET quantity = quantity - ? 
-                WHERE item_name = ?
-            ");
-            $updateStockStmt->bind_param("is", $quantity, $itemName);
-            $updateStockStmt->execute();
-            $updateStockStmt->close();
+            // Get latest stock_id for this item and user
+            $latestStockSql = "SELECT stock_id FROM factory_stock WHERE item_name = ? AND created_for = ? ORDER BY record_date DESC, stock_id DESC LIMIT 1";
+            $latestStockStmt = $conn->prepare($latestStockSql);
+            $latestStockStmt->bind_param("ss", $itemName, $user_name);
+            $latestStockStmt->execute();
+            $latestStockResult = $latestStockStmt->get_result();
+
+            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                $latestStockId = $latestStockRow['stock_id'];
+                // Update only latest entry
+                $updateStockStmt = $conn->prepare("
+                    UPDATE factory_stock 
+                    SET quantity = quantity - ? 
+                    WHERE stock_id = ?
+                ");
+                $updateStockStmt->bind_param("ds", $quantity, $latestStockId);
+                $updateStockStmt->execute();
+                $updateStockStmt->close();
+            }
+            $latestStockStmt->close();
         }
 
         @header("Location: factory_dashboard.php?page=supply_management");
@@ -345,7 +357,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 <?php
 $low_stock_items = [];
 
-$query = $conn->prepare("SELECT item_name, quantity, status FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock')");
+$query = $conn->prepare("SELECT fs.item_name, fs.quantity, fs.status
+FROM factory_stock fs
+JOIN (
+    SELECT item_name, MAX(CONCAT(record_date, LPAD(stock_id, 10, '0'))) AS latest_key
+    FROM factory_stock
+    WHERE status IN ('Low Stock', 'Out of Stock')
+      AND created_by = '$user_name'
+    GROUP BY item_name
+) latest
+    ON CONCAT(fs.record_date, LPAD(fs.stock_id, 10, '0')) = latest.latest_key
+WHERE fs.status IN ('Low Stock', 'Out of Stock')
+  AND fs.created_for = '$user_name'");
 $query->execute();
 $result = $query->get_result();
 

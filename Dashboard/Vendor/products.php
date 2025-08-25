@@ -98,6 +98,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
 ?>
 
+<?php
+// Check if user has Delete permission
+$hasDeletePermission = false;
+$permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+$permissionResult = $conn->query($permissionSql);
+if ($permissionResult->num_rows > 0) {
+    $permissionRow = $permissionResult->fetch_assoc();
+    $permissions = json_decode($permissionRow['Permission'], true);
+    $hasDeletePermission = in_array('Delete', $permissions);
+}
+?>
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -115,13 +127,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             <!-- Search and Filters -->
             <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center mb-4">
                 <div class="flex-grow-1">
-                        <input type="hidden" name="page" value="billing">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0" id="searchInput"><i
-                                    class="fas fa-search"></i></span>
-                            <input type="text" class="form-control border-start-0 table-search"
-                                data-table="productsTable" placeholder="Search..." />
-                        </div>
+                    <input type="hidden" name="page" value="billing">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0" id="searchInput"><i
+                                class="fas fa-search"></i></span>
+                        <input type="text" class="form-control border-start-0 table-search" data-table="productsTable"
+                            placeholder="Search..." />
+                    </div>
                 </div>
                 <div class="d-flex gap-2">
                     <div>
@@ -240,15 +252,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                                         data-name="' . htmlspecialchars($row['product_name']) . '" 
                                                         data-price="' . $row['selling_price'] . '">
                                                     <i class="fa-regular fa-pen-to-square"></i>
-                                                </button>
+                                                </button>';
 
-                                                <form method="POST" action="vendor_dashboard.php?page=products" style="display:inline;">
+                                if ($hasDeletePermission) {
+                                    echo '<form method="POST" action="vendor_dashboard.php?page=products" style="display:inline;">
                                                     <input type="hidden" name="whatAction" value="deleteItem">
                                                     <input type="hidden" name="itemId" value="' . $row['product_id'] . '">
                                                     <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm(\'Are you sure you want to delete this item?\')">
                                                         <i class="fa-solid fa-trash-can"></i>
                                                     </button>
-                                                </form>
+                                                </form>';
+                                }
+                                echo '
                                             </div>
                                         </td>';
                                 echo "</tr>";

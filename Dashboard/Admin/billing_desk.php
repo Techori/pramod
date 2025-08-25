@@ -476,7 +476,8 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
 <!-- Buttons -->
 <div class="row justify-content-center">
     <div class="col-md-4 col-sm-6 mb-4">
-        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openInvoiceModal(event)" id="invoice"><i class="fa-solid fa-file"></i> Create
+        <button type="button" class="btn btn-outline-primary btn-lg w-100" onclick="openInvoiceModal(event)"
+            id="invoice"><i class="fa-solid fa-file"></i> Create
             New Invoice</button>
     </div>
     <div class="col-md-4 col-sm-6 mb-4">
@@ -573,13 +574,14 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                                 <label class="form-label">Phone</label>
                                 <input type="text" name="customer_phone" class="form-control" required maxlength="10">
                             </div>
-                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white"
+                                name="whatAction">
                         </form>
                     </div>
 
                     <!-- JS to Toggle Form -->
                     <script>
-                        document.getElementById("showFormBtn").addEventListener("click", function() {
+                        document.getElementById("showFormBtn").addEventListener("click", function () {
                             const form = document.getElementById("customerForm");
                             form.style.display = (form.style.display === "none") ? "block" : "none";
                         });
@@ -626,17 +628,17 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                         const paymentMethod = document.getElementById("invoicePaymentMethod")
                         const bnplFields = document.getElementById("bnplFields")
 
-                        paymentMethod.addEventListener("change", function(){
-                        if(this.value === "BNPL"){
-                            bnplFields.style.display ="block" 
-                        }
-                        else{
-                            bnplFields.style.display = "none"
-                        }
+                        paymentMethod.addEventListener("change", function () {
+                            if (this.value === "BNPL") {
+                                bnplFields.style.display = "block"
+                            }
+                            else {
+                                bnplFields.style.display = "none"
+                            }
 
-                       }
-                    )
-                       
+                        }
+                        )
+
                     </script>
 
 
@@ -768,7 +770,8 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                             }
                             ?>
                         </select>
-                        <button class="btn bg-primary text-white mt-2" type="submit" id="salesFromBtn">+ Add Customer</button>
+                        <button class="btn bg-primary text-white mt-2" type="submit" id="salesFromBtn">+ Add
+                            Customer</button>
                     </div>
 
                     <!-- Hidden Form -->
@@ -808,13 +811,14 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                                 <label class="form-label">Phone</label>
                                 <input type="text" name="customer_phone" class="form-control" required maxlength="10">
                             </div>
-                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white"
+                                name="whatAction">
                         </form>
                     </div>
 
                     <!-- JS to Toggle Form -->
                     <script>
-                        document.getElementById("salesFromBtn").addEventListener("click", function() {
+                        document.getElementById("salesFromBtn").addEventListener("click", function () {
                             const showform = document.getElementById("salesform");
                             showform.style.display = (showform.style.display === "none") ? "block" : "none";
                         })
@@ -960,6 +964,7 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                     <th>Notes</th>
                     <th>GST Amount</th>
                     <th>Grand Total</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -984,12 +989,25 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
                         echo "<td>" . htmlspecialchars($row['notes']) . "</td>";
                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                         echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                         echo '<td>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
                                     <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>
-                                </div>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-download"></i></button>';
+                        if ($row['status'] !== 'Refund'): ?>
+                            <form method="post" action=""
+                                onsubmit="return confirm('Are you sure you want to cancel this invoice?');">
+                                <input type="hidden" name="invoice_id" value="<?php echo htmlspecialchars($row['invoice_id']); ?>">
+                                <input type="hidden" name="created_for"
+                                    value="<?php echo htmlspecialchars($row['created_for']); ?>">
+                                <button type="submit" name="cancelInvoice" class="btn btn-danger btn-sm">
+                                    <i class="fa-solid fa-xmark"></i> Cancel
+                                </button>
+                            </form>
+                        <?php endif;
+
+                        echo '</div>
                             </td>';
                         echo "</tr>";
                     }
@@ -1000,6 +1018,188 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
             </tbody>
         </table>
     </div>
+
+    <?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cancelInvoice']) && $hasDeletePermission) {
+        $invoice_id = $conn->real_escape_string($_POST['invoice_id']);
+        $created_for = $conn->real_escape_string($_POST['created_for']);
+
+        // 1. Get items & quantities from invoice
+        $fetchSql = "SELECT item_name, quantity FROM invoice WHERE invoice_id = ? AND created_for = ?";
+        $fetchStmt = $conn->prepare($fetchSql);
+        $fetchStmt->bind_param("ss", $invoice_id, $created_for);
+        $fetchStmt->execute();
+        $fetchResult = $fetchStmt->get_result();
+        $invoiceRow = $fetchResult->fetch_assoc();
+        $fetchStmt->close();
+
+        if ($invoiceRow) {
+
+            // fallback if stored as comma separated
+            $itemNames = explode(",", $invoiceRow['item_name']);
+            $quantities = explode(",", $invoiceRow['quantity']);
+
+
+            // 2. Update invoice table (grand_total negative & status refund)
+            $sql = "UPDATE invoice 
+                SET grand_total = -grand_total, status = 'Refund' 
+                WHERE invoice_id = ? AND created_for = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ss", $invoice_id, $created_for);
+
+            if ($stmt->execute()) {
+
+                // Fetch user type
+                $fetchUser = "SELECT user_type FROM users WHERE user_name = ?";
+                $fetchUserType = $conn->prepare($fetchUser);
+                $fetchUserType->bind_param("s", $created_for);
+                $fetchUserType->execute();
+                $fetchUserResult = $fetchUserType->get_result();
+                $userRow = $fetchUserResult->fetch_assoc();
+                $fetchUserType->close();
+
+                $user_type = $userRow['user_type'] ?? $user_name;
+
+                // 3. Add cancelled items back to stock
+                if ($user_type === 'Store') {
+                    for ($i = 0; $i < count($itemNames); $i++) {
+                        $item = trim($itemNames[$i]);
+                        $qty = intval($quantities[$i]);
+
+                        if ($item && $qty > 0) {
+                            // Get latest stock_id for this item
+                            $latestStockSql = "SELECT Id FROM retail_invetory 
+                                       WHERE item_name = ? AND inventory_of = ? 
+                                       ORDER BY last_updated DESC, Id DESC LIMIT 1";
+                            $latestStockStmt = $conn->prepare($latestStockSql);
+                            $latestStockStmt->bind_param("ss", $item, $created_for);
+                            $latestStockStmt->execute();
+                            $latestStockResult = $latestStockStmt->get_result();
+
+                            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                                $latestStockId = $latestStockRow['Id'];
+                                // Update only latest entry
+                                $updateSql = "UPDATE retail_invetory SET stock = stock + ? WHERE Id = ?";
+                                $updateStmt = $conn->prepare($updateSql);
+                                $updateStmt->bind_param("is", $qty, $latestStockId);
+                                $updateStmt->execute();
+                                $updateStmt->close();
+                            }
+                            $latestStockStmt->close();
+                        }
+                    }
+                } else if ($user_type === 'Vendor') {
+                    for ($i = 0; $i < count($itemNames); $i++) {
+                        $item = trim($itemNames[$i]);
+                        $qty = intval($quantities[$i]);
+
+                        if ($item && $qty > 0) {
+                            // Get latest product_id for this item
+                            $latestStockSql = "SELECT product_id FROM vendor_product 
+                                       WHERE product_name = ? AND product_of = ? 
+                                       ORDER BY created_at DESC, product_id DESC LIMIT 1";
+                            $latestStockStmt = $conn->prepare($latestStockSql);
+                            $latestStockStmt->bind_param("ss", $item, $created_for);
+                            $latestStockStmt->execute();
+                            $latestStockResult = $latestStockStmt->get_result();
+
+                            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                                $latestStockId = $latestStockRow['product_id'];
+                                // Update only latest entry
+                                $updateSql = "UPDATE vendor_product SET stock = stock + ? WHERE product_id = ?";
+                                $updateStmt = $conn->prepare($updateSql);
+                                $updateStmt->bind_param("is", $qty, $latestStockId);
+                                $updateStmt->execute();
+                                $updateStmt->close();
+                            }
+                            $latestStockStmt->close();
+                        }
+                    }
+                } else if ($user_type === 'Factory') {
+                    for ($i = 0; $i < count($itemNames); $i++) {
+                        $item = trim($itemNames[$i]);
+                        $qty = intval($quantities[$i]);
+
+                        if ($item && $qty > 0) {
+                            // Get latest stock_id for this item
+                            $latestStockSql = "SELECT stock_id FROM factory_stock 
+                                       WHERE item_name = ? AND created_for = ? 
+                                       ORDER BY record_date DESC, stock_id DESC LIMIT 1";
+                            $latestStockStmt = $conn->prepare($latestStockSql);
+                            $latestStockStmt->bind_param("ss", $item, $created_for);
+                            $latestStockStmt->execute();
+                            $latestStockResult = $latestStockStmt->get_result();
+
+                            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                                $latestStockId = $latestStockRow['stock_id'];
+                                // Update only latest entry
+                                $updateSql = "UPDATE factory_stock SET quantity = quantity + ? WHERE stock_id = ?";
+                                $updateStmt = $conn->prepare($updateSql);
+                                $updateStmt->bind_param("is", $qty, $latestStockId);
+                                $updateStmt->execute();
+                                $updateStmt->close();
+                            }
+                            $latestStockStmt->close();
+                        }
+                    }
+                } else if ($user_type === 'Admin') {
+                    for ($i = 0; $i < count($itemNames); $i++) {
+                        $item = trim($itemNames[$i]);
+                        $qty = intval($quantities[$i]);
+
+                        if ($item && $qty > 0) {
+                            // Get latest stock_id for this item
+                            $latestStockSql = "SELECT Id  FROM inventory 
+                                       WHERE Product_Name = ?
+                                       ORDER BY Date DESC, Id  DESC LIMIT 1";
+                            $latestStockStmt = $conn->prepare($latestStockSql);
+                            $latestStockStmt->bind_param("s", $item);
+                            $latestStockStmt->execute();
+                            $latestStockResult = $latestStockStmt->get_result();
+
+                            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                                $latestStockId = $latestStockRow['Id'];
+                                // Update only latest entry
+                                $updateSql = "UPDATE inventory SET Stock = Stock + ? WHERE Id = ?";
+                                $updateStmt = $conn->prepare($updateSql);
+                                $updateStmt->bind_param("is", $qty, $latestStockId);
+                                $updateStmt->execute();
+                                $updateStmt->close();
+                            }
+                            $latestStockStmt->close();
+
+                            // Get latest product id for this item
+                            $latestProductSql = "SELECT id  FROM products 
+                                       WHERE name = ?
+                                       ORDER BY created_at DESC, id  DESC LIMIT 1";
+                            $latestProductStmt = $conn->prepare($latestProductSql);
+                            $latestProductStmt->bind_param("s", $item);
+                            $latestProductStmt->execute();
+                            $latestProductResult = $latestProductStmt->get_result();
+
+                            if ($latestProductResult && $latestProductRow = $latestProductResult->fetch_assoc()) {
+                                $latestProductId = $latestProductRow['id'];
+                                // Update only latest entry
+                                $updateProductSql = "UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?";
+                                $updateProductStmt = $conn->prepare($updateProductSql);
+                                $updateProductStmt->bind_param("is", $qty, $latestProductId);
+                                $updateProductStmt->execute();
+                                $updateProductStmt->close();
+                            }
+                            $latestProductStmt->close();
+                        }
+                    }
+                }
+
+                echo "<script>alert('Invoice cancelled successfully!'); window.location.href=window.location.href;</script>";
+            } else {
+                echo "<script>alert('Error cancelling invoice: " . $conn->error . "');</script>";
+            }
+
+            $stmt->close();
+        }
+    }
+    ?>
 
     <!-- Sales table -->
     <div id="sales" class="billing-tab-content">
@@ -2062,7 +2262,7 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
         }
 
         // Close form when clicking outside of it
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             const modal = document.getElementById('invoiceModal');
             if (event.target === modal) {
                 closeInvoiceModal();
@@ -2119,12 +2319,12 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
             };
 
             fetch("billing_desk.php", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(data)
-                })
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
                 .then(res => res.text())
                 .then(msg => {
                     // alert(msg);  
@@ -2264,12 +2464,12 @@ $returns = $conn->query("SELECT COUNT(*) AS count, IFNULL(SUM(Grand_total), 0) A
             };
 
             fetch("billing_desk.php", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(data)
-                })
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
                 .then(res => res.text())
                 .then(msg => {
                     // alert(msg);

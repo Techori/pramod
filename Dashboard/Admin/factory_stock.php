@@ -11,6 +11,9 @@ $filterByFactory = $selectedEmail !== 'all';
 
 // Filter for most queries using created_for
 $factoryFilter = $filterByFactory ? " AND created_for = '" . mysqli_real_escape_string($conn, $selectedEmail) . "'" : '';
+
+// Filter for low stock using created_for
+$lowStockFilter = $filterByFactory ? " AND fs.created_for = '" . mysqli_real_escape_string($conn, $selectedEmail) . "'" : '';
 // Filter specifically for pending orders using request_to
 $pendingOrderFilter = $filterByFactory ? " AND request_to = '" . mysqli_real_escape_string($conn, $selectedEmail) . "'" : '';
 
@@ -124,35 +127,6 @@ for ($i = 5; $i >= 0; $i--) {
     $trendData[] = isset($months[$month]) ? $months[$month] : 0;
 }
 
-// Get item names for Add Stock form dropdown
-$itemSql = "SELECT DISTINCT item_name FROM factory_stock WHERE 1=1 $factoryFilter ORDER BY item_name";
-$itemResult = $conn->query($itemSql);
-$items = [];
-if ($itemResult->num_rows > 0) {
-    while ($row = $itemResult->fetch_assoc()) {
-        $items[] = $row['item_name'];
-    }
-}
-
-// Get categories for Add Stock form dropdown
-$categorySql = "SELECT DISTINCT category FROM factory_stock WHERE 1=1 $factoryFilter ORDER BY category";
-$categoryResult = $conn->query($categorySql);
-$categories = [];
-if ($categoryResult->num_rows > 0) {
-    while ($row = $categoryResult->fetch_assoc()) {
-        $categories[] = $row['category'];
-    }
-}
-
-// Get stock items for Stock Transfer form dropdown
-$stockSql = "SELECT stock_id, item_name FROM factory_stock WHERE 1=1 $factoryFilter ORDER BY item_name";
-$stockResult = $conn->query($stockSql);
-$stocks = [];
-if ($stockResult->num_rows > 0) {
-    while ($row = $stockResult->fetch_assoc()) {
-        $stocks[] = $row;
-    }
-}
 // Static list of transfer locations
 $transferLocations = ['Warehouse A', 'Warehouse B', 'Factory', 'Distribution Center'];
 
@@ -207,6 +181,174 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
     fclose($output);
     exit;
 }
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    $whatAction = $data['whatAction'] ?? '';
+    // echo "<script>console.log('What action: ". $whatAction ."') </script>";
+
+    if ($whatAction === 'add_product') {
+
+        $createdFor = $conn->real_escape_string($data['createdFor'] ?? $user_name); // Use provided createdFor or default to user_name
+
+        // Fetch latest product ID current or previous year
+        $result = $conn->query("SELECT id FROM factory_product WHERE created_for = '$createdFor' ORDER BY CAST(SUBSTRING(id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['id'];
+            $num = (int) substr($lastId, 4);
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newProductId = 'PR-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        // Get form data
+        $productName = $conn->real_escape_string($data['productName'] ?? '');
+        $category = $conn->real_escape_string($data['category'] ?? '');
+        $rawMaterials = $data['rawMaterials'] ?? [];
+        $totalRawCost = floatval($data['totalRawCost'] ?? 0);
+        $transportCharge = floatval($data['transportCharge'] ?? 0);
+        $otherCost = floatval($data['otherCost'] ?? 0);
+        $totalProductCost = floatval($data['totalProductCost'] ?? 0);
+        $mrpOfProduct = floatval($data['mrpOfProduct'] ?? 0);
+        $salePrice = floatval($data['salePrice'] ?? 0);
+        $profitLoss = floatval($data['profitLoss'] ?? 0);
+
+        // Encode rawMaterials array as JSON string
+        $rawMaterialsJson = json_encode($rawMaterials);
+
+        // Insert into factory_product table
+        $insertSql = "INSERT INTO factory_product 
+        (id, productName, category, raw_materials, raw_material_total_cost, transport_charge, other_cost, product_total_cost, mrp, selling_price, profitLoss, created_by, created_for) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $stmt = $conn->prepare($insertSql);
+        $stmt->bind_param(
+            "ssssdddddddss",
+            $newProductId,
+            $productName,
+            $category,
+            $rawMaterialsJson,
+            $totalRawCost,
+            $transportCharge,
+            $otherCost,
+            $totalProductCost,
+            $mrpOfProduct,
+            $salePrice,
+            $profitLoss,
+            $user_name,
+            $createdFor
+        );
+
+        if ($stmt->execute()) {
+            echo "Product added successfully!";
+        } else {
+            echo "Error adding product: " . $conn->error;
+        }
+        $stmt->close();
+
+    } else if ($whatAction === 'add_stock') {
+
+        $created_for = $conn->real_escape_string($data['createdForSelect'] ?? $user_name); // Use provided created_for or default to user_name
+
+        // Fetch latest product ID current or previous year
+        $result = $conn->query("SELECT stock_id FROM factory_stock WHERE created_for = '$created_for' ORDER BY CAST(SUBSTRING(stock_id, 5) AS UNSIGNED) DESC LIMIT 1 FOR UPDATE");
+
+        if ($result && $row = $result->fetch_assoc()) {
+            $lastId = $row['stock_id'];
+            $num = (int) substr($lastId, 4);
+            $newNum = $num + 1;
+        } else {
+            $newNum = 1;
+        }
+
+        $newStockId = 'INV-' . str_pad($newNum, 3, '0', STR_PAD_LEFT);
+
+        // Get form data
+        $productName = $conn->real_escape_string($data['productName'] ?? '');
+        $category = $conn->real_escape_string($data['category'] ?? '');
+        $currentQuantity = floatval($data['quantity'] ?? 0);
+        $saleValueTotal = floatval($data['saleValueTotal'] ?? 0);
+        $saleValuePiece = floatval($data['saleValuePiece'] ?? 0);
+        $totalManufacturingCost = floatval($data['totalManufacturingCost'] ?? 0);
+        $manufacturingCostPiece = floatval($data['manufacturingCostPiece'] ?? 0);
+        $previousStock = floatval($data['previousStock'] ?? 0);
+        $previousStockValue = floatval($data['previousStockValue'] ?? 0);
+        $quantity = floatval($data['totalStock'] ?? 0);
+        $value = floatval($data['totalStockValue'] ?? 0);
+        $avgPreviousSale = floatval($data['avgPreviousSale'] ?? 0);
+        $avgNewSale = floatval($data['avgNewSale'] ?? 0);
+        $status = $conn->real_escape_string($data['status'] ?? 'In stock');
+        $record_date = date('Y-m-d');
+
+        // Insert into factory_stock table
+        $insertSql = "INSERT INTO factory_stock 
+            (stock_id, item_name, category, current_quantity, sale_value_total, sale_value_piece, total_manufacturing_cost, manufacturing_cost_piece, previous_stock, previous_stock_value, quantity, value, avg_previous_sale, avg_new_sale, status, record_date, created_for, created_by) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $stmt = $conn->prepare($insertSql);
+        $stmt->bind_param(
+            "sssiddddididddssss",
+            $newStockId,
+            $productName,
+            $category,
+            $currentQuantity,
+            $saleValueTotal,
+            $saleValuePiece,
+            $totalManufacturingCost,
+            $manufacturingCostPiece,
+            $previousStock,
+            $previousStockValue,
+            $quantity,
+            $value,
+            $avgPreviousSale,
+            $avgNewSale,
+            $status,
+            $record_date,
+            $created_for,
+            $user_name
+        );
+
+        if ($stmt->execute()) {
+
+            // 1. Get product's raw materials from factory_product table
+            $productSql = "SELECT raw_materials FROM factory_product WHERE productName = ? AND created_for = ?";
+            $productStmt = $conn->prepare($productSql);
+            $productStmt->bind_param("ss", $productName, $created_for);
+            $productStmt->execute();
+            $productResult = $productStmt->get_result();
+
+            if ($productResult && $productRow = $productResult->fetch_assoc()) {
+                $rawMaterialsArr = json_decode($productRow['raw_materials'], true);
+
+                // 2. Subtract quantity for each raw material
+                if (is_array($rawMaterialsArr)) {
+                    foreach ($rawMaterialsArr as $rm) {
+                        $rawMaterialId = $rm['id'];
+                        $usedQty = floatval($rm['quantity']);
+
+                        // Update factory_raw_material table: subtract usedQty from quantity
+                        $updateSql = "UPDATE factory_raw_material SET quantity = quantity - ? WHERE id = ? AND created_for = ?";
+                        $updateStmt = $conn->prepare($updateSql);
+                        $updateStmt->bind_param("dis", $usedQty, $rawMaterialId, $created_for);
+                        $updateStmt->execute();
+                        $updateStmt->close();
+                    }
+                }
+            }
+            $productStmt->close();
+
+            echo "Stock added successfully!";
+        } else {
+            echo "Error adding stock: " . $conn->error;
+        }
+        $stmt->close();
+
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -215,18 +357,12 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
 <head>
     <meta charset="UTF-8">
     <title>Factory Stock Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-        integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw=="
-        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
-        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
-        integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
-        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .cards {
             transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -361,6 +497,25 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
             background-color: #0d6efd;
             color: white;
         }
+
+        /* .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        } */
+        #rawMaterialSuggestions {
+            z-index: 2;
+        }
+
+        .table-container {
+            margin-top: 60px;
+            /* Dropdown की height से ज्यादा */
+        }
+
+        @media (max-width: 768px) {
+            .table-container {
+                margin-top: 80px;
+            }
+        }
     </style>
 </head>
 
@@ -470,7 +625,7 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                 </div>
                 <input type="hidden" name="export" value="1" />
                 <input type="hidden" name="user" value="<?php echo htmlspecialchars($selectedEmail); ?>" />
-                <button type="submit" class="btn btn-outline-primary btn-lg w-100">
+                <button type="submit" class="btn btn-outline-primary btn-lg w-100 mt-2">
                     <i class="fa-solid fa-file-lines"></i> Download Stock Report
                 </button>
             </form>
@@ -480,9 +635,474 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         $stock_count = $stock_count_result->fetch_assoc()['total_quantity'];
         ?>
         <div class="col-md-4 col-sm-6 mb-4">
-            <button type="button" class="btn btn-outline-primary btn-lg w-100">
+            <button type="button" class="btn btn-outline-primary btn-lg w-100 mb-4">
                 <i class="fa-solid fa-clipboard"></i> Stock Count: <?php echo $stock_count; ?>
             </button>
+            <button type="button" class="btn btn-outline-primary btn-lg w-100" data-bs-toggle="modal"
+                data-bs-target="#addProduct">
+                <i class="fa-solid fa-plus"></i> Add Product
+            </button>
+        </div>
+    </div>
+
+    <?php
+    // Get raw materials for Add Stock form dropdown
+    $rawMaterialSql = "SELECT id, material, cost FROM factory_raw_material WHERE 1=1 $factoryFilter";
+    $rawMaterialResult = $conn->query($rawMaterialSql);
+    $rawMaterials = [];
+    if ($rawMaterialResult->num_rows > 0) {
+        while ($row = $rawMaterialResult->fetch_assoc()) {
+            $rawMaterials[] = [
+                'id' => $row['id'],
+                'material' => $row['material'],
+                'cost' => $row['cost']
+            ];
+        }
+    }
+    // echo '<script>const RawMaterials = ' . json_encode($rawMaterials) . '; console.log("rawMaterials:", RawMaterials);</script>';
+    // Convert to JSON for JavaScript
+    $rawMaterialsJson = json_encode($rawMaterials);
+    ?>
+
+    <div class="modal fade" id="addProduct" tabindex="-1" aria-labelledby="addProductLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form class="bg-white shadow-md rounded-lg p-6 max-w-5xl w-full grid grid-cols-1 gap-6" id="productForm"
+                    novalidate>
+                    <h1 class="text-2xl font-bold mb-4 border-b pb-2">Add Product Form</h1>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <label for="productName" class="font-semibold">Product Name</label>
+                        <input type="text" id="productName" name="productName" required
+                            class="md:col-span-2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <label for="category" class="font-semibold">Category</label>
+                        <input type="text" id="category" name="category" required
+                            class="md:col-span-2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                        <label class="form-label">Create for:</label>
+                            <select class="form-select" id="createdFor" name="createdFor" required>
+                                <option>Select status</option>
+                                <?php
+                                $result = $conn->query("SELECT user_name FROM users WHERE user_type = 'Factory'");
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo '<option value="' . $row['user_name'] . '">' . $row['user_name'] . '</option>';
+                                    }
+                                }
+                                ?>
+                            </select>
+                    </div>
+
+                    <div class="mt-6 font-semibold">Choose Raw Material</div>
+
+                    <div class="flex mt-2 mb-4 position-relative" style="position:relative;">
+                        <input type="search" id="searchBar" placeholder="Search raw material..."
+                            class="flex-grow border border-gray-300 rounded-l px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            aria-label="Search raw material" autocomplete="off" />
+                        <div id="rawMaterialSuggestions"
+                            class="border border-gray-300 rounded bg-white shadow position-absolute"
+                            style="max-height:180px; overflow-y:auto; width:100%; left:0; top:100%; display:none;">
+                        </div>
+                        <button type="button" onclick="addRawMaterial()"
+                            class="bg-blue-600 text-white px-4 rounded-r font-semibold hover:bg-blue-700 transition"
+                            aria-label="Add selected raw material">
+                            Add
+                        </button>
+                    </div>
+
+                    <!-- Raw Materials Table -->
+                    <div id="suggestionGap" style="margin-top: 60px; display: none;"></div>
+                    <div class="table-container border border-gray-300 rounded overflow-x-auto mb-4" role="region"
+                        aria-labelledby="tableTitle" tabindex="0">
+                        <table class="min-w-full divide-y divide-gray-200" aria-describedby="tableTitle">
+                            <caption id="tableTitle" class="sr-only">Selected raw materials table</caption>
+                            <thead class="bg-gray-100 sticky top-0 z-10">
+                                <tr>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">ID
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">Raw
+                                        Material</th>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                                        Quantity</th>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">Cost
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">Total
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-700">
+                                        Remove</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rawMaterialRows" class="divide-y divide-gray-200 bg-white"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Costs Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 text-gray-800">
+                        <label class="md:col-span-4 font-semibold text-right py-2">Total Cost Of Raw Material</label>
+                        <input type="number" id="totalRawCost" readonly value="0"
+                            class="md:col-span-2 border border-gray-300 rounded px-3 py-2 bg-gray-100"
+                            aria-readonly="true" />
+
+                        <label class="md:col-span-4 font-semibold text-right py-2">Transport Charge</label>
+                        <input type="number" id="transportCharge" value="0" min="0" step="0.01"
+                            class="md:col-span-2 border border-gray-300 rounded px-3 py-2" />
+
+                        <label class="md:col-span-4 font-semibold text-right py-2">Other Cost</label>
+                        <input type="number" id="otherCost" value="0" min="0" step="0.01"
+                            class="md:col-span-2 border border-gray-300 rounded px-3 py-2" />
+
+                        <label class="md:col-span-4 font-semibold text-right py-2">Total Cost Of Product</label>
+                        <input type="number" id="totalProductCost" readonly value="0"
+                            class="md:col-span-2 border border-gray-300 rounded px-3 py-2 bg-gray-100"
+                            aria-readonly="true" />
+                    </div>
+
+                    <!-- MRP AND Sale Price -->
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 text-gray-800 mt-6">
+                        <label class="md:col-span-2 font-semibold py-2">MRP Of Product</label>
+                        <input type="number" id="mrpOfProduct" value="0" min="0" step="0.01"
+                            class="md:col-span-1 border border-gray-300 rounded px-1 py-2" />
+
+                        <label class="md:col-span-1 font-semibold py-2">Sale Price</label>
+                        <input type="number" id="salePrice" value="0" min="0" step="0.01"
+                            class="md:col-span-1 border border-gray-300 rounded px-1 py-2" />
+                    </div>
+
+                    <!-- Profit/Loss -->
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 text-gray-800 mt-6">
+
+                        <label class="md:col-span-1 font-semibold py-2">Profit &amp; Loss</label>
+                        <input type="number" id="profitLoss" readonly value="0"
+                            class="md:col-span-1 border border-gray-300 rounded px-1 py-2 bg-gray-100"
+                            aria-readonly="true" />
+                    </div>
+
+                    <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded mt-6 transition"
+                        aria-label="Submit product form" name="addProduct">
+                        Submit Product
+                    </button>
+                </form>
+
+                <script>
+                    // Raw Material sample data (would usually come from backend)
+                    // const rawMaterials = [
+                    //     { cBox: "y", name: "Bottele", cost: 3 },
+                    //     { cBox: "yy", name: "cap", cost: 1 },
+                    //     { cBox: "y", name: "sticker", cost: 4.4 },
+                    //     { cBox: "aa", name: "aa", cost: 0 },
+                    //     { cBox: "ssdd", name: "ssdd", cost: 0 },
+                    //     { cBox: "Wrr etc", name: "Wrr etc", cost: 0 },
+                    // ];
+
+                    const rawMaterials = <?php echo $rawMaterialsJson; ?>;
+
+                    const rawMaterialRows = document.getElementById("rawMaterialRows");
+                    const searchBar = document.getElementById("searchBar");
+                    const totalRawCostInput = document.getElementById("totalRawCost");
+                    const transportChargeInput = document.getElementById("transportCharge");
+                    const otherCostInput = document.getElementById("otherCost");
+                    const totalProductCostInput = document.getElementById("totalProductCost");
+                    const mrpInput = document.getElementById("mrpOfProduct");
+                    const salePriceInput = document.getElementById("salePrice");
+                    const profitLossInput = document.getElementById("profitLoss");
+                    const createdForInput = document.getElementById("createdFor");
+
+                    let selectedRawMaterials = [];
+
+                    function filterRawMaterials() {
+                        const query = searchBar.value.trim().toLowerCase();
+                        let filtered = rawMaterials.filter((rm) =>
+                            rm.material.toLowerCase().includes(query)
+                        );
+                        if (filtered.length === 1) {
+                            searchBar.value = filtered[0].material;
+                        }
+                    }
+
+                    function addRawMaterial() {
+                        const query = searchBar.value.trim();
+                        if (!query) return;
+                        // Check if material exists
+                        const mat = rawMaterials.find(
+                            (rm) => rm.material.toLowerCase() === query.toLowerCase()
+                        );
+                        if (!mat) {
+                            alert("Raw Material not found in list.");
+                            return;
+                        }
+                        // Avoid duplicates by cBox and name
+                        if (
+                            selectedRawMaterials.some(
+                                (rm) => rm.id === mat.id
+                            )
+                        ) {
+                            alert("Raw Material already added.");
+                            return;
+                        }
+
+                        // Add default quantity 1 and calculate total
+                        selectedRawMaterials.push({
+                            id: mat.id,
+                            material: mat.material,
+                            quantity: 1,
+                            cost: mat.cost,
+                            total: mat.cost * 1,
+                        });
+                        searchBar.value = "";
+                        renderRawMaterials();
+                    }
+
+                    // Suggestion list 
+                    const rawMaterialSuggestions = document.getElementById("rawMaterialSuggestions");
+                    const suggestionGap = document.getElementById("suggestionGap");
+
+                    // Show all suggestions on focus/click
+                    searchBar.addEventListener("focus", function () {
+                        showSuggestions();
+                    });
+
+                    // Also show suggestions on click (for mobile)
+                    searchBar.addEventListener("click", function () {
+                        showSuggestions();
+                    });
+
+                    // On input, filter suggestions
+                    searchBar.addEventListener("input", showSuggestions);
+
+                    function showSuggestions() {
+                        const query = searchBar.value.trim().toLowerCase();
+                        let filtered;
+                        if (!query) {
+                            // If no query, show all raw materials
+                            filtered = rawMaterials;
+                        } else {
+                            filtered = rawMaterials.filter(rm =>
+                                rm.material.toLowerCase().includes(query)
+                            );
+                        }
+                        if (filtered.length === 0) {
+                            rawMaterialSuggestions.innerHTML = "<div class='px-3 py-2 text-muted'>No match found</div>";
+                            rawMaterialSuggestions.style.display = "block";
+                            suggestionGap.style.display = "block";
+                            return;
+                        }
+                        // Sort by match position and alphabetically
+                        if (query) {
+                            filtered.sort((a, b) => {
+                                const posA = a.material.toLowerCase().indexOf(query);
+                                const posB = b.material.toLowerCase().indexOf(query);
+                                if (posA === posB) {
+                                    return a.material.localeCompare(b.material);
+                                }
+                                return posA - posB;
+                            });
+                        }
+                        // Render suggestions as dropdown
+                        rawMaterialSuggestions.innerHTML = filtered.map(rm =>
+                            `<div class="px-3 py-2 suggestion-item" style="cursor:pointer;" data-material="${rm.material}">
+                                ${rm.material}
+                            </div>`
+                        ).join("");
+                        rawMaterialSuggestions.style.display = "block";
+                        suggestionGap.style.display = "block";
+                    }
+
+                    // On click, fill searchBar and hide suggestions
+                    rawMaterialSuggestions.addEventListener("mousedown", function (e) {
+                        // Use mousedown instead of click for better UX
+                        const item = e.target.closest(".suggestion-item");
+                        if (item) {
+                            searchBar.value = item.dataset.material;
+                            rawMaterialSuggestions.innerHTML = "";
+                            rawMaterialSuggestions.style.display = "none";
+                            searchBar.focus();
+                        }
+                    });
+
+                    // Hide suggestions on blur
+                    searchBar.addEventListener("blur", function () {
+                        setTimeout(() => {
+                            rawMaterialSuggestions.style.display = "none";
+                            suggestionGap.style.display = "none";
+                        }, 200);
+                    });
+
+                    // Hide gap when suggestion list is hidden (also after selection)
+                    rawMaterialSuggestions.addEventListener("mousedown", function (e) {
+                        const item = e.target.closest(".suggestion-item");
+                        if (item) {
+                            searchBar.value = item.dataset.material;
+                            rawMaterialSuggestions.innerHTML = "";
+                            rawMaterialSuggestions.style.display = "none";
+                            suggestionGap.style.display = "none";
+                            searchBar.focus();
+                            // Optionally, you can auto-add the material here:
+                            addRawMaterial();
+                        }
+                    });
+
+                    function renderRawMaterials() {
+                        // console.log("Raw Materials:", rawMaterials);
+                        rawMaterialRows.innerHTML = "";
+                        selectedRawMaterials.forEach((rm, idx) => {
+                            const tr = document.createElement("tr");
+                            tr.classList.add("hover:bg-gray-50");
+
+                            tr.innerHTML = `
+                                <td class="px-3 py-2 align-top whitespace-nowrap">${rm.id}</td>
+                                <td class="px-3 py-2 align-top whitespace-normal">${rm.material}</td>
+                                <td class="px-3 py-2 align-top">
+                                    <input type="number" min="0" step="1" value="${rm.quantity}" data-idx="${idx}" data-field="quantity"
+                                        class="w-20 border border-gray-300 rounded px-2 py-1" aria-label="Quantity for ${rm.material}" />
+                                </td>
+                                <td class="px-3 py-2 align-top">
+                                    <input type="number" min="0" step="0.01" value="${rm.cost}" data-idx="${idx}" data-field="cost"
+                                        class="w-24 border border-gray-300 rounded px-2 py-1" aria-label="Cost per unit for ${rm.material}" />
+                                </td>
+                                <td class="px-3 py-2 align-top">${rm.total.toFixed(2)}</td>
+                                <td class="px-3 py-2 align-top text-center">
+                                    <button type="button" data-idx="${idx}" aria-label="Remove ${rm.material}"
+                                        class="text-red-600 hover:text-red-900 font-bold">×</button>
+                                </td>
+                            `;
+
+                            rawMaterialRows.appendChild(tr);
+                        });
+
+                        attachRowEventListeners();
+                        calculateTotals();
+                    }
+
+                    function attachRowEventListeners() {
+                        // Quantity and Cost input listeners
+                        rawMaterialRows.querySelectorAll("input").forEach((input) => {
+                            input.addEventListener("input", (e) => {
+                                const idx = e.target.dataset.idx;
+                                const field = e.target.dataset.field;
+                                if (!idx || !field) return;
+                                let val = parseFloat(e.target.value);
+                                if (isNaN(val) || val < 0) val = 0;
+                                selectedRawMaterials[idx][field] = val;
+
+                                // Recalculate total for row
+                                selectedRawMaterials[idx].total =
+                                    selectedRawMaterials[idx].quantity * selectedRawMaterials[idx].cost;
+
+                                renderRawMaterials();
+                            });
+                        });
+
+                        // Remove button listeners
+                        rawMaterialRows.querySelectorAll("button").forEach((btn) => {
+                            btn.addEventListener("click", (e) => {
+                                const idx = e.target.dataset.idx;
+                                if (idx !== undefined) {
+                                    selectedRawMaterials.splice(idx, 1);
+                                    renderRawMaterials();
+                                }
+                            });
+                        });
+                    }
+
+                    function calculateTotals() {
+                        // Sum raw materials total
+                        const rawCost = selectedRawMaterials.reduce(
+                            (acc, cur) => acc + cur.total,
+                            0
+                        );
+
+                        totalRawCostInput.value = rawCost.toFixed(2);
+
+                        const transportCharge = parseFloat(transportChargeInput.value) || 0;
+                        const otherCost = parseFloat(otherCostInput.value) || 0;
+                        const totalProductCost = rawCost + transportCharge + otherCost;
+                        totalProductCostInput.value = totalProductCost.toFixed(2);
+
+                        const mrp = parseFloat(mrpInput.value) || 0;
+                        const salePrice = parseFloat(salePriceInput.value) || 0;
+
+                        // Profit & Loss = Sale Price - Total Product Cost
+                        const profitLoss = salePrice - totalProductCost;
+                        profitLossInput.value = profitLoss.toFixed(2);
+                    }
+
+                    transportChargeInput.addEventListener("input", calculateTotals);
+                    otherCostInput.addEventListener("input", calculateTotals);
+                    mrpInput.addEventListener("input", calculateTotals);
+                    salePriceInput.addEventListener("input", calculateTotals);
+
+                    // Prevent form submission and just alert the details for now
+                    document.getElementById("productForm").addEventListener("submit", (e) => {
+                        e.preventDefault();
+
+                        const formData = {
+                            productName: e.target.productName.value.trim(),
+                            category: e.target.category.value.trim(),
+                            rawMaterials: selectedRawMaterials,
+                            totalRawCost: parseFloat(totalRawCostInput.value),
+                            transportCharge: parseFloat(transportChargeInput.value),
+                            otherCost: parseFloat(otherCostInput.value),
+                            totalProductCost: parseFloat(totalProductCostInput.value),
+                            mrpOfProduct: parseFloat(mrpInput.value),
+                            salePrice: parseFloat(salePriceInput.value),
+                            profitLoss: parseFloat(profitLossInput.value),
+                            createdFor: e.target.createdFor.value.trim(),
+                            whatAction: "add_product",
+                        };
+
+                        // Simple validation for product name and category
+                        if (!formData.productName) {
+                            alert("Please enter Product Name");
+                            return;
+                        }
+                        if (!formData.category) {
+                            alert("Please enter Category");
+                            return;
+                        }
+                        if (!formData.createdFor) {
+                            alert("Please select Created For");
+                            return;
+                        }
+
+                        if (formData.rawMaterials.length === 0) {
+                            alert("Please add at least one raw material");
+                            return;
+                        }
+
+                        fetch("inventory.php", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify(formData)
+                        })
+                            .then(res => res.text())
+                            .then(msg => {
+                                // alert(msg);
+                                // console.log(msg);
+                                location.reload();
+                                // console.log("Product Submission Data: ", formData);
+                                // alert('Product data submitted successfully! Check console for details.');
+                            })
+                            .catch(err => alert("Error submitting invoice."));
+
+                        // Reset form if desired:
+                        // e.target.reset();
+                        // selectedRawMaterials = [];
+                        // renderRawMaterials();
+                        // calculateTotals();
+                    });
+
+                    // Initial render empty
+                    renderRawMaterials();
+                </script>
+            </div>
         </div>
     </div>
 
@@ -490,65 +1110,71 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
     <div class="modal fade" id="addStock" tabindex="-1" aria-labelledby="addStockLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <form method="post" action="">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addStockLabel">Add Stock</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="itemName" class="form-label">Item Name</label>
-                            <select class="form-control" id="itemName" name="itemName" onchange="toggleItemInput()">
-                                <option value="">Select Item</option>
-                                <?php foreach ($items as $item): ?>
-                                    <option value="<?php echo htmlspecialchars($item); ?>">
-                                        <?php echo htmlspecialchars($item); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                                <option value="Other">Other</option>
-                            </select>
-                            <input type="text" class="form-control mt-2" id="customItemName" name="customItemName"
-                                style="display:none;" placeholder="Enter new item name">
-                        </div>
-                        <div class="mb-3">
-                            <label for="category" class="form-label">Category</label>
-                            <select class="form-control" id="category" name="category" onchange="toggleCategoryInput()">
-                                <option value="">Select Category</option>
-                                <?php foreach ($categories as $cat): ?>
-                                    <option value="<?php echo htmlspecialchars($cat); ?>">
-                                        <?php echo htmlspecialchars($cat); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                                <option value="Other">Other</option>
-                            </select>
-                            <input type="text" class="form-control mt-2" id="customCategory" name="customCategory"
-                                style="display:none;" placeholder="Enter new category">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Create for:</label>
-                            <select class="form-select" id="created_for" name="created_for" required>
-                                <option>Select status</option>
+                <form id="stockForm" class="space-y-8 px-4 w-full py-2">
+                    <h1 class="text-2xl font-bold border-b">Add Stock Form</h1>
+                    <!-- Select Product and Quantity -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="productSelect" class="block font-medium mb-2 text-gray-700">Select
+                                Product</label>
+                            <select id="productSelect" required
+                                class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="" disabled selected>Select a product</option>
                                 <?php
-                                $result = $conn->query("SELECT user_name FROM users WHERE user_type = 'Factory'");
+                                $result = $conn->query("SELECT * FROM factory_product WHERE 1=1 $factoryFilter");
                                 if ($result->num_rows > 0) {
                                     while ($row = $result->fetch_assoc()) {
-                                        echo "<option>" . $row['user_name'] . "</option>";
+                                        $productName = $row['productName'];
+                                        $category = $row['category'];
+                                        $manufacturing = $row['product_total_cost'];
+
+                                        // Fetch latest stock and value from factory_stock table
+                                        $stockSql = "SELECT quantity as prevstock, value as prevvalue, avg_new_sale as prevavg 
+                                            FROM factory_stock 
+                                            WHERE item_name = '$productName' AND 1=1 $factoryFilter 
+                                            ORDER BY record_date DESC, stock_id DESC LIMIT 1";
+                                        $stockResult = $conn->query($stockSql);
+                                        $prevstock = 0;
+                                        $prevvalue = 0;
+                                        $prevavg = 0;
+                                        if ($stockResult && $stockResult->num_rows > 0) {
+                                            $stockRow = $stockResult->fetch_assoc();
+                                            $prevstock = $stockRow['prevstock'] ?? 0;
+                                            $prevvalue = $stockRow['prevvalue'] ?? 0;
+                                            $prevavg = $stockRow['prevavg'] ?? 0;
+                                        }
+
+                                        echo '<option value="' . htmlspecialchars($productName) . '" 
+                                        data-category="' . htmlspecialchars($category) . '" 
+                                        data-manufacturing="' . htmlspecialchars($manufacturing) . '" 
+                                        data-prevstock="' . htmlspecialchars($prevstock) . '" 
+                                        data-prevavg="' . htmlspecialchars($prevavg) . '" 
+                                        data-prevvalue="' . htmlspecialchars($prevvalue) . '">'
+                                            . htmlspecialchars($productName) . '</option>';
                                     }
                                 }
                                 ?>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="quantity" class="form-label">Quantity</label>
-                            <input type="number" min="0" class="form-control" id="quantity" name="quantity" required>
+                        <div>
+                            <label for="quantityInput" class="block font-medium mb-2 text-gray-700">Quantity</label>
+                            <input type="number" id="quantityInput" min="0" value="0" required
+                                class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
                         </div>
-                        <div class="mb-3">
-                            <label for="value" class="form-label">Value (₹)</label>
-                            <input type="number" min="0" step="0.01" class="form-control" id="value" name="value"
-                                required>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="category" class="block font-medium mb-2 text-gray-700">
+                                Category
+                            </label>
+                            <input type="text" id="Category" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
                         </div>
-                        <div class="mb-3">
-                            <label for="Status" class="form-label">Status</label>
+                        <div>
+                            <label for="status" class="block font-medium mb-2 text-gray-700">
+                                Status
+                            </label>
                             <select class="form-select" id="Status" name="Status" required>
                                 <option value="In stock">In stock</option>
                                 <option value="Low stock">Low stock</option>
@@ -556,11 +1182,308 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                             </select>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" name="addStockSubmit">Add Stock</button>
+
+                    <!-- Sale Value of new stock in Amount & Sale Value Amount per piece -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="saleValueTotal" class="block font-medium mb-2 text-gray-700">
+                                Sale Value of New Stock (Amount)
+                            </label>
+                            <input type="number" step="any" min="0" id="saleValueTotal" value="0" required
+                                class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                        </div>
+                        <div>
+                            <label for="saleValuePiece" class="block font-medium mb-2 text-gray-700">
+                                Sale Value Amount per Piece
+                            </label>
+                            <input type="number" step="any" min="0" id="saleValuePiece" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+                    </div>
+
+                    <!-- Manufacturing Cost and Previous Stock Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <div>
+                            <label for="totalManufacturingCost" class="block font-medium mb-2 text-gray-700">
+                                Total Manufacturing Cost
+                            </label>
+                            <input type="number" step="any" min="0" id="totalManufacturingCost" value="0" required
+                                class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                        </div>
+                        <div>
+                            <label for="manufacturingCostPiece" class="block font-medium mb-2 text-gray-700">
+                                Manufacturing Cost per Piece (Auto Fill)
+                            </label>
+                            <input type="number" step="any" min="0" id="manufacturingCostPiece" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <div>
+                            <label for="previousStock" class="block font-medium mb-2 text-gray-700">
+                                Previous Stock (Auto fill)
+                            </label>
+                            <input type="number" step="1" min="0" id="previousStock" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+
+                        <div>
+                            <label for="previousStockValue" class="block font-medium mb-2 text-gray-700">
+                                Previous Stock Value (Auto fill)
+                            </label>
+                            <input type="number" step="any" min="0" id="previousStockValue" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <div>
+                            <label for="totalStock" class="block font-medium mb-2 text-gray-700">
+                                Total Stock (Auto fill)
+                            </label>
+                            <input type="number" step="1" min="0" id="totalStock" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+
+                        <div>
+                            <label for="totalStockValue" class="block font-medium mb-2 text-gray-700">
+                                Total Stock Value (Auto fill)
+                            </label>
+                            <input type="number" step="any" min="0" id="totalStockValue" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+                    </div>
+
+                    <!-- Average per piece sale values -->
+                    <div class="flex flex-col md:flex-row justify-between gap-6 pt-6 border-t border-gray-300">
+                        <div class="flex-1">
+                            <label class="block font-medium mb-2 text-gray-700" for="avgPreviousSale">
+                                Average Previous Per Piece Sale (Auto fill)
+                            </label>
+                            <input type="number" step="any" min="0" id="avgPreviousSale" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+                        <div class="flex-1">
+                            <label class="block font-medium mb-2 text-gray-700" for="avgCurrentSale">
+                                Current Average Per Piece Sale Value (Auto fill)
+                            </label>
+                            <input type="number" step="any" min="0" id="avgCurrentSale" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row justify-between gap-6 pt-6 border-t border-gray-300">
+                        <div class="flex-1">
+                            <label class="block font-medium mb-2 text-gray-700" for="avgNewSale">
+                                New Average Per Piece Sale Value (Auto fill)
+                            </label>
+                            <input type="number" step="any" min="0" id="avgNewSale" value="0" readonly
+                                class="w-full bg-gray-100 border border-gray-300 rounded-md p-2" />
+                        </div>
+                        <div class="flex-1">
+                            <label class="form-label">Create for:</label>
+                            <select class="form-select" id="created_for" name="created_for" required>
+                                <option>Select status</option>
+                                <?php
+                                $result = $conn->query("SELECT user_name FROM users WHERE user_type = 'Factory'");
+                                if ($result->num_rows > 0) {
+                                    while ($row = $result->fetch_assoc()) {
+                                        echo '<option value="' . $row['user_name'] . '">' . $row['user_name'] . '</option>';
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center">
+                        <button type="submit"
+                            class="w-full max-w-xs bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded transition"
+                            aria-label="Submit stock form" name="addStock">
+                            Submit Stock
+                        </button>
                     </div>
                 </form>
+                <script>
+                    // Cache DOM elements
+                    const productSelect = document.getElementById('productSelect');
+                    const quantityInput = document.getElementById('quantityInput');
+                    const categoryInput = document.getElementById('Category');
+                    const statusInput = document.getElementById('Status');
+                    const saleValueTotal = document.getElementById('saleValueTotal');
+                    const saleValuePiece = document.getElementById('saleValuePiece');
+                    const totalManufacturingCost = document.getElementById('totalManufacturingCost');
+                    const manufacturingCostPiece = document.getElementById('manufacturingCostPiece');
+
+                    const previousStock = document.getElementById('previousStock');
+                    const previousStockValue = document.getElementById('previousStockValue');
+
+                    const totalStock = document.getElementById('totalStock');
+                    const totalStockValue = document.getElementById('totalStockValue');
+
+                    const avgPreviousSale = document.getElementById('avgPreviousSale');
+                    const avgNewSale = document.getElementById('avgNewSale');
+                    const avgCurrentSale = document.getElementById('avgCurrentSale');
+                    const createdForSelect = document.getElementById('created_for');
+
+                    function resetAutoFillFields() {
+                        categoryInput.value = '';
+                        statusInput.value = 'In stock';
+                        previousStock.value = 0;
+                        previousStockValue.value = 0;
+                        manufacturingCostPiece.value = 0;
+                        totalStock.value = 0;
+                        totalStockValue.value = 0;
+                        avgPreviousSale.value = 0;
+                        avgNewSale.value = 0;
+                        avgCurrentSale.value = 0;
+                        saleValuePiece.value = 0;
+                        createdForSelect.value = '';
+                    }
+
+                    function fillProductAutoFillValues() {
+                        if (!productSelect.value) {
+                            resetAutoFillFields();
+                            return;
+                        }
+                        const selectedOption = productSelect.options[productSelect.selectedIndex];
+                        const prevStock = parseFloat(selectedOption.getAttribute('data-prevstock')) || 0;
+                        const prevStockVal = parseFloat(selectedOption.getAttribute('data-prevvalue')) || 0;
+                        const manufacturingCost = parseFloat(selectedOption.getAttribute('data-manufacturing')) || 0;
+                        const prevAvg = parseFloat(selectedOption.getAttribute('data-prevavg')) || 0;
+                        const category = selectedOption.getAttribute('data-category') || '';
+
+                        previousStock.value = prevStock.toFixed(2);
+                        previousStockValue.value = prevStockVal.toFixed(2);
+                        manufacturingCostPiece.value = manufacturingCost.toFixed(2);
+                        avgPreviousSale.value = prevAvg.toFixed(2);
+                        categoryInput.value = category;
+
+                        calculateAutoFields();
+                    }
+
+                    function calculateAutoFields() {
+                        const qty = parseFloat(quantityInput.value) || 0;
+                        const saleAmount = parseFloat(saleValueTotal.value) || 0;
+                        const manufacturingCostUnit = parseFloat(manufacturingCostPiece.value) || 0;
+                        const prevStockVal = parseFloat(previousStockValue.value) || 0;
+                        const prevStockQty = parseFloat(previousStock.value) || 0;
+
+                        // Sale value per piece = sale value total / quantity (if quantity > 0)
+                        if (qty > 0) {
+                            saleValuePiece.value = (saleAmount / qty).toFixed(2);
+                        } else {
+                            saleValuePiece.value = '0.00';
+                        }
+
+                        // Total manufacturing cost can be auto calculated or entered manually, 
+                        // but let's calculate automatically here = manufacturing cost per piece * quantity
+                        if (qty > 0) {
+                            const totalManCostCalc = manufacturingCostUnit * qty;
+                            totalManufacturingCost.value = totalManCostCalc.toFixed(2);
+                        } else {
+                            totalManufacturingCost.value = '0.00';
+                        }
+
+                        // Calculate total stock and total stock value
+                        const totalStockQty = prevStockQty + qty;
+                        const newStockValue = saleAmount; // sale value of the new stock
+
+                        const totalStockVal = prevStockVal + newStockValue;
+
+                        totalStock.value = totalStockQty.toFixed(2);
+                        totalStockValue.value = totalStockVal.toFixed(2);
+
+                        // Calculate new average per piece sale value
+                        let newAvg = 0;
+                        if (totalStockQty > 0) {
+                            newAvg = totalStockVal / totalStockQty;
+                        }
+
+                        avgNewSale.value = newAvg.toFixed(2);
+
+                        // Calculate current average per piece sale value
+                        let currentAvg = 0;
+                        if (qty > 0 && saleAmount > 0) {
+                            currentAvg = saleAmount / qty;
+                        }
+                        avgCurrentSale.value = currentAvg.toFixed(2);
+                    }
+
+                    // Event Listeners
+                    productSelect.addEventListener('change', () => {
+                        fillProductAutoFillValues();
+                    });
+
+                    quantityInput.addEventListener('input', () => {
+                        calculateAutoFields();
+                    });
+
+                    saleValueTotal.addEventListener('input', () => {
+                        calculateAutoFields();
+                    });
+
+                    totalManufacturingCost.addEventListener('input', () => {
+                        // If user manually updates total manufacturing cost, update manufacturing cost per piece accordingly
+                        const qty = parseFloat(quantityInput.value) || 0;
+                        const totalManCost = parseFloat(totalManufacturingCost.value) || 0;
+
+                        if (qty > 0) {
+                            manufacturingCostPiece.value = (totalManCost / qty).toFixed(2);
+                        } else {
+                            manufacturingCostPiece.value = '0.00';
+                        }
+                    });
+
+                    document.getElementById("stockForm").addEventListener("submit", function (e) {
+                        e.preventDefault();
+
+                        const formData = {
+                            productName: document.getElementById('productSelect').value,
+                            category: document.getElementById('Category').value,
+                            quantity: parseFloat(document.getElementById('quantityInput').value),
+                            saleValueTotal: parseFloat(document.getElementById('saleValueTotal').value),
+                            saleValuePiece: parseFloat(document.getElementById('saleValuePiece').value),
+                            totalManufacturingCost: parseFloat(document.getElementById('totalManufacturingCost').value),
+                            manufacturingCostPiece: parseFloat(document.getElementById('manufacturingCostPiece').value),
+                            previousStock: parseFloat(document.getElementById('previousStock').value),
+                            previousStockValue: parseFloat(document.getElementById('previousStockValue').value),
+                            totalStock: parseFloat(document.getElementById('totalStock').value),
+                            totalStockValue: parseFloat(document.getElementById('totalStockValue').value),
+                            avgPreviousSale: parseFloat(document.getElementById('avgPreviousSale').value),
+                            avgNewSale: parseFloat(document.getElementById('avgNewSale').value),
+                            createdForSelect: document.getElementById('created_for').value,
+                            status: document.getElementById('Status').value,
+                            whatAction: "add_stock"
+                        };
+
+                        if (!formData.productName) {
+                            alert("Please select Product Name");
+                            return;
+                        }
+                        if (!formData.createdForSelect) {
+                            alert("Please select Created For");
+                            return;
+                        }
+
+                        fetch("inventory.php", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(formData)
+                        })
+                            .then(res => res.text())
+                            .then(msg => {
+                                // alert(msg);
+                                // console.log(msg);
+                                location.reload();
+                            })
+                            .catch(err => alert("Error submitting stock entry."));
+                    });
+
+                    // Initialize form with defaults
+                    resetAutoFillFields();
+                </script>
             </div>
         </div>
     </div>
@@ -604,7 +1527,19 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         </div>
     </div>
 
-    <!-- Table -->
+    <?php
+    // Check if user has Delete permission
+    $hasDeletePermission = false;
+    $permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+    $permissionResult = $conn->query($permissionSql);
+    if ($permissionResult->num_rows > 0) {
+        $permissionRow = $permissionResult->fetch_assoc();
+        $permissions = json_decode($permissionRow['Permission'], true);
+        $hasDeletePermission = in_array('Delete', $permissions);
+    }
+    ?>
+
+    <!-- Table for current stock -->
     <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
         <div id="factory">
             <div class="container-fluid d-flex justify-content-between align-items-center">
@@ -622,14 +1557,27 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Record Date</th>
                         <th>Item Name</th>
                         <th>Category</th>
                         <th>Quantity</th>
-                        <th>Value</th>
+                        <th>Sale Value Total</th>
+                        <th>Sale Value Per Piece</th>
+                        <th>Total Manufacturing Cost</th>
+                        <th>Manufacturing Cost Per Piece</th>
+                        <th>Previous Stock</th>
+                        <th>Previous Stock Value</th>
+                        <th>Total Stock</th>
+                        <th>Total Stock Value</th>
+                        <th>Avg Previous Sale</th>
+                        <th>Avg New Sale</th>
                         <?php if ($selectedEmail === 'all'): ?>
                             <th>Factory</th>
                         <?php endif; ?>
                         <th>Status</th>
+                        <?php if ($hasDeletePermission): ?>
+                            <th>Action</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -641,11 +1589,21 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                         while ($row = $result->fetch_assoc()) {
                             $status = htmlspecialchars($row['status']);
                             echo "<tr>
-                                    <td>" . htmlspecialchars($row['stock_id']) . "</td>
-                                    <td>" . htmlspecialchars($row['item_name']) . "</td>
-                                    <td>" . htmlspecialchars($row['category']) . "</td>
-                                    <td>" . htmlspecialchars($row['quantity']) . "</td>
-                                    <td>₹" . number_format($row['value'], 2) . "</td>";
+                                <td>" . htmlspecialchars($row['stock_id']) . "</td>
+                                <td>" . htmlspecialchars($row['record_date']) . "</td>
+                                <td>" . htmlspecialchars($row['item_name']) . "</td>
+                                <td>" . htmlspecialchars($row['category']) . "</td>
+                                <td>" . htmlspecialchars($row['current_quantity']) . "</td>
+                                <td>₹" . number_format($row['sale_value_total'], 2) . "</td>
+                                <td>₹" . number_format($row['sale_value_piece'], 2) . "</td>
+                                <td>₹" . number_format($row['total_manufacturing_cost'], 2) . "</td>
+                                <td>₹" . number_format($row['manufacturing_cost_piece'], 2) . "</td>
+                                <td>" . htmlspecialchars($row['previous_stock']) . "</td>
+                                <td>₹" . number_format($row['previous_stock_value'], 2) . "</td>
+                                <td>" . htmlspecialchars($row['quantity']) . "</td>
+                                <td>₹" . number_format($row['value'], 2) . "</td>
+                                <td>₹" . number_format($row['avg_previous_sale'], 2) . "</td>
+                                <td>₹" . number_format($row['avg_new_sale'], 2) . "</td>";
                             if ($selectedEmail === 'all') {
                                 echo "<td>" . htmlspecialchars($row['created_for']) . "</td>";
                             }
@@ -657,10 +1615,26 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
                             } elseif ($status == 'Out of stock') {
                                 echo '<span class="badge rounded-pill" style="background-color: #dc3545; color: white; padding: 8px 16px;">Out of Stock</span>';
                             }
-                            echo "</td></tr>";
+                            echo "</td>";
+                            if ($hasDeletePermission) {
+                                echo "<td>
+                                    <form method='post' action='' onsubmit='return confirm(\"Are you sure you want to delete this stock item?\");'>
+                                        <input type='hidden' name='stock_id' value='" . htmlspecialchars($row['stock_id']) . "'>
+                                        <button type='submit' name='deleteStock' class='btn btn-danger btn-sm'>
+                                            <i class='fa-solid fa-trash'></i> Delete
+                                        </button>
+                                    </form>
+                                  </td>";
+                            }
+                            echo "</tr>";
                         }
                     } else {
-                        echo "<tr><td colspan='" . ($selectedEmail === 'all' ? '7' : '6') . "'>No stock data found</td></tr>";
+                        $colspan = ($hasDeletePermission && $selectedEmail === 'all')
+                            ? 18
+                            : (($hasDeletePermission || $selectedEmail === 'all')
+                                ? 17
+                                : 16);
+                        echo "<tr><td colspan='{$colspan}'>No stock data found</td></tr>";
                     }
                     ?>
                 </tbody>
@@ -668,10 +1642,160 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
         </div>
     </div>
 
+    <?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteStock']) && $hasDeletePermission) {
+        $stock_id = $conn->real_escape_string($_POST['stock_id']);
+
+        // Prepare and execute delete query
+        $deleteSql = "DELETE FROM factory_stock WHERE stock_id = ? AND created_for = ?";
+        $stmt = $conn->prepare($deleteSql);
+        $stmt->bind_param("ss", $stock_id, $user_name);
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Stock item deleted successfully!'); window.location.href=window.location.href;</script>";
+        } else {
+            echo "<script>alert('Error deleting stock: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+    ?>
+
+    <!-- Product Table -->
+
+    <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
+        <div id="factory">
+            <div class="container-fluid d-flex justify-content-between align-items-center">
+                <div class="justify-content-start">
+                    <h1>Product Table</h1>
+                </div>
+            </div>
+
+            <table id="Table" class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Raw Material</th>
+                        <th>Total Cost</th>
+                        <th>Transport Charge</th>
+                        <th>Other Charge</th>
+                        <th>Total Cost of Product</th>
+                        <th>MRP</th>
+                        <th>Sales Price</th>
+                        <th>Profit/Loss</th>
+                        <?php if ($selectedEmail === 'all'): ?>
+                            <th>Factory</th>
+                        <?php endif; ?>
+                        <?php if ($hasDeletePermission): ?>
+                            <th>Action</th>
+                        <?php endif; ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $sql = "SELECT * FROM factory_product WHERE 1=1 $factoryFilter ORDER BY id DESC";
+                    $result = $conn->query($sql);
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo "<tr>";
+                            echo "<td>" . htmlspecialchars($row['id']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['productName']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['category']) . "</td>";
+                            // Raw Materials (nested table)
+                            $rawMaterialsArr = json_decode($row['raw_materials'], true);
+                            echo "<td>";
+                            if (is_array($rawMaterialsArr) && count($rawMaterialsArr) > 0) {
+                                echo "<table class='table table-sm mb-0'>";
+                                echo "<tr><th>ID</th><th>Material</th><th>Qty</th><th>Cost</th><th>Total</th></tr>";
+                                foreach ($rawMaterialsArr as $rm) {
+                                    echo "<tr>
+                                    <td>" . htmlspecialchars($rm['id']) . "</td>
+                                    <td>" . htmlspecialchars($rm['material']) . "</td>
+                                    <td>" . htmlspecialchars($rm['quantity']) . "</td>
+                                    <td>₹" . htmlspecialchars($rm['cost']) . "</td>
+                                    <td>₹" . htmlspecialchars($rm['total']) . "</td>
+                                </tr>";
+                                }
+                                echo "</table>";
+                            } else {
+                                echo "-";
+                            }
+                            echo "</td>";
+
+                            echo "<td>₹" . number_format($row['raw_material_total_cost'], 2) . "</td>";
+                            echo "<td>₹" . number_format($row['transport_charge'], 2) . "</td>";
+                            echo "<td>₹" . number_format($row['other_cost'], 2) . "</td>";
+                            echo "<td>₹" . number_format($row['product_total_cost'], 2) . "</td>";
+                            echo "<td>₹" . number_format($row['mrp'], 2) . "</td>";
+                            echo "<td>₹" . number_format($row['selling_price'], 2) . "</td>";
+                            echo "<td>₹" . number_format($row['profitLoss'], 2) . "</td>";
+                            if ($selectedEmail === 'all') {
+                                echo "<td>" . htmlspecialchars($row['created_for']) . "</td>";
+                            }
+
+                            if ($hasDeletePermission) {
+                                echo "<td>
+                                <form method='post' action='' onsubmit='return confirm(\"Are you sure you want to delete this product?\");'>
+                                    <input type='hidden' name='product_id' value='" . htmlspecialchars($row['id']) . "'>
+                                    <button type='submit' name='deleteProduct' class='btn btn-danger btn-sm'>
+                                        <i class='fa-solid fa-trash'></i> Delete
+                                    </button>
+                                </form>
+                              </td>";
+                            }
+                            echo "</tr>";
+                        }
+                    } else {
+                        $colspan1 = ($hasDeletePermission && $selectedEmail === 'all')
+                            ? 13
+                            : (($hasDeletePermission || $selectedEmail === 'all')
+                                ? 12
+                                : 11);
+                        echo "<tr><td colspan='{$colspan1}'>No product data found</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteProduct']) && $hasDeletePermission) {
+        $product_id = $conn->real_escape_string($_POST['product_id']);
+
+        // Prepare and execute delete query
+        $deleteSql = "DELETE FROM factory_product WHERE id = ? AND createdFor = ?";
+        $stmt = $conn->prepare($deleteSql);
+        $stmt->bind_param("ss", $product_id, $user_name);
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Product deleted successfully!'); window.location.href=window.location.href;</script>";
+        } else {
+            echo "<script>alert('Error deleting product: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+    ?>
+
     <!-- Check low stock -->
     <?php
     $low_stock_items = [];
-    $query = $conn->prepare("SELECT item_name, quantity, status, created_for FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock') $factoryFilter");
+    // $query = $conn->prepare("SELECT item_name, quantity, status, created_for FROM factory_stock WHERE status IN ('Low Stock', 'Out of Stock') $factoryFilter");
+    $query = $conn->prepare("SELECT fs.item_name, fs.quantity, fs.status, fs.created_for
+        FROM factory_stock fs
+        JOIN (
+            SELECT item_name, MAX(CONCAT(record_date, LPAD(stock_id, 10, '0'))) AS latest_key
+            FROM factory_stock
+            WHERE status IN ('Low Stock', 'Out of Stock')
+            $factoryFilter
+            GROUP BY item_name
+        ) latest
+            ON CONCAT(fs.record_date, LPAD(fs.stock_id, 10, '0')) = latest.latest_key
+        WHERE fs.status IN ('Low Stock', 'Out of Stock')
+        $lowStockFilter");
     $query->execute();
     $result = $query->get_result();
     while ($row = $result->fetch_assoc()) {
@@ -688,80 +1812,86 @@ if (isset($_GET['export']) && $_GET['export'] === '1') {
 
     <!-- Low Stock and Supply Trends -->
     <div class="row g-4 mt-4">
-        <h5 class="fw-bold text-warning"><i class="bi bi-exclamation-circle"></i> Low Stock Alert</h5>
-        <div class="space-y-4">
-            <?php foreach ($low_stock_items as $item): ?>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="font-medium">
-                        <?php echo htmlspecialchars($item['item']); ?>
-                        <?php if ($selectedEmail === 'all'): ?>
-                            (<?php echo htmlspecialchars($item['factory']); ?>)
-                        <?php endif; ?>
-                    </span>
-                    <span class="<?php echo $item['level'] === 'Critical' ? 'text-danger' : 'text-warning'; ?> font-medium">
-                        <?php echo htmlspecialchars($item['level']); ?>
-                        (<?php echo htmlspecialchars($item['stock']); ?> left)
-                    </span>
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h5 class="fw-bold text-warning"><i class="bi bi-exclamation-circle"></i> Low Stock Alert</h5>
+                <div class="space-y-4">
+                    <?php foreach ($low_stock_items as $item): ?>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="font-medium">
+                                <?php echo htmlspecialchars($item['item']); ?>
+                                <?php if ($selectedEmail === 'all'): ?>
+                                    (<?php echo htmlspecialchars($item['factory']); ?>)
+                                <?php endif; ?>
+                            </span>
+                            <span
+                                class="<?php echo $item['level'] === 'Critical' ? 'text-danger' : 'text-warning'; ?> font-medium">
+                                <?php echo htmlspecialchars($item['level']); ?>
+                                (<?php echo htmlspecialchars($item['stock']); ?> left)
+                            </span>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    </div>
-
-    <!-- Check popular products -->
-    <?php
-    $popular_products = [];
-    $item_sales = [];
-    $startOfMonth = date('Y-m-01');
-    $endOfMonth = date('Y-m-t');
-    $query = $conn->prepare("SELECT item_name, quantity FROM invoice WHERE date BETWEEN ? AND ? $factoryFilter");
-    $query->bind_param("ss", $startOfMonth, $endOfMonth);
-    $query->execute();
-    $result = $query->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $items = explode(",", $row['item_name']);
-        $quantities = explode(",", $row['quantity']);
-        foreach ($items as $index => $item) {
-            $item = trim($item);
-            $qty = isset($quantities[$index]) ? (int) trim($quantities[$index]) : 0;
-            if (!isset($item_sales[$item])) {
-                $item_sales[$item] = 0;
-            }
-            $item_sales[$item] += $qty;
-        }
-    }
-    $query->close();
-    arsort($item_sales);
-    $top_items = array_slice($item_sales, 0, 5, true);
-    foreach ($top_items as $item => $qty) {
-        $percentage = min(100, round(($qty / 1000) * 100));
-        $popular_products[] = [
-            'item' => $item,
-            'quantity' => $qty,
-            'percentage' => $percentage
-        ];
-    }
-    ?>
-    <div class="col-md-6">
-        <div class="card p-3">
-            <h5 class="fw-bold text-primary"><i class="bi bi-graph-up"></i> Supply Trends</h5>
-            <p class="text-muted mb-4">Monthly procurement of top 5 raw materials</p>
-            <div class="space-y-3">
-                <?php foreach ($popular_products as $product): ?>
-                    <div>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-sm font-medium"><?php echo htmlspecialchars($product['item']); ?></span>
-                            <span class="text-sm text-muted"><?php echo htmlspecialchars($product['quantity']); ?></span>
-                        </div>
-                        <div class="progress bg-light h-2">
-                            <div class="progress-bar bg-primary"
-                                style="width: <?php echo htmlspecialchars($product['percentage']); ?>%"></div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
             </div>
         </div>
-    </div>
+
+
+        <!-- Check popular products -->
+        <?php
+        $popular_products = [];
+        $item_sales = [];
+        $startOfMonth = date('Y-m-01');
+        $endOfMonth = date('Y-m-t');
+        $query = $conn->prepare("SELECT item_name, quantity FROM invoice WHERE date BETWEEN ? AND ? $factoryFilter");
+        $query->bind_param("ss", $startOfMonth, $endOfMonth);
+        $query->execute();
+        $result = $query->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $items = explode(",", $row['item_name']);
+            $quantities = explode(",", $row['quantity']);
+            foreach ($items as $index => $item) {
+                $item = trim($item);
+                $qty = isset($quantities[$index]) ? (int) trim($quantities[$index]) : 0;
+                if (!isset($item_sales[$item])) {
+                    $item_sales[$item] = 0;
+                }
+                $item_sales[$item] += $qty;
+            }
+        }
+        $query->close();
+        arsort($item_sales);
+        $top_items = array_slice($item_sales, 0, 5, true);
+        foreach ($top_items as $item => $qty) {
+            $percentage = min(100, round(($qty / 1000) * 100));
+            $popular_products[] = [
+                'item' => $item,
+                'quantity' => $qty,
+                'percentage' => $percentage
+            ];
+        }
+        ?>
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h5 class="fw-bold text-primary"><i class="bi bi-graph-up"></i> Supply Trends</h5>
+                <p class="text-muted mb-4">Monthly procurement of top 5 raw materials</p>
+                <div class="space-y-3">
+                    <?php foreach ($popular_products as $product): ?>
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="text-sm font-medium"><?php echo htmlspecialchars($product['item']); ?></span>
+                                <span
+                                    class="text-sm text-muted"><?php echo htmlspecialchars($product['quantity']); ?></span>
+                            </div>
+                            <div class="progress bg-light h-2">
+                                <div class="progress-bar bg-primary"
+                                    style="width: <?php echo htmlspecialchars($product['percentage']); ?>%"></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>

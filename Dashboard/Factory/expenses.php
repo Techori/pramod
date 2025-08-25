@@ -152,53 +152,53 @@ if ($itemResult->num_rows > 0) {
                         <input type="date" class="form-control" id="date" name="date" required>
                     </div>
 
-                        <div class="container mt-5">
-                            <form>
-                                <!-- Payment Method Dropdown -->
+                    <div class="container mt-5">
+                        <form>
+                            <!-- Payment Method Dropdown -->
+                            <div class="mb-3">
+                                <label for="method" class="form-label">Method</label>
+                                <select class="form-select" id="method" name="method" required
+                                    onchange="togglePaymentFields()">
+                                    <option value="" disabled selected>Select Payment Method</option>
+                                    <option value="Digital payment">Digital payment</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Payment gateway">Payment gateway</option>
+                                </select>
+                            </div>
+
+                            <!-- Fields for Digital Payment -->
+                            <div id="digitalFields" style="display: none;">
                                 <div class="mb-3">
-                                    <label for="method" class="form-label">Method</label>
-                                    <select class="form-select" id="method" name="method" required
-                                        onchange="togglePaymentFields()">
-                                        <option value="" disabled selected>Select Payment Method</option>
-                                        <option value="Digital payment">Digital payment</option>
-                                        <option value="Cash">Cash</option>
-                                        <option value="Payment gateway">Payment gateway</option>
-                                    </select>
+                                    <label for="bankName" class="form-label">Bank Account Name</label>
+                                    <input type="text" class="form-control" id="bankName" name="bankName">
                                 </div>
-
-                                <!-- Fields for Digital Payment -->
-                                <div id="digitalFields" style="display: none;">
-                                    <div class="mb-3">
-                                        <label for="bankName" class="form-label">Bank Account Name</label>
-                                        <input type="text" class="form-control" id="bankName" name="bankName">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="accountNumber" class="form-label">Account Number</label>
-                                        <input type="text" class="form-control" id="accountNumber" name="accountNumber">
-                                    </div>
+                                <div class="mb-3">
+                                    <label for="accountNumber" class="form-label">Account Number</label>
+                                    <input type="text" class="form-control" id="accountNumber" name="accountNumber">
                                 </div>
+                            </div>
 
-                                <!-- Field for Cash -->
-                                <div id="cashFields" style="display: none;">
-                                    <div class="mb-3">
-                                        <label for="senderName" class="form-label">Sender Name</label>
-                                        <input type="text" class="form-control" id="senderName" name="senderName">
-                                    </div>
+                            <!-- Field for Cash -->
+                            <div id="cashFields" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="senderName" class="form-label">Sender Name</label>
+                                    <input type="text" class="form-control" id="senderName" name="senderName">
                                 </div>
-                            </form>
-                        </div>
+                            </div>
+                        </form>
+                    </div>
 
-                        <!-- ✅ JavaScript Code -->
-                        <script>
-                            function togglePaymentFields() {
-                                const method = document.getElementById("method").value;
-                                const digitalFields = document.getElementById("digitalFields");
-                                const cashFields = document.getElementById("cashFields");
+                    <!-- ✅ JavaScript Code -->
+                    <script>
+                        function togglePaymentFields() {
+                            const method = document.getElementById("method").value;
+                            const digitalFields = document.getElementById("digitalFields");
+                            const cashFields = document.getElementById("cashFields");
 
-                                digitalFields.style.display = (method === "Digital payment") ? "block" : "none";
-                                cashFields.style.display = (method === "Cash") ? "block" : "none";
-                            }
-                        </script>
+                            digitalFields.style.display = (method === "Digital payment") ? "block" : "none";
+                            cashFields.style.display = (method === "Cash") ? "block" : "none";
+                        }
+                    </script>
 
 
                     <div class="mb-3">
@@ -515,6 +515,18 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
     </div>
 </div>
 
+<?php
+// Check if user has Delete permission
+$hasDeletePermission = false;
+$permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+$permissionResult = $conn->query($permissionSql);
+if ($permissionResult->num_rows > 0) {
+    $permissionRow = $permissionResult->fetch_assoc();
+    $permissions = json_decode($permissionRow['Permission'], true);
+    $hasDeletePermission = in_array('Delete', $permissions);
+}
+?>
+
 <!-- Recent Expenses table -->
 <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
 
@@ -589,13 +601,23 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
                             <td><?php echo htmlspecialchars($expense['senderName'] ?? '-'); ?></td>
                             <td><?php echo htmlspecialchars($expense['Status']); ?></td>
                             <td>
-                                <button class="btn btn-outline-primary btn-sm edit-expense-btn" data-bs-toggle="modal"
-                                    data-bs-target="#editExpense"
-                                    data-expense-id="<?php echo htmlspecialchars($expense['id']); ?>"
-                                    data-amount="<?php echo htmlspecialchars($expense['amount']); ?>"
-                                    data-status="<?php echo htmlspecialchars($expense['Status']); ?>">
-                                    <i class="fa-solid fa-edit"></i> Edit
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-primary btn-sm edit-expense-btn" data-bs-toggle="modal"
+                                        data-bs-target="#editExpense"
+                                        data-expense-id="<?php echo htmlspecialchars($expense['id']); ?>"
+                                        data-amount="<?php echo htmlspecialchars($expense['amount']); ?>"
+                                        data-status="<?php echo htmlspecialchars($expense['Status']); ?>">
+                                        <i class="fa-solid fa-edit"></i> Edit
+                                    </button>
+                                    <?php if ($hasDeletePermission): ?>
+                                        <form method="post" action="" onsubmit="return confirm('Are you sure you want to delete this expense item?');">
+                                            <input type="hidden" name="expense_id" value="<?php echo htmlspecialchars($expense['id']); ?>">
+                                            <button type="submit" name="deleteExpense" class="btn btn-danger btn-sm">
+                                                <i class="fa-solid fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endwhile; ?>
@@ -634,6 +656,25 @@ $ytd_expenses_class = $ytd_expenses_percent >= 0 ? 'text-success' : 'text-danger
 
     </div>
 </div>
+
+<?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteExpense']) && $hasDeletePermission) {
+        $expense_id = $conn->real_escape_string($_POST['expense_id']);
+
+        // Prepare and execute delete query
+        $deleteSql = "DELETE FROM factory_expenses WHERE id = ? AND created_for = ?";
+        $stmt = $conn->prepare($deleteSql);
+        $stmt->bind_param("ss", $expense_id, $user_name);
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Expense item deleted successfully!'); window.location.href=window.location.href;</script>";
+        } else {
+            echo "<script>alert('Error deleting expense: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+    ?>
 
 <!-- Edit Expense Form -->
 <div class="modal fade" id="editExpense" tabindex="-1" aria-labelledby="editExpenseLabel" aria-hidden="true">

@@ -422,7 +422,7 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                 data-bs-target="#requestStock">
                 <i class="fas fa-truck me-1"></i> Request Stock
             </button>
-            <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()" >
+            <button type="submit" class="btn btn-outline-primary btn-sm" onclick="exportTableToCSV()">
                 <i class="fas fa-download me-1"></i> Export
             </button>
         </div>
@@ -488,6 +488,18 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
         </div>
     </div>
 
+    <?php
+    // Check if user has Delete permission
+    $hasDeletePermission = false;
+    $permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+    $permissionResult = $conn->query($permissionSql);
+    if ($permissionResult->num_rows > 0) {
+        $permissionRow = $permissionResult->fetch_assoc();
+        $permissions = json_decode($permissionRow['Permission'], true);
+        $hasDeletePermission = in_array('Delete', $permissions);
+    }
+    ?>
+
     <!-- Inventory Tables -->
     <?php if ($tab === 'all'): ?>
         <div class="card card-border shadow-sm mb-4">
@@ -526,23 +538,26 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                                     echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                                     echo '<td>
                                             <div>
-                                                <button class="btn btn-outline-primary btn-sm" 
+                                    <button class="btn btn-outline-primary btn-sm" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#editPriceModal" 
                                                         data-id="' . $row['Id'] . '" 
                                                         data-name="' . htmlspecialchars($row['item_name']) . '" 
                                                         data-price="' . $row['price'] . '">
                                                     <i class="fa-regular fa-pen-to-square"></i>
-                                                </button>
+                                                </button>';
 
-                                                <form method="POST" action="store_dashboard.php?page=inventory" style="display:inline;">
+                                    if ($hasDeletePermission) {
+                                        echo '<form method="POST" action="store_dashboard.php?page=inventory" style="display:inline;">
                                                     <input type="hidden" name="whatAction" value="deleteItem">
                                                     <input type="hidden" name="itemId" value="' . $row['Id'] . '">
                                                     <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm(\'Are you sure you want to delete this item?\')">
                                                         <i class="fa-solid fa-trash-can"></i>
                                                     </button>
-                                                </form>
-                                            </div>
+                                                </form>';
+                                    }
+
+                                    echo '</div>
                                         </td>';
                                     echo "</tr>";
                                 }
@@ -645,7 +660,7 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                         </tbody>
                     </table>
                     <script>
-                     // Search Functionality
+                        // Search Functionality
                         document.getElementById('searchInput').addEventListener('input', function () {
                             const searchText = this.value.toLowerCase();
                             const rows = document.querySelectorAll('#inventoryTable tbody tr');
@@ -735,8 +750,8 @@ $filtered_items = array_filter($inventory_items, function ($item) use ($search_q
                             ?>
                         </tbody>
                     </table>
-                     <script>
-                     // Search Functionality
+                    <script>
+                        // Search Functionality
                         document.getElementById('searchInput').addEventListener('input', function () {
                             const searchText = this.value.toLowerCase();
                             const rows = document.querySelectorAll('#outofStock tbody tr');

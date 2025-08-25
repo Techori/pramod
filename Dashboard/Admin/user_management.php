@@ -350,6 +350,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     // Query to fetch user data
     $query = "SELECT User_ID, User_Name, Email, Role, Status, Last_Login, Permission FROM user_management";
     $result = $conn->query($query);
+    
+    $query1 = "SELECT user_type FROM users";
+    $userType = $conn->query($query1);
     ?>
 
     <div class="card">
@@ -469,6 +472,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" id="settings" name="permissions[]" value="Settings">
                 <label class="form-check-label" for="settings">Settings</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="delete" name="permissions[]" value="Delete">
+                <label class="form-check-label" for="delete">Delete</label>
               </div>
             </form>
           </div>
@@ -617,7 +624,7 @@ function exportTableToCSV(filename = 'table-data.csv') {
 
 
   document.getElementById('savePermissionBtn').addEventListener('click', function () {
-    const permissions = ['maindashbord', 'billingdesk', 'accounting', 'investory', 'expenses', 'factorystock', 'retailstore', 'aftersellservice', 'suppliers', 'reports', 'settings'];
+    const permissions = ['maindashbord', 'billingdesk', 'accounting', 'investory', 'expenses', 'factorystock', 'retailstore', 'aftersellservice', 'suppliers', 'reports', 'settings', 'delete'];
     const selected = {};
     permissions.forEach(id => {
       selected[id] = document.getElementById(id).checked;

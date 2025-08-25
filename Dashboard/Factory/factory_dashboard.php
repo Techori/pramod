@@ -58,7 +58,17 @@ $user_name = $_SESSION['user_name'];
             $pending = $conn->query("SELECT COUNT(*) as count FROM retail_store_stock_request WHERE status='Ordered'")->fetch_assoc()['count'];
 
             // Get total stock value (current month)
-            $totalValueSql = "SELECT SUM(value) AS total_value FROM factory_stock";
+            $totalValueSql = "
+                SELECT SUM(fs.value) AS total_value
+                FROM factory_stock fs
+                INNER JOIN (
+                    SELECT item_name, MAX(stock_id) AS max_stock_id
+                    FROM factory_stock
+                    WHERE created_for = '$user_name'
+                    GROUP BY item_name
+                ) latest ON fs.item_name = latest.item_name AND fs.stock_id = latest.max_stock_id
+                WHERE fs.created_for = '$user_name'
+            ";
             $totalValueResult = $conn->query($totalValueSql);
             $totalValue = 0;
             if ($totalValueResult->num_rows > 0) {
@@ -170,6 +180,29 @@ $user_name = $_SESSION['user_name'];
                     Raw Materials
                 </button>
 
+                <?php
+                // Get names for Add expense form dropdown
+                $itemSql = "SELECT DISTINCT addedBy FROM factory_expenses ORDER BY addedBy";
+                $itemResult = $conn->query($itemSql);
+                $items = [];
+                if ($itemResult->num_rows > 0) {
+                    while ($row = $itemResult->fetch_assoc()) {
+                        $items[] = $row['addedBy'];
+                    }
+                }
+                ?>
+                <?php
+                // Get names for Add expense form dropdown
+                $unitSql = "SELECT DISTINCT unit FROM factory_raw_material ORDER BY unit";
+                $unitResult = $conn->query($unitSql);
+                $units = [];
+                if ($unitResult->num_rows > 0) {
+                    while ($row = $unitResult->fetch_assoc()) {
+                        $units[] = $row['unit'];
+                    }
+                }
+                ?>
+
                 <!-- Modal Structure -->
                 <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel"
                     aria-hidden="true">
@@ -194,40 +227,210 @@ $user_name = $_SESSION['user_name'];
                                         <input type="text" class="form-control" id="category" name="category" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="materialName" class="form-label">Quantity</label>
-                                        <input type="text" class="form-control" id="materialquantity"
-                                            name="materialquantity" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="unit" class="form-label">Per Unit</label>
-                                        <input type="text" class="form-control" id="unit" name="unit" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="Status" class="form-label">Status</label>
-                                        <select class="form-select" id="Status" name="Status" required>
-                                            <option value="In stock">In stock</option>
-                                            <option value="Low stock">Low stock</option>
-                                            <option value="Out Of stock">Out Of stock</option>
+                                        <label for="createdBy" class="form-label">Created by</label>
+                                        <select class="form-control" id="createdBy" name="createdBy"
+                                            onchange="toggleItemInput()">
+                                            <option value="">Select Name</option>
+                                            <?php foreach ($items as $item): ?>
+                                                <option value="<?php echo htmlspecialchars($item); ?>">
+                                                    <?php echo htmlspecialchars($item); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                            <option value="Other">Other</option>
                                         </select>
+                                        <input type="text" class="form-control mt-2" id="customCreatedBy"
+                                            name="customCreatedBy" style="display:none;" placeholder="Enter new name">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="materialName" class="form-label">Primary Supplier</label>
-                                        <input type="text" class="form-control" id="materialprimarysupplier"
-                                            name="materialprimarysupplier" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="materialName" class="form-label">Reorder Point</label>
-                                        <input type="text" class="form-control" id="materialReorder" name="materialReorder"
+                                        <label for="description" class="form-label">Description</label>
+                                        <input type="text" class="form-control" id="description" name="description"
                                             required>
                                     </div>
+                                    <!-- <div class="mb-3">
+                            <label for="unit" class="form-label">Per Unit</label>
+                            <input type="text" class="form-control" id="unit" name="unit" required>
+                        </div>  -->
+                                    <div class="mb-3">
+                                        <label for="unit" class="form-label">Per Unit</label>
+                                        <select class="form-control" id="unit" name="unit" onchange="toggleUnitInput()">
+                                            <option value="">Select Unit</option>
+                                            <?php foreach ($units as $unit): ?>
+                                                <option value="<?php echo htmlspecialchars($unit); ?>">
+                                                    <?php echo htmlspecialchars($unit); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                        <input type="text" class="form-control mt-2" id="customUnit" name="customUnit"
+                                            style="display:none;" placeholder="Enter new unit">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="materialquantity" class="form-label">Quantity</label>
+                                        <input type="number" step="0.01" class="form-control" id="materialquantity"
+                                            name="materialquantity">
+                                    </div>
 
-                                    <button type="submit" class="btn btn-primary" name="whatAction" value="addItem">Add
-                                        Material</button>
+                                    <div class="mb-3">
+                                        <label for="cost" class="form-label">Cost per Unit</label>
+                                        <input type="number" step="0.01" class="form-control" id="cost" name="cost">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="amount" class="form-label">Amount</label>
+                                        <input type="number" class="form-control" id="amount" name="amount" readonly>
+                                    </div>
+                                    <script>
+                                        const quantityInput = document.getElementById('materialquantity');
+                                        const costInput = document.getElementById('cost');
+                                        const amountInput = document.getElementById('amount');
+
+                                        function updateAmount() {
+                                            const quantity = parseFloat(quantityInput.value) || 0;
+                                            const cost = parseFloat(costInput.value) || 0;
+                                            const amount = quantity * cost;
+                                            amountInput.value = amount.toFixed(2);
+                                        }
+
+                                        quantityInput.addEventListener('input', updateAmount);
+                                        costInput.addEventListener('input', updateAmount);
+                                    </script>
+                                    <div class="mb-3">
+                                        <label for="number" class="form-label">Mobile Number</label>
+                                        <input type="number" class="form-control" id="number" name="number">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="date" class="form-label">Date</label>
+                                        <input type="date" class="form-control" id="date" name="date" required>
+                                    </div>
+
+                                    <div class="container mt-5">
+                                        <!-- <form method="POST" action="your_php_file.php"> replace with actual PHP handler -->
+                                        <!-- Payment Method Dropdown -->
+                                        <div class="mb-3">
+                                            <label for="method" class="form-label">Method</label>
+                                            <select class="form-select" id="method" name="method" required
+                                                onchange="togglePaymentFields()">
+                                                <option value="" disabled selected>Select Payment Method</option>
+                                                <option value="Digital payment">Digital payment</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Payment gateway">Payment gateway</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Fields for Digital Payment -->
+                                        <div id="digitalFields" style="display: none;">
+                                            <div class="mb-3">
+                                                <label for="bankName" class="form-label">Bank Account Name</label>
+                                                <input type="text" class="form-control" id="bankName" name="bankName">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="accountNumber" class="form-label">Account Number</label>
+                                                <input type="text" class="form-control" id="accountNumber"
+                                                    name="accountNumber">
+                                            </div>
+                                        </div>
+
+                                        <!-- Field for Cash -->
+                                        <div id="cashFields" style="display: none;">
+                                            <div class="mb-3">
+                                                <label for="senderName" class="form-label">Sender Name</label>
+                                                <input type="text" class="form-control" id="senderName" name="senderName">
+                                            </div>
+                                        </div>
+                                        <!-- ✅ JavaScript for conditional fields -->
+                                        <script>
+                                            function togglePaymentFields() {
+                                                const method = document.getElementById("method").value;
+                                                const digitalFields = document.getElementById("digitalFields");
+                                                const cashFields = document.getElementById("cashFields");
+
+                                                digitalFields.style.display = (method === "Digital payment") ? "block" : "none";
+                                                cashFields.style.display = (method === "Cash") ? "block" : "none";
+                                            }
+                                        </script>
+                                        <!-- Material Fields -->
+                                        <div class="mb-3">
+                                            <label for="Status" class="form-label">Stock Status</label>
+                                            <select class="form-select" id="Status" name="Status" required>
+                                                <option value="In stock">In stock</option>
+                                                <option value="Low stock">Low stock</option>
+                                                <option value="Out Of stock">Out Of stock</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="status" class="form-label">Expense Status</label>
+                                            <select class="form-select" id="status" name="status" required>
+                                                <option value="" disabled selected>Select Status</option>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Approved">Approved</option>
+                                                <option value="Rejected">Rejected</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="materialprimarysupplier" class="form-label">Primary Supplier</label>
+                                            <input type="text" class="form-control" id="materialprimarysupplier"
+                                                name="materialprimarysupplier" required>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="materialReorder" class="form-label">Reorder Point</label>
+                                            <input type="text" class="form-control" id="materialReorder"
+                                                name="materialReorder" required>
+                                        </div>
+
+                                        <!-- Submit Button -->
+                                        <button type="submit" class="btn btn-primary" name="whatAction" value="addItem">Add
+                                            Material</button>
+
+
+
+                                    </div>
                                 </form>
                             </div>
                         </div>
                     </div>
+
                 </div>
+
+                <script>
+                    function toggleItemInput() {
+                        const select = document.getElementById('createdBy');
+                        const customInput = document.getElementById('customCreatedBy');
+
+                        if (select && customInput) {
+                            if (select.value === 'Other') {
+                                customInput.style.display = 'block';
+                                customInput.required = true;
+                            } else {
+                                customInput.style.display = 'none';
+                                customInput.required = false;
+                            }
+                        }
+                    }
+
+                    // Run this once on page load in case "Other" is already selected
+                    window.addEventListener('DOMContentLoaded', toggleItemInput);
+
+                    function toggleUnitInput() {
+                        const unit = document.getElementById('unit');
+                        const customUnit = document.getElementById('customUnit');
+
+                        if (unit && customUnit) {
+                            if (unit.value === 'Other') {
+                                customUnit.style.display = 'block';
+                                customUnit.required = true;
+                            } else {
+                                customUnit.style.display = 'none';
+                                customUnit.required = false;
+                            }
+                        }
+                    }
+
+                    // Run this once on page load in case "Other" is already selected
+                    window.addEventListener('DOMContentLoaded', toggleUnitInput);
+                </script>
 
                 <!-- Add Worker Button -->
                 <button class="btn btn-outline-primary col-lg-3 col-sm-6" type="button" data-bs-toggle="modal"
@@ -285,6 +488,18 @@ $user_name = $_SESSION['user_name'];
                 </a>
             </div>
 
+            <?php
+            // Check if user has Delete permission
+            $hasDeletePermission = false;
+            $permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+            $permissionResult = $conn->query($permissionSql);
+            if ($permissionResult->num_rows > 0) {
+                $permissionRow = $permissionResult->fetch_assoc();
+                $permissions = json_decode($permissionRow['Permission'], true);
+                $hasDeletePermission = in_array('Delete', $permissions);
+            }
+            ?>
+
             <div class="card shadow-sm p-4 mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div>
@@ -325,14 +540,30 @@ $user_name = $_SESSION['user_name'];
                                     echo "<td>" . date('d-M-Y', strtotime($row['end_date'])) . "</td>";
                                     echo "<td>" . $status . "</td>";
                                     echo "<td>";
-                                    if ($status !== 'Completed') {
-                                        echo '<button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
-                                <i class="fa-regular fa-pen-to-square"></i>
-                            </button>';
+                                    if ($status !== 'Completed' && $hasDeletePermission) {
+                                        echo ' <div class="d-flex gap-2"> 
+                                                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
+                                                        <i class="fa-regular fa-pen-to-square"></i>
+                                                    </button>
+                                                    <form method="post" action="" onsubmit="return confirm(&quot;Are you sure you want to delete this production item?&quot;);">
+                                                        <input type="hidden" name="production_id" value=' . $id . '>
+                                                        <button type="submit" name="deleteProduction" class="btn btn-danger btn-sm">
+                                                            <i class="fa-solid fa-trash"></i> Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                    ';
+                                    } else if ($hasDeletePermission) {
+                                        echo '<form method="post" action="" onsubmit="return confirm(&quot;Are you sure you want to delete this production item?&quot;);">
+                                        <input type="hidden" name="production_id" value=' . $id . '>
+                                        <button type="submit" name="deleteProduction" class="btn btn-danger btn-sm">
+                                            <i class="fa-solid fa-trash"></i> Delete
+                                        </button>
+                                    </form>';
                                     } else {
                                         echo '<button class="btn btn-outline-secondary btn-sm" disabled>
-                                <i class="fa-regular fa-pen-to-square"></i>
-                            </button>';
+                                                    <i class="fa-regular fa-pen-to-square"></i>
+                                                </button>';
                                     }
                                     echo "</td>";
 
@@ -387,6 +618,25 @@ $user_name = $_SESSION['user_name'];
                 </div>
             </div>
 
+            <?php
+            if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteProduction']) && $hasDeletePermission) {
+                $production_id = $conn->real_escape_string($_POST['production_id']);
+
+                // Prepare and execute delete query
+                $deleteSql = "DELETE FROM factory_production WHERE id = ? AND created_for = ?";
+                $stmt = $conn->prepare($deleteSql);
+                $stmt->bind_param("ss", $production_id, $user_name);
+
+                if ($stmt->execute()) {
+                    echo "<script>alert('Production item deleted successfully!'); window.location.href=window.location.href;</script>";
+                } else {
+                    echo "<script>alert('Error deleting production: " . $conn->error . "');</script>";
+                }
+
+                $stmt->close();
+            }
+            ?>
+
             <div class="card p-3 my-4 shadow-sm">
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -417,13 +667,16 @@ $user_name = $_SESSION['user_name'];
                                 <th>Reorder Point</th>
                                 <th>Status</th>
                                 <th>Primary Supplier</th>
+                                <?php if ($hasDeletePermission): ?>
+                                    <th>Action</th>
+                                <?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
 
                             // Fetch transactions from the database
-                            $result = $conn->query("SELECT * FROM factory_raw_material ORDER BY id DESC");
+                            $result = $conn->query("SELECT * FROM factory_raw_material WHERE created_for = '$user_name' ORDER BY id DESC");
 
                             if ($result->num_rows > 0) {
                                 while ($row = $result->fetch_assoc()) {
@@ -435,9 +688,20 @@ $user_name = $_SESSION['user_name'];
                                     echo "<td>" . htmlspecialchars($row['reorder_point']) . " " . htmlspecialchars($row['unit']) . "</td>";
                                     echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
                                     echo "<td>" . htmlspecialchars($row['primary_supplier']) . "</td>";
+                                    if ($hasDeletePermission) {
+                                        echo "<td>
+                                    <form method='post' action='' onsubmit='return confirm(\"Are you sure you want to delete this raw material item?\");'>
+                                        <input type='hidden' name='raw_id' value='" . htmlspecialchars($row['id']) . "'>
+                                        <button type='submit' name='deleteRawMaterial' class='btn btn-danger btn-sm'>
+                                            <i class='fa-solid fa-trash'></i> Delete
+                                        </button>
+                                    </form>
+                                  </td>";
+                                    }
+                                    echo "</tr>";
                                 }
                             } else {
-                                echo "<tr><td colspan='7' class='text-center'>No material found</td></tr>";
+                                echo "<tr><td colspan='" . ($hasDeletePermission ? 8 : 7) . "' class='text-center'>No material found</td></tr>";
                             }
                             ?>
                         </tbody>
@@ -445,105 +709,242 @@ $user_name = $_SESSION['user_name'];
                 </div>
             </div>
 
+            <?php
+            if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteRawMaterial']) && $hasDeletePermission) {
+                $raw_id = $conn->real_escape_string($_POST['raw_id']);
+
+                // Prepare and execute delete query
+                $deleteSql = "DELETE FROM factory_raw_material WHERE id = ? AND created_for = ?";
+                $stmt = $conn->prepare($deleteSql);
+                $stmt->bind_param("ss", $raw_id, $user_name);
+
+                if ($stmt->execute()) {
+                    echo "<script>alert('Raw material item deleted successfully!'); window.location.href=window.location.href;</script>";
+                } else {
+                    echo "<script>alert('Error deleting raw material: " . $conn->error . "');</script>";
+                }
+
+                $stmt->close();
+            }
+            ?>
+
             <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
-        <div id="factory">
-            <div class="container-fluid d-flex justify-content-between align-items-center">
-                <div class="justify-content-start">
-                    <h1>Current Stock</h1>
-                </div>
-                <div class="justify-content-end">
-                    <a href="factory_dashboard.php?page=dashboard&view=<?php echo isset($_GET['view']) && $_GET['view'] === 'all' ? 'none' : 'all'; ?>"
-                        class="btn btn-outline-primary">
-                        <?php echo isset($_GET['view']) && $_GET['view'] === 'all' ? 'Show Less' : 'View All'; ?>
-                    </a>
+                <div id="factory">
+                    <div class="container-fluid d-flex justify-content-between align-items-center">
+                        <div class="justify-content-start">
+                            <h1>Current Stock</h1>
+                        </div>
+                        <div class="justify-content-end">
+                            <a href="factory_dashboard.php?page=dashboard&view=<?php echo isset($_GET['view']) && $_GET['view'] === 'all' ? 'none' : 'all'; ?>"
+                                class="btn btn-outline-primary">
+                                <?php echo isset($_GET['view']) && $_GET['view'] === 'all' ? 'Show Less' : 'View All'; ?>
+                            </a>
+                        </div>
+                    </div>
+
+                    <table id="Table" class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Record Date</th>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Sale Value Total</th>
+                                <th>Sale Value Per Piece</th>
+                                <th>Total Manufacturing Cost</th>
+                                <th>Manufacturing Cost Per Piece</th>
+                                <th>Previous Stock</th>
+                                <th>Previous Stock Value</th>
+                                <th>Total Stock</th>
+                                <th>Total Stock Value</th>
+                                <th>Avg Previous Sale</th>
+                                <th>Avg New Sale</th>
+                                <th>Status</th>
+                                <?php if ($hasDeletePermission): ?>
+                                    <th>Action</th>
+                                <?php endif; ?>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            // Adjust SQL query to limit to 5 or show all
+                            $limit = (isset($_GET['view']) && $_GET['view'] === 'all') ? '' : 'LIMIT 5';
+                            $sql = "SELECT * FROM factory_stock WHERE created_for = '$user_name' ORDER BY stock_id DESC $limit";
+                            $result = $conn->query($sql);
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    $status = htmlspecialchars($row['status']);
+                                    echo "<tr>
+                                <td>" . htmlspecialchars($row['stock_id']) . "</td>
+                                <td>" . htmlspecialchars($row['record_date']) . "</td>
+                                <td>" . htmlspecialchars($row['item_name']) . "</td>
+                                <td>" . htmlspecialchars($row['category']) . "</td>
+                                <td>" . htmlspecialchars($row['current_quantity']) . "</td>
+                                <td>₹" . number_format($row['sale_value_total'], 2) . "</td>
+                                <td>₹" . number_format($row['sale_value_piece'], 2) . "</td>
+                                <td>₹" . number_format($row['total_manufacturing_cost'], 2) . "</td>
+                                <td>₹" . number_format($row['manufacturing_cost_piece'], 2) . "</td>
+                                <td>" . htmlspecialchars($row['previous_stock']) . "</td>
+                                <td>₹" . number_format($row['previous_stock_value'], 2) . "</td>
+                                <td>" . htmlspecialchars($row['quantity']) . "</td>
+                                <td>₹" . number_format($row['value'], 2) . "</td>
+                                <td>₹" . number_format($row['avg_previous_sale'], 2) . "</td>
+                                <td>₹" . number_format($row['avg_new_sale'], 2) . "</td>
+                                <td>";
+                                    if ($status == 'In stock') {
+                                        echo '<span class="badge rounded-pill" style="background-color: #198754; color: white; padding: 8px 16px;">In Stock</span>';
+                                    } elseif ($status == 'Low stock') {
+                                        echo '<span class="badge rounded-pill" style="background-color: #ffc107; color: white; padding: 8px 16px;">Low Stock</span>';
+                                    } elseif ($status == 'Out of stock') {
+                                        echo '<span class="badge rounded-pill" style="background-color: #dc3545; color: white; padding: 8px 16px;">Out of Stock</span>';
+                                    }
+                                    echo "</td>";
+                                    if ($hasDeletePermission) {
+                                        echo "<td>
+                                    <form method='post' action='' onsubmit='return confirm(\"Are you sure you want to delete this stock item?\");'>
+                                        <input type='hidden' name='stock_id' value='" . htmlspecialchars($row['stock_id']) . "'>
+                                        <input type='hidden' name='item_name' value='" . htmlspecialchars($row['item_name']) . "'>
+                                        <input type='hidden' name='quantity' value='" . htmlspecialchars($row['quantity']) . "'>
+                                        <button type='submit' name='deleteStock' class='btn btn-danger btn-sm'>
+                                            <i class='fa-solid fa-trash'></i> Delete
+                                        </button>
+                                    </form>
+                                  </td>";
+                                    }
+                                    echo "</tr>";
+                                }
+                            } else {
+                                echo "<tr><td colspan='" . ($hasDeletePermission ? 17 : 16) . "'>No stock data found</td></tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <table id="Table" class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Item Name</th>
-                        <th>Category</th>
-                        <th>Quantity</th>
-                        <th>Value</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                    // Adjust SQL query to limit to 5 or show all
-                    $limit = (isset($_GET['view']) && $_GET['view'] === 'all') ? '' : 'LIMIT 5';
-                    $sql = "SELECT * FROM factory_stock ORDER BY stock_id DESC $limit";
-                    $result = $conn->query($sql);
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            $status = htmlspecialchars($row['status']);
-                            echo "<tr>
-                                    <td>" . htmlspecialchars($row['stock_id']) . "</td>
-                                    <td>" . htmlspecialchars($row['item_name']) . "</td>
-                                    <td>" . htmlspecialchars($row['category']) . "</td>
-                                    <td>" . htmlspecialchars($row['quantity']) . "</td>
-                                    <td>₹" . number_format($row['value'], 2) . "</td>
-                                    <td>";
-                            if ($status == 'In Stock') {
-                                echo '<span class="badge rounded-pill" style="background-color: #198754; color: white; padding: 8px 16px;">In Stock</span>';
-                            } elseif ($status == 'Low Stock') {
-                                echo '<span class="badge rounded-pill" style="background-color: #ffc107; color: white; padding: 8px 16px;">Low Stock</span>';
-                            } elseif ($status == 'Out of Stock') {
-                                echo '<span class="badge rounded-pill" style="background-color: #dc3545; color: white; padding: 8px 16px;">Out of Stock</span>';
+            <?php
+            if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteStock']) && $hasDeletePermission) {
+                $stock_id = $conn->real_escape_string($_POST['stock_id']);
+                $productName = $conn->real_escape_string($_POST['item_name']);
+                $quantity = floatval($_POST['quantity']);
+
+                // Prepare and execute delete query
+                $deleteSql = "DELETE FROM factory_stock WHERE stock_id = ? AND created_for = ?";
+                $stmt = $conn->prepare($deleteSql);
+                $stmt->bind_param("ss", $stock_id, $user_name);
+
+                if ($stmt->execute()) {
+                    // 1. Get product's raw materials from factory_product table
+                    $productSql = "SELECT raw_materials FROM factory_product WHERE productName = ? AND created_for = ?";
+                    $productStmt = $conn->prepare($productSql);
+                    $productStmt->bind_param("ss", $productName, $user_name);
+                    $productStmt->execute();
+                    $productResult = $productStmt->get_result();
+
+                    if ($productResult && $productRow = $productResult->fetch_assoc()) {
+                        $rawMaterialsArr = json_decode($productRow['raw_materials'], true);
+
+                        // 2. Subtract quantity for each raw material
+                        if (is_array($rawMaterialsArr)) {
+                            foreach ($rawMaterialsArr as $rm) {
+                                $rawMaterialId = $rm['id'];
+                                $usedQtyPerProduct = floatval($rm['quantity']);
+                                $totalUsedQty = intval($usedQtyPerProduct * $quantity);
+
+                                // Update factory_raw_material table: subtract usedQty from quantity
+                                $updateSql = "UPDATE factory_raw_material SET quantity = quantity + ? WHERE id = ? AND created_for = ?";
+                                $updateStmt = $conn->prepare($updateSql);
+                                $updateStmt->bind_param("iss", $totalUsedQty, $rawMaterialId, $user_name);
+                                $updateStmt->execute();
+                                $updateStmt->close();
                             }
-                            echo "</td></tr>";
                         }
-                    } else {
-                        echo "<tr><td colspan='6'>No stock data found</td></tr>";
                     }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+                    $productStmt->close();
 
-
-    <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
-    <div id="workers">
-        <h1>Workers Directory</h1>
-        <p>Complete list of factory workers with status and details</p>
-        <table class="table table-bordered table-hover" id="supplyTable">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Worker Name</th>
-                    <th>Department</th>
-                    <th>Role</th>
-                    <th>Shift</th>
-                    <!-- <th>Status</th>
-                    <th>Attendance</th> -->
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-
-                // Fetch transactions from the database
-                $result = $conn->query("SELECT * FROM factory_workers ORDER BY id DESC");
-
-                if ($result->num_rows > 0) {
-                    while ($row = $result->fetch_assoc()) {
-                        echo "<tr>";
-                        echo "<td>" . htmlspecialchars($row['id']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['name']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['department']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['role']) . "</td>";
-                        echo "<td>" . htmlspecialchars($row['shift']) . "</td>";
-                    }
+                    echo "<script>alert('Stock item deleted successfully!'); window.location.href=window.location.href;</script>";
                 } else {
-                    echo "<tr><td colspan='5' class='text-center'>No transactions found</td></tr>";
+                    echo "<script>alert('Error deleting stock: " . $conn->error . "');</script>";
                 }
-                ?>
-            </tbody>
-        </table>
-    </div>
-</div>
+
+                $stmt->close();
+            }
+            ?>
+
+
+            <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
+                <div id="workers">
+                    <h1>Workers Directory</h1>
+                    <p>Complete list of factory workers with status and details</p>
+                    <table class="table table-bordered table-hover" id="supplyTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Worker Name</th>
+                                <th>Department</th>
+                                <th>Role</th>
+                                <th>Shift</th>
+                                <!-- <th>Status</th>
+                                <th>Attendance</th> -->
+                                <?php if ($hasDeletePermission): ?>
+                                    <th>Action</th>
+                                <?php endif; ?>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+
+                            // Fetch transactions from the database
+                            $result = $conn->query("SELECT * FROM factory_workers WHERE created_for = '$user_name' ORDER BY id DESC");
+
+                            if ($result->num_rows > 0) {
+                                while ($row = $result->fetch_assoc()) {
+                                    echo "<tr>";
+                                    echo "<td>" . htmlspecialchars($row['id']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['name']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['department']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['role']) . "</td>";
+                                    echo "<td>" . htmlspecialchars($row['shift']) . "</td>";
+                                    if ($hasDeletePermission) {
+                                        echo "<td>
+                                    <form method='post' action='' onsubmit='return confirm(\"Are you sure you want to delete this worker?\");'>
+                                        <input type='hidden' name='worker_id' value='" . htmlspecialchars($row['id']) . "'>
+                                        <button type='submit' name='deleteWorker' class='btn btn-danger btn-sm'>
+                                            <i class='fa-solid fa-trash'></i> Delete
+                                        </button>
+                                    </form>
+                                  </td>";
+                                    }
+                                    echo "</tr>";
+                                }
+                            } else {
+                                echo "<tr><td colspan='" . ($hasDeletePermission ? 6 : 5) . "' class='text-center'>No transactions found</td></tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <?php
+            if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteWorker']) && $hasDeletePermission) {
+                $worker_id = $conn->real_escape_string($_POST['worker_id']);
+
+                // Prepare and execute delete query
+                $deleteSql = "DELETE FROM factory_workers WHERE id = ? AND created_for = ?";
+                $stmt = $conn->prepare($deleteSql);
+                $stmt->bind_param("ss", $worker_id, $user_name);
+
+                if ($stmt->execute()) {
+                    echo "<script>alert('Worker deleted successfully!'); window.location.href=window.location.href;</script>";
+                } else {
+                    echo "<script>alert('Error deleting worker: " . $conn->error . "');</script>";
+                }
+
+                $stmt->close();
+            }
+            ?>
 
         <?php elseif ($page === 'production'): ?>
             <?php include 'production.php'; ?>

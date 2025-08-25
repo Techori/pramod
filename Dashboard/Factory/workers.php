@@ -391,6 +391,18 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
     </div>
 </div>
 
+<?php
+// Check if user has Delete permission
+$hasDeletePermission = false;
+$permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+$permissionResult = $conn->query($permissionSql);
+if ($permissionResult->num_rows > 0) {
+    $permissionRow = $permissionResult->fetch_assoc();
+    $permissions = json_decode($permissionRow['Permission'], true);
+    $hasDeletePermission = in_array('Delete', $permissions);
+}
+?>
+
 <!-- Table -->
 <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
     <div id="workers">
@@ -406,6 +418,9 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
                     <th>Shift</th>
                     <!-- <th>Status</th>
                     <th>Attendance</th> -->
+                    <?php if ($hasDeletePermission): ?>
+                            <th>Action</th>
+                        <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -422,15 +437,44 @@ $worker = $conn->query("SELECT COUNT(*) as count FROM factory_workers WHERE crea
                         echo "<td>" . htmlspecialchars($row['department']) . "</td>";
                         echo "<td>" . htmlspecialchars($row['role']) . "</td>";
                         echo "<td>" . htmlspecialchars($row['shift']) . "</td>";
+                        if ($hasDeletePermission) {
+                                echo "<td>
+                                    <form method='post' action='' onsubmit='return confirm(\"Are you sure you want to delete this worker?\");'>
+                                        <input type='hidden' name='worker_id' value='" . htmlspecialchars($row['id']) . "'>
+                                        <button type='submit' name='deleteWorker' class='btn btn-danger btn-sm'>
+                                            <i class='fa-solid fa-trash'></i> Delete
+                                        </button>
+                                    </form>
+                                  </td>";
+                            }
+                            echo "</tr>";
                     }
                 } else {
-                    echo "<tr><td colspan='5' class='text-center'>No transactions found</td></tr>";
+                    echo "<tr><td colspan='" . ($hasDeletePermission ? 6 : 5) . "' class='text-center'>No transactions found</td></tr>";
                 }
                 ?>
             </tbody>
         </table>
     </div>
 </div>
+<?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteWorker']) && $hasDeletePermission) {
+        $worker_id = $conn->real_escape_string($_POST['worker_id']);
+
+        // Prepare and execute delete query
+        $deleteSql = "DELETE FROM factory_workers WHERE id = ? AND created_for = ?";
+        $stmt = $conn->prepare($deleteSql);
+        $stmt->bind_param("ss", $worker_id, $user_name);
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Worker deleted successfully!'); window.location.href=window.location.href;</script>";
+        } else {
+            echo "<script>alert('Error deleting worker: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+    ?>
 
 <!-- Worker Details Modal -->
 <div class="modal fade" id="workerDetailsModal" tabindex="-1" aria-labelledby="workerDetailsModalLabel"

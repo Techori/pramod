@@ -360,6 +360,18 @@ require_once 'database.php';
                     </div>
                 </div>
 
+                <?php
+            // Check if user has Delete permission
+            $hasDeletePermission = false;
+            $permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+            $permissionResult = $conn->query($permissionSql);
+            if ($permissionResult->num_rows > 0) {
+                $permissionRow = $permissionResult->fetch_assoc();
+                $permissions = json_decode($permissionRow['Permission'], true);
+                $hasDeletePermission = in_array('Delete', $permissions);
+            }
+            ?>
+
                 <!-- Recent Sales Table -->
                 <div class="card p-3 shadow-sm my-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -416,9 +428,19 @@ require_once 'database.php';
                                         echo '<td>
                                                 <div class="d-flex gap-2">
                                                     <button class="btn btn-outline-primary btn-sm view-invoice"><i class="fa-regular fa-eye"></i></button>
-                                                    <button class="btn btn-outline-primary btn-sm print-invoice"><i class="fa-solid fa-print"></i></button>
+                                                    <button class="btn btn-outline-primary btn-sm print-invoice"><i class="fa-solid fa-print"></i></button>';
+                                        if ($hasDeletePermission && $row['status'] !== 'Refund'): ?>
+                                            <form method="post" action=""
+                                                onsubmit="return confirm('Are you sure you want to cancel this invoice?');">
+                                                <input type="hidden" name="invoice_id"
+                                                    value="<?php echo htmlspecialchars($row['invoice_id']); ?>">
+                                                <button type="submit" name="cancelInvoice" class="btn btn-danger btn-sm">
+                                                    <i class="fa-solid fa-xmark"></i> Cancel
+                                                </button>
+                                            </form>
+                                        <?php endif;
 
-                                                </div>
+                                                echo '</div>
                                             </td>';
                                         echo "</tr>";
                                     }
@@ -430,6 +452,72 @@ require_once 'database.php';
                         </table>
                     </div>
                 </div>
+
+                <?php
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cancelInvoice']) && $hasDeletePermission) {
+            $invoice_id = $conn->real_escape_string($_POST['invoice_id']);
+
+            // 1. Get items & quantities from invoice
+            $fetchSql = "SELECT item_name, quantity FROM invoice WHERE invoice_id = ? AND created_for = ?";
+            $fetchStmt = $conn->prepare($fetchSql);
+            $fetchStmt->bind_param("ss", $invoice_id, $user_name);
+            $fetchStmt->execute();
+            $fetchResult = $fetchStmt->get_result();
+            $invoiceRow = $fetchResult->fetch_assoc();
+            $fetchStmt->close();
+
+            if ($invoiceRow) {
+
+                // fallback if stored as comma separated
+                $itemNames = explode(",", $invoiceRow['item_name']);
+                $quantities = explode(",", $invoiceRow['quantity']);
+
+
+                // 2. Update invoice table (grand_total negative & status refund)
+                $sql = "UPDATE invoice 
+                SET grand_total = -grand_total, status = 'Refund' 
+                WHERE invoice_id = ? AND created_for = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("ss", $invoice_id, $user_name);
+
+                if ($stmt->execute()) {
+                    // 3. Add cancelled items back to stock
+                    for ($i = 0; $i < count($itemNames); $i++) {
+                        $item = trim($itemNames[$i]);
+                        $qty = intval($quantities[$i]);
+
+                        if ($item && $qty > 0) {
+                            // Get latest stock_id for this item
+                            $latestStockSql = "SELECT Id FROM retail_invetory 
+                                       WHERE item_name = ? AND inventory_of = ? 
+                                       ORDER BY last_updated DESC, Id DESC LIMIT 1";
+                            $latestStockStmt = $conn->prepare($latestStockSql);
+                            $latestStockStmt->bind_param("ss", $item, $user_name);
+                            $latestStockStmt->execute();
+                            $latestStockResult = $latestStockStmt->get_result();
+
+                            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                                $latestStockId = $latestStockRow['Id'];
+                                // Update only latest entry
+                                $updateSql = "UPDATE retail_invetory SET stock = stock + ? WHERE Id = ?";
+                                $updateStmt = $conn->prepare($updateSql);
+                                $updateStmt->bind_param("is", $qty, $latestStockId);
+                                $updateStmt->execute();
+                                $updateStmt->close();
+                            }
+                            $latestStockStmt->close();
+                        }
+                    }
+
+                    echo "<script>alert('Invoice cancelled successfully!'); window.location.href=window.location.href;</script>";
+                } else {
+                    echo "<script>alert('Error cancelling invoice: " . $conn->error . "');</script>";
+                }
+
+                $stmt->close();
+            }
+        }
+        ?>
 
                 <!-- Process return Form -->
                 <div class="modal fade" id="processReturn" tabindex="-1" aria-labelledby="processReturnLabel"

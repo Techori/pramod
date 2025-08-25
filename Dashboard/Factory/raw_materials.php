@@ -580,7 +580,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         }
     </script>
 
-    <div class="card p-3 mb-4 shadow-sm">
+    <?php
+// Check if user has Delete permission
+$hasDeletePermission = false;
+$permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+$permissionResult = $conn->query($permissionSql);
+if ($permissionResult->num_rows > 0) {
+    $permissionRow = $permissionResult->fetch_assoc();
+    $permissions = json_decode($permissionRow['Permission'], true);
+    $hasDeletePermission = in_array('Delete', $permissions);
+}
+?>
+
+    <div class="card p-3 my-4 shadow-sm">
 
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
@@ -611,15 +623,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                         <th>Amount</th>
                         <th>Number</th>
                         <th>Reorder Point</th>
-                        <th>Status</th>
                         <th>Primary Supplier</th>
+                        <th>Status</th>
+                        <?php if ($hasDeletePermission): ?>
+                            <th>Action</th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php
 
                     // Fetch transactions from the database
-                    $result = $conn->query("SELECT * FROM factory_raw_material ORDER BY id DESC");
+                    $result = $conn->query("SELECT * FROM factory_raw_material WHERE created_for = '$user_name' ORDER BY id DESC");
 
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
@@ -632,14 +647,44 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                             echo "<td>" . htmlspecialchars($row['amount']) . "</td>";
                             echo "<td>" . htmlspecialchars($row['number']) . "</td>";
                             echo "<td>" . htmlspecialchars($row['reorder_point']) . " " . htmlspecialchars($row['unit']) . "</td>";
-                            echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
                             echo "<td>" . htmlspecialchars($row['primary_supplier']) . "</td>";
+                            echo "<td>" . htmlspecialchars($row['Status']) . "</td>";
+                            if ($hasDeletePermission) {
+                                echo "<td>
+                                    <form method='post' action='' onsubmit='return confirm(\"Are you sure you want to delete this raw material item?\");'>
+                                        <input type='hidden' name='raw_id' value='" . htmlspecialchars($row['id']) . "'>
+                                        <button type='submit' name='deleteRawMaterial' class='btn btn-danger btn-sm'>
+                                            <i class='fa-solid fa-trash'></i> Delete
+                                        </button>
+                                    </form>
+                                  </td>";
+                            }
+                            echo "</tr>";
                         }
                     } else {
-                        echo "<tr><td colspan='7' class='text-center'>No material found</td></tr>";
+                        echo "<tr><td colspan='" . ($hasDeletePermission ? 11 : 10) . "' class='text-center'>No material found</td></tr>";
                     }
                     ?>
                 </tbody>
             </table>
         </div>
     </div>
+
+    <?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteRawMaterial']) && $hasDeletePermission) {
+        $raw_id = $conn->real_escape_string($_POST['raw_id']);
+
+        // Prepare and execute delete query
+        $deleteSql = "DELETE FROM factory_raw_material WHERE id = ? AND created_for = ?";
+        $stmt = $conn->prepare($deleteSql);
+        $stmt->bind_param("ss", $raw_id, $user_name);
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Raw material item deleted successfully!'); window.location.href=window.location.href;</script>";
+        } else {
+            echo "<script>alert('Error deleting raw material: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+    ?>

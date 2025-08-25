@@ -62,7 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $item = trim($itemNames[$i]);
                 $qty = (int) trim($quantities[$i]);
 
-                $stockResult = $conn->query("SELECT stock FROM retail_invetory WHERE item_name = '$item' LIMIT 1");
+                $stockResult = $conn->query("SELECT stock FROM retail_invetory WHERE item_name = '$item' AND inventory_of = '$user_name' LIMIT 1");
 
                 if ($stockResult && $stockRow = $stockResult->fetch_assoc()) {
                     $currentStock = (int) $stockRow['stock'];
@@ -141,7 +141,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $item = trim($itemNames[$i]);
                 $qty = (int) trim($quantities[$i]);
 
-                $updateInventory = $conn->query("UPDATE retail_invetory SET stock = stock - $qty WHERE item_name = '$item'");
+                $updateInventory = $conn->query("UPDATE retail_invetory SET stock = stock - $qty WHERE item_name = '$item' AND inventory_of = '$user_name'");
             }
 
             if ($stmt->execute()) {
@@ -310,7 +310,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             echo json_encode(['success' => false, 'message' => 'No records found for the selected date range']);
         }
         exit;
-    } else if ($_POST['whatAction'] === 'bankDepositEntry') {
+    }
+}
+?>
+
+<?php
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
+    if ($_POST['whatAction'] === 'bankDepositEntry') {
 
         function clean($input)
         {
@@ -556,37 +562,39 @@ $types = ['All', 'Retail', 'Wholesale'];
                         </div>
 
                         <!-- Hidden form -->
-                            <div id="HiddenForm" class="card p-3 mb-4" style="display:none;">
-                        <form method="POST" action="save_customer.php">
-                    
-                            <div class="mb-3">
-                                <label class="form-label">Customer Name</label>
-                                <input type="text" name="customer_name" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="type" class="form-label">Type</label>
-                                <select class="form-select" id="type" name="type" required>
-                                    <option value="Retail">Retail</option>
-                                    <option value="Wholesale">Wholesale</option>
-                                    <option value="Contractor">Contractor</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Phone</label>
-                                <input type="text" name="customer_phone" class="form-control" required maxlength="10">
-                            </div>
-                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
-                        </form>
-                    </div>
+                        <div id="HiddenForm" class="card p-3 mb-4" style="display:none;">
+                            <form method="POST" action="save_customer.php">
 
-                    <!-- JS toggle  -->
-                    <script>
-                        document.getElementById("ADD").addEventListener("click", function(){
-                            const form = document.getElementById("HiddenForm");
-                            form.style.display = (form.style.display==="none")? "block": "none"
-                        })
-                    </script>
-                    
+                                <div class="mb-3">
+                                    <label class="form-label">Customer Name</label>
+                                    <input type="text" name="customer_name" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="type" class="form-label">Type</label>
+                                    <select class="form-select" id="type" name="type" required>
+                                        <option value="Retail">Retail</option>
+                                        <option value="Wholesale">Wholesale</option>
+                                        <option value="Contractor">Contractor</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Phone</label>
+                                    <input type="text" name="customer_phone" class="form-control" required
+                                        maxlength="10">
+                                </div>
+                                <input type="submit" value="Save Customer" class="btn btn-success text-white"
+                                    name="whatAction">
+                            </form>
+                        </div>
+
+                        <!-- JS toggle  -->
+                        <script>
+                            document.getElementById("ADD").addEventListener("click", function () {
+                                const form = document.getElementById("HiddenForm");
+                                form.style.display = (form.style.display === "none") ? "block" : "none"
+                            })
+                        </script>
+
 
 
 
@@ -661,7 +669,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                         </table>
                         <button class="btn btn-sm btn-outline-primary" onclick="addItem()">+ Add Item</button>
                         <button class="btn btn-sm btn-outline-primary" onclick="redirect()">+ Add Product</button>
-                        
+
                     </div>
 
                     <div class="mb-3">
@@ -1077,6 +1085,18 @@ $types = ['All', 'Retail', 'Wholesale'];
                 </div> -->
             </div>
 
+            <?php
+            // Check if user has Delete permission
+            $hasDeletePermission = false;
+            $permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+            $permissionResult = $conn->query($permissionSql);
+            if ($permissionResult->num_rows > 0) {
+                $permissionRow = $permissionResult->fetch_assoc();
+                $permissions = json_decode($permissionRow['Permission'], true);
+                $hasDeletePermission = in_array('Delete', $permissions);
+            }
+            ?>
+
             <!-- Invoices Table -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
@@ -1108,6 +1128,7 @@ $types = ['All', 'Retail', 'Wholesale'];
                                     <th>GST Amount</th>
                                     <th>Grand Total</th>
                                     <th>Created By</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -1135,12 +1156,23 @@ $types = ['All', 'Retail', 'Wholesale'];
                                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                                         echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
                                         echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
+                                        echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                                         echo '<td>
                                 <div class="d-flex gap-2">
                                     <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>';
+                                        if ($hasDeletePermission && $row['status'] !== 'Refund'): ?>
+                                            <form method="post" action=""
+                                                onsubmit="return confirm('Are you sure you want to cancel this invoice?');">
+                                                <input type="hidden" name="invoice_id"
+                                                    value="<?php echo htmlspecialchars($row['invoice_id']); ?>">
+                                                <button type="submit" name="cancelInvoice" class="btn btn-danger btn-sm">
+                                                    <i class="fa-solid fa-xmark"></i> Cancel
+                                                </button>
+                                            </form>
+                                        <?php endif;
 
-                                </div>
+                                        echo '</div>
                             </td>';
                                         echo "</tr>";
                                     }
@@ -1154,6 +1186,72 @@ $types = ['All', 'Retail', 'Wholesale'];
                 </div>
             </div>
         </div>
+
+        <?php
+        if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cancelInvoice']) && $hasDeletePermission) {
+            $invoice_id = $conn->real_escape_string($_POST['invoice_id']);
+
+            // 1. Get items & quantities from invoice
+            $fetchSql = "SELECT item_name, quantity FROM invoice WHERE invoice_id = ? AND created_for = ?";
+            $fetchStmt = $conn->prepare($fetchSql);
+            $fetchStmt->bind_param("ss", $invoice_id, $user_name);
+            $fetchStmt->execute();
+            $fetchResult = $fetchStmt->get_result();
+            $invoiceRow = $fetchResult->fetch_assoc();
+            $fetchStmt->close();
+
+            if ($invoiceRow) {
+
+                // fallback if stored as comma separated
+                $itemNames = explode(",", $invoiceRow['item_name']);
+                $quantities = explode(",", $invoiceRow['quantity']);
+
+
+                // 2. Update invoice table (grand_total negative & status refund)
+                $sql = "UPDATE invoice 
+                SET grand_total = -grand_total, status = 'Refund' 
+                WHERE invoice_id = ? AND created_for = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("ss", $invoice_id, $user_name);
+
+                if ($stmt->execute()) {
+                    // 3. Add cancelled items back to stock
+                    for ($i = 0; $i < count($itemNames); $i++) {
+                        $item = trim($itemNames[$i]);
+                        $qty = intval($quantities[$i]);
+
+                        if ($item && $qty > 0) {
+                            // Get latest stock_id for this item
+                            $latestStockSql = "SELECT Id FROM retail_invetory 
+                                       WHERE item_name = ? AND inventory_of = ? 
+                                       ORDER BY last_updated DESC, Id DESC LIMIT 1";
+                            $latestStockStmt = $conn->prepare($latestStockSql);
+                            $latestStockStmt->bind_param("ss", $item, $user_name);
+                            $latestStockStmt->execute();
+                            $latestStockResult = $latestStockStmt->get_result();
+
+                            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                                $latestStockId = $latestStockRow['Id'];
+                                // Update only latest entry
+                                $updateSql = "UPDATE retail_invetory SET stock = stock + ? WHERE Id = ?";
+                                $updateStmt = $conn->prepare($updateSql);
+                                $updateStmt->bind_param("is", $qty, $latestStockId);
+                                $updateStmt->execute();
+                                $updateStmt->close();
+                            }
+                            $latestStockStmt->close();
+                        }
+                    }
+
+                    echo "<script>alert('Invoice cancelled successfully!'); window.location.href=window.location.href;</script>";
+                } else {
+                    echo "<script>alert('Error cancelling invoice: " . $conn->error . "');</script>";
+                }
+
+                $stmt->close();
+            }
+        }
+        ?>
 
         <!-- Quotations Tab -->
         <div class="tab-pane fade" id="quotations" role="tabpanel" aria-labelledby="quotations-tab">
@@ -2157,7 +2255,7 @@ $types = ['All', 'Retail', 'Wholesale'];
             .catch(err => alert("Error submitting invoice."));
     }
     // redirect form
-    function redirect(){
+    function redirect() {
         window.location.href = "store_dashboard.php?page=inventory"
     }
 

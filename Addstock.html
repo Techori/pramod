@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Stock</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom scrollbar for dropdown */
+    select {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-6">
+  <main class="w-full max-w-4xl bg-white p-8 rounded-lg shadow-md">
+    <h1 class="text-3xl font-semibold mb-8 text-gray-800 text-center">Add Stock</h1>
+
+    <form id="stockForm" class="space-y-8">
+      <!-- Select Product and Quantity -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="productSelect" class="block font-medium mb-2 text-gray-700">Select Product</label>
+          <select
+            id="productSelect"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="" disabled selected>Select a product</option>
+            <option value="productA" data-prevstock="100" data-prevvalue="5000" data-manufacturing="30" data-prevavg="50">Product A</option>
+            <option value="productB" data-prevstock="50" data-prevvalue="3500" data-manufacturing="45" data-prevavg="70">Product B</option>
+            <option value="productC" data-prevstock="200" data-prevvalue="16000" data-manufacturing="60" data-prevavg="80">Product C</option>
+            <option value="productD" data-prevstock="0" data-prevvalue="0" data-manufacturing="25" data-prevavg="0">Product D</option>
+          </select>
+        </div>
+        <div>
+          <label for="quantityInput" class="block font-medium mb-2 text-gray-700">Quantity</label>
+          <input
+            type="number"
+            id="quantityInput"
+            min="0"
+            value="0"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+      </div>
+
+      <!-- Sale Value of new stock in Amount & Sale Value Amount per piece -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="saleValueTotal" class="block font-medium mb-2 text-gray-700">
+            Sale Value of New Stock (Amount)
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="saleValueTotal"
+            value="0"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label for="saleValuePiece" class="block font-medium mb-2 text-gray-700">
+            Sale Value Amount per Piece
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="saleValuePiece"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+      </div>
+
+      <!-- Manufacturing Cost and Previous Stock Info -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+        <div>
+          <label for="totalManufacturingCost" class="block font-medium mb-2 text-gray-700">
+            Total Manufacturing Cost
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="totalManufacturingCost"
+            value="0"
+            required
+            class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        <div>
+          <label for="manufacturingCostPiece" class="block font-medium mb-2 text-gray-700">
+            Manufacturing Cost per Piece (Auto Fill)
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="manufacturingCostPiece"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+        <div>
+          <label for="previousStock" class="block font-medium mb-2 text-gray-700">
+            Previous Stock (Auto fill)
+          </label>
+          <input
+            type="number"
+            step="1"
+            min="0"
+            id="previousStock"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+
+        <div>
+          <label for="previousStockValue" class="block font-medium mb-2 text-gray-700">
+            Previous Stock Value (Auto fill)
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="previousStockValue"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+        <div>
+          <label for="totalStock" class="block font-medium mb-2 text-gray-700">
+            Total Stock (Auto fill)
+          </label>
+          <input
+            type="number"
+            step="1"
+            min="0"
+            id="totalStock"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+
+        <div>
+          <label for="totalStockValue" class="block font-medium mb-2 text-gray-700">
+            Total Stock Value (Auto fill)
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="totalStockValue"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+      </div>
+
+      <!-- Average per piece sale values -->
+      <div class="flex flex-col md:flex-row justify-between gap-6 pt-6 border-t border-gray-300">
+        <div class="flex-1">
+          <label class="block font-medium mb-2 text-gray-700" for="avgPreviousSale">
+            Average Previous Per Piece Sale (Auto fill)
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="avgPreviousSale"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+        <div class="flex-1">
+          <label class="block font-medium mb-2 text-gray-700" for="avgNewSale">
+            New Average Per Piece Sale Value (Auto fill)
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0"
+            id="avgNewSale"
+            value="0"
+            readonly
+            class="w-full bg-gray-100 border border-gray-300 rounded-md p-2"
+          />
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    // Cache DOM elements
+    const productSelect = document.getElementById('productSelect');
+    const quantityInput = document.getElementById('quantityInput');
+    const saleValueTotal = document.getElementById('saleValueTotal');
+    const saleValuePiece = document.getElementById('saleValuePiece');
+    const totalManufacturingCost = document.getElementById('totalManufacturingCost');
+    const manufacturingCostPiece = document.getElementById('manufacturingCostPiece');
+
+    const previousStock = document.getElementById('previousStock');
+    const previousStockValue = document.getElementById('previousStockValue');
+
+    const totalStock = document.getElementById('totalStock');
+    const totalStockValue = document.getElementById('totalStockValue');
+
+    const avgPreviousSale = document.getElementById('avgPreviousSale');
+    const avgNewSale = document.getElementById('avgNewSale');
+
+    function resetAutoFillFields() {
+      previousStock.value = 0;
+      previousStockValue.value = 0;
+      manufacturingCostPiece.value = 0;
+      totalStock.value = 0;
+      totalStockValue.value = 0;
+      avgPreviousSale.value = 0;
+      avgNewSale.value = 0;
+      saleValuePiece.value = 0;
+    }
+
+    function fillProductAutoFillValues() {
+      if (!productSelect.value) {
+        resetAutoFillFields();
+        return;
+      }
+      const selectedOption = productSelect.options[productSelect.selectedIndex];
+      const prevStock = parseFloat(selectedOption.getAttribute('data-prevstock')) || 0;
+      const prevStockVal = parseFloat(selectedOption.getAttribute('data-prevvalue')) || 0;
+      const manufacturingCost = parseFloat(selectedOption.getAttribute('data-manufacturing')) || 0;
+      const prevAvg = parseFloat(selectedOption.getAttribute('data-prevavg')) || 0;
+
+      previousStock.value = prevStock.toFixed(2);
+      previousStockValue.value = prevStockVal.toFixed(2);
+      manufacturingCostPiece.value = manufacturingCost.toFixed(2);
+      avgPreviousSale.value = prevAvg.toFixed(2);
+
+      calculateAutoFields();
+    }
+
+    function calculateAutoFields() {
+      const qty = parseFloat(quantityInput.value) || 0;
+      const saleAmount = parseFloat(saleValueTotal.value) || 0;
+      const manufacturingCostUnit = parseFloat(manufacturingCostPiece.value) || 0;
+      const prevStockVal = parseFloat(previousStockValue.value) || 0;
+      const prevStockQty = parseFloat(previousStock.value) || 0;
+
+      // Sale value per piece = sale value total / quantity (if quantity > 0)
+      if (qty > 0) {
+        saleValuePiece.value = (saleAmount / qty).toFixed(2);
+      } else {
+        saleValuePiece.value = '0.00';
+      }
+
+      // Total manufacturing cost can be auto calculated or entered manually, 
+      // but let's calculate automatically here = manufacturing cost per piece * quantity
+      if (qty > 0) {
+        const totalManCostCalc = manufacturingCostUnit * qty;
+        totalManufacturingCost.value = totalManCostCalc.toFixed(2);
+      } else {
+        totalManufacturingCost.value = '0.00';
+      }
+
+      // Calculate total stock and total stock value
+      const totalStockQty = prevStockQty + qty;
+      const newStockValue = saleAmount; // sale value of the new stock
+
+      const totalStockVal = prevStockVal + newStockValue;
+
+      totalStock.value = totalStockQty.toFixed(2);
+      totalStockValue.value = totalStockVal.toFixed(2);
+
+      // Calculate new average per piece sale value
+      let newAvg = 0;
+      if (totalStockQty > 0) {
+        newAvg = totalStockVal / totalStockQty;
+      }
+
+      avgNewSale.value = newAvg.toFixed(2);
+    }
+
+    // Event Listeners
+    productSelect.addEventListener('change', () => {
+      fillProductAutoFillValues();
+    });
+
+    quantityInput.addEventListener('input', () => {
+      calculateAutoFields();
+    });
+
+    saleValueTotal.addEventListener('input', () => {
+      calculateAutoFields();
+    });
+
+    totalManufacturingCost.addEventListener('input', () => {
+      // If user manually updates total manufacturing cost, update manufacturing cost per piece accordingly
+      const qty = parseFloat(quantityInput.value) || 0;
+      const totalManCost = parseFloat(totalManufacturingCost.value) || 0;
+
+      if (qty > 0) {
+        manufacturingCostPiece.value = (totalManCost / qty).toFixed(2);
+      } else {
+        manufacturingCostPiece.value = '0.00';
+      }
+    });
+
+    // Initialize form with defaults
+    resetAutoFillFields();
+  </script>
+</body>
+</html>
+

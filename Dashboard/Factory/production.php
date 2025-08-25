@@ -34,7 +34,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                 (id, product, quantity, unit, start_date, end_date, status, created_for) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
-        $stmt->bind_param("sssdssss", $newProductionId, $product, $quantity, $unit, $start_date, $end_date, $Status, $user_name);
+        $stmt->bind_param("ssisssss", $newProductionId, $product, $quantity, $unit, $start_date, $end_date, $Status, $user_name);
         $stmt->execute();
 
         $conn->commit();
@@ -63,6 +63,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
 <h1>Production Management</h1>
 <p>Monitor and manage factory production lines</p>
+
+<?php
+// Check if user has Delete permission
+$hasDeletePermission = false;
+$permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+$permissionResult = $conn->query($permissionSql);
+if ($permissionResult->num_rows > 0) {
+    $permissionRow = $permissionResult->fetch_assoc();
+    $permissions = json_decode($permissionRow['Permission'], true);
+    $hasDeletePermission = in_array('Delete', $permissions);
+}
+?>
 
 
 <div class="card shadow-sm p-4 mt-4">
@@ -111,17 +123,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                         echo "<td>" . date('d-M-Y', strtotime($row['start_date'])) . "</td>";
                         echo "<td>" . date('d-M-Y', strtotime($row['end_date'])) . "</td>";
                         echo "<td>" . $status . "</td>";
-                        echo "<td>";
-                        if ($status !== 'Completed') {
+                        echo '<td> <div class="d-flex gap-2">';
+                        if ($status !== 'Completed' && $hasDeletePermission) {
                             echo '<button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statusModal' . $id . '">
                                 <i class="fa-regular fa-pen-to-square"></i>
-                            </button>';
+                            </button>
+                             <form method="post" action="" onsubmit="return confirm(&quot;Are you sure you want to delete this production item?&quot;);">
+                                        <input type="hidden" name="production_id" value=' . $id . '>
+                                        <button type="submit" name="deleteProduction" class="btn btn-danger btn-sm">
+                                            <i class="fa-solid fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                    ';
+                        } else if ($hasDeletePermission) {
+                            echo '<form method="post" action="" onsubmit="return confirm(&quot;Are you sure you want to delete this production item?&quot;);">
+                                        <input type="hidden" name="production_id" value=' . $id . '>
+                                        <button type="submit" name="deleteProduction" class="btn btn-danger btn-sm">
+                                            <i class="fa-solid fa-trash"></i> Delete
+                                        </button>
+                                    </form>';
                         } else {
                             echo '<button class="btn btn-outline-secondary btn-sm" disabled>
                                 <i class="fa-regular fa-pen-to-square"></i>
                             </button>';
                         }
-                        echo "</td>";
+                        echo '</div> </td>';
 
                         // Modal for updating status
                         if ($status !== 'Completed') {
@@ -147,7 +173,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
                                                         ?>
                                                         <option value="Pending">Pending</option>
                                                     <?php } else if ($status === 'Pending') { ?>
-                                                        <option value="Scheduled">Scheduled</option>
+                                                            <option value="Scheduled">Scheduled</option>
                                                     <?php } ?>
                                                     <option value="Completed">Completed</option>
                                                 </select>
@@ -173,6 +199,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         </table>
     </div>
 </div>
+
+<?php
+    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['deleteProduction']) && $hasDeletePermission) {
+        $production_id = $conn->real_escape_string($_POST['production_id']);
+
+        // Prepare and execute delete query
+        $deleteSql = "DELETE FROM factory_production WHERE id = ? AND created_for = ?";
+        $stmt = $conn->prepare($deleteSql);
+        $stmt->bind_param("ss", $production_id, $user_name);
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Production item deleted successfully!'); window.location.href=window.location.href;</script>";
+        } else {
+            echo "<script>alert('Error deleting production: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+    ?>
 
 <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

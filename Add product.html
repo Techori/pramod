@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Factory Product Add Form</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom scroll for table container */
+    .table-container {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen p-6 flex justify-center">
+  <form
+    class="bg-white shadow-md rounded-lg p-6 max-w-5xl w-full grid grid-cols-1 gap-6"
+    id="productForm"
+    novalidate
+  >
+    <h1 class="text-2xl font-bold mb-4 border-b pb-2">Add Product Form</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <label for="productName" class="font-semibold">Product Name</label>
+      <input type="text" id="productName" name="productName" required
+        class="md:col-span-2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"/>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <label for="category" class="font-semibold">Category</label>
+      <input type="text" id="category" name="category" required
+        class="md:col-span-2 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" />
+    </div>
+
+    <div class="mt-6 font-semibold">Choose Raw Material</div>
+
+    <div class="flex mt-2 mb-4">
+      <input
+        type="search"
+        id="searchBar"
+        placeholder="Search raw material..."
+        class="flex-grow border border-gray-300 rounded-l px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+        oninput="filterRawMaterials()"
+        aria-label="Search raw material"
+      />
+      <button
+        type="button"
+        onclick="addRawMaterial()"
+        class="bg-blue-600 text-white px-4 rounded-r font-semibold hover:bg-blue-700 transition"
+        aria-label="Add selected raw material"
+      >
+        Add
+      </button>
+    </div>
+
+    <!-- Raw Materials Table -->
+    <div class="table-container border border-gray-300 rounded overflow-x-auto mb-4" role="region" aria-labelledby="tableTitle" tabindex="0">
+      <table class="min-w-full divide-y divide-gray-200" aria-describedby="tableTitle">
+        <caption id="tableTitle" class="sr-only">Selected raw materials table</caption>
+        <thead class="bg-gray-100 sticky top-0 z-10">
+          <tr>
+            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">C. Box</th>
+            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">Raw Material</th>
+            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">Quantity</th>
+            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">Cost</th>
+            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-700">Total</th>
+            <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-700">Remove</th>
+          </tr>
+        </thead>
+        <tbody id="rawMaterialRows" class="divide-y divide-gray-200 bg-white"></tbody>
+      </table>
+    </div>
+
+    <!-- Costs Section -->
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 text-gray-800">
+      <label class="md:col-span-4 font-semibold text-right py-2">Total Cost Of Raw Material</label>
+      <input type="number" id="totalRawCost" readonly value="0" class="md:col-span-2 border border-gray-300 rounded px-3 py-2 bg-gray-100" aria-readonly="true" />
+
+      <label class="md:col-span-4 font-semibold text-right py-2">Transport Charge</label>
+      <input type="number" id="transportCharge" value="0" min="0" step="0.01" class="md:col-span-2 border border-gray-300 rounded px-3 py-2" />
+
+      <label class="md:col-span-4 font-semibold text-right py-2">Other Cost</label>
+      <input type="number" id="otherCost" value="0" min="0" step="0.01" class="md:col-span-2 border border-gray-300 rounded px-3 py-2" />
+
+      <label class="md:col-span-4 font-semibold text-right py-2">Total Cost Of Product</label>
+      <input type="number" id="totalProductCost" readonly value="0" class="md:col-span-2 border border-gray-300 rounded px-3 py-2 bg-gray-100" aria-readonly="true" />
+    </div>
+
+    <!-- MRP, Sale Price and Profit/Loss -->
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 text-gray-800 mt-6">
+      <label class="md:col-span-2 font-semibold py-2">MRP Of Product</label>
+      <input type="number" id="mrpOfProduct" value="0" min="0" step="0.01" class="md:col-span-1 border border-gray-300 rounded px-3 py-2" />
+
+      <label class="md:col-span-1 font-semibold py-2">Sale Price</label>
+      <input type="number" id="salePrice" value="0" min="0" step="0.01" class="md:col-span-1 border border-gray-300 rounded px-3 py-2" />
+
+      <label class="md:col-span-1 font-semibold py-2">Profit &amp; Loss</label>
+      <input type="number" id="profitLoss" readonly value="0" class="md:col-span-1 border border-gray-300 rounded px-3 py-2 bg-gray-100" aria-readonly="true" />
+    </div>
+
+    <button
+      type="submit"
+      class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded mt-6 transition"
+      aria-label="Submit product form"
+    >
+      Submit Product
+    </button>
+  </form>
+
+  <script>
+    // Raw Material sample data (would usually come from backend)
+    const rawMaterials = [
+      { cBox: "y", name: "Bottele", cost: 3 },
+      { cBox: "yy", name: "cap", cost: 1 },
+      { cBox: "y", name: "sticker", cost: 4.4 },
+      { cBox: "aa", name: "aa", cost: 0 },
+      { cBox: "ssdd", name: "ssdd", cost: 0 },
+      { cBox: "Wrr etc", name: "Wrr etc", cost: 0 },
+    ];
+
+    const rawMaterialRows = document.getElementById("rawMaterialRows");
+    const searchBar = document.getElementById("searchBar");
+    const totalRawCostInput = document.getElementById("totalRawCost");
+    const transportChargeInput = document.getElementById("transportCharge");
+    const otherCostInput = document.getElementById("otherCost");
+    const totalProductCostInput = document.getElementById("totalProductCost");
+    const mrpInput = document.getElementById("mrpOfProduct");
+    const salePriceInput = document.getElementById("salePrice");
+    const profitLossInput = document.getElementById("profitLoss");
+
+    let selectedRawMaterials = [];
+
+    function filterRawMaterials() {
+      const query = searchBar.value.trim().toLowerCase();
+      let filtered = rawMaterials.filter((rm) =>
+        rm.name.toLowerCase().includes(query)
+      );
+      if (filtered.length === 1) {
+        searchBar.value = filtered[0].name;
+      }
+    }
+
+    function addRawMaterial() {
+      const query = searchBar.value.trim();
+      if (!query) return;
+      // Check if material exists
+      const mat = rawMaterials.find(
+        (rm) => rm.name.toLowerCase() === query.toLowerCase()
+      );
+      if (!mat) {
+        alert("Raw Material not found in list.");
+        return;
+      }
+      // Avoid duplicates by cBox and name
+      if (
+        selectedRawMaterials.some(
+          (rm) => rm.cBox === mat.cBox && rm.name === mat.name
+        )
+      ) {
+        alert("Raw Material already added.");
+        return;
+      }
+
+      // Add default quantity 1 and calculate total
+      selectedRawMaterials.push({
+        cBox: mat.cBox,
+        name: mat.name,
+        quantity: 1,
+        cost: mat.cost,
+        total: mat.cost * 1,
+      });
+      searchBar.value = "";
+      renderRawMaterials();
+    }
+
+    function renderRawMaterials() {
+      rawMaterialRows.innerHTML = "";
+      selectedRawMaterials.forEach((rm, idx) => {
+        const tr = document.createElement("tr");
+        tr.classList.add("hover:bg-gray-50");
+
+        tr.innerHTML = `
+          <td class="px-3 py-2 align-top whitespace-nowrap">${rm.cBox}</td>
+          <td class="px-3 py-2 align-top whitespace-normal">${rm.name}</td>
+          <td class="px-3 py-2 align-top">
+            <input type="number" min="0" step="1" value="${rm.quantity}" data-idx="${idx}" data-field="quantity"
+              class="w-20 border border-gray-300 rounded px-2 py-1" aria-label="Quantity for ${rm.name}" />
+          </td>
+          <td class="px-3 py-2 align-top">
+            <input type="number" min="0" step="0.01" value="${rm.cost}" data-idx="${idx}" data-field="cost"
+              class="w-24 border border-gray-300 rounded px-2 py-1" aria-label="Cost per unit for ${rm.name}" />
+          </td>
+          <td class="px-3 py-2 align-top">${rm.total.toFixed(2)}</td>
+          <td class="px-3 py-2 align-top text-center">
+            <button type="button" data-idx="${idx}" aria-label="Remove ${rm.name}"
+              class="text-red-600 hover:text-red-900 font-bold">×</button>
+          </td>
+        `;
+
+        rawMaterialRows.appendChild(tr);
+      });
+
+      attachRowEventListeners();
+      calculateTotals();
+    }
+
+    function attachRowEventListeners() {
+      // Quantity and Cost input listeners
+      rawMaterialRows.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("input", (e) => {
+          const idx = e.target.dataset.idx;
+          const field = e.target.dataset.field;
+          if (!idx || !field) return;
+          let val = parseFloat(e.target.value);
+          if (isNaN(val) || val < 0) val = 0;
+          selectedRawMaterials[idx][field] = val;
+
+          // Recalculate total for row
+          selectedRawMaterials[idx].total =
+            selectedRawMaterials[idx].quantity * selectedRawMaterials[idx].cost;
+
+          renderRawMaterials();
+        });
+      });
+
+      // Remove button listeners
+      rawMaterialRows.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const idx = e.target.dataset.idx;
+          if (idx !== undefined) {
+            selectedRawMaterials.splice(idx, 1);
+            renderRawMaterials();
+          }
+        });
+      });
+    }
+
+    function calculateTotals() {
+      // Sum raw materials total
+      const rawCost = selectedRawMaterials.reduce(
+        (acc, cur) => acc + cur.total,
+        0
+      );
+
+      totalRawCostInput.value = rawCost.toFixed(2);
+
+      const transportCharge = parseFloat(transportChargeInput.value) || 0;
+      const otherCost = parseFloat(otherCostInput.value) || 0;
+      const totalProductCost = rawCost + transportCharge + otherCost;
+      totalProductCostInput.value = totalProductCost.toFixed(2);
+
+      const mrp = parseFloat(mrpInput.value) || 0;
+      const salePrice = parseFloat(salePriceInput.value) || 0;
+
+      // Profit & Loss = Sale Price - Total Product Cost
+      const profitLoss = salePrice - totalProductCost;
+      profitLossInput.value = profitLoss.toFixed(2);
+    }
+
+    transportChargeInput.addEventListener("input", calculateTotals);
+    otherCostInput.addEventListener("input", calculateTotals);
+    mrpInput.addEventListener("input", calculateTotals);
+    salePriceInput.addEventListener("input", calculateTotals);
+
+    // Prevent form submission and just alert the details for now
+    document.getElementById("productForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const formData = {
+        productName: e.target.productName.value.trim(),
+        category: e.target.category.value.trim(),
+        rawMaterials: selectedRawMaterials,
+        totalRawCost: parseFloat(totalRawCostInput.value),
+        transportCharge: parseFloat(transportChargeInput.value),
+        otherCost: parseFloat(otherCostInput.value),
+        totalProductCost: parseFloat(totalProductCostInput.value),
+        mrpOfProduct: parseFloat(mrpInput.value),
+        salePrice: parseFloat(salePriceInput.value),
+        profitLoss: parseFloat(profitLossInput.value),
+      };
+
+      // Simple validation for product name and category
+      if (!formData.productName) {
+        alert("Please enter Product Name");
+        return;
+      }
+      if (!formData.category) {
+        alert("Please enter Category");
+        return;
+      }
+
+      if (formData.rawMaterials.length === 0) {
+        alert("Please add at least one raw material");
+        return;
+      }
+
+      console.log("Product Submission Data: ", formData);
+      alert('Product data submitted successfully! Check console for details.');
+      // Reset form if desired:
+      // e.target.reset();
+      // selectedRawMaterials = [];
+      // renderRawMaterials();
+      // calculateTotals();
+    });
+
+    // Initial render empty
+    renderRawMaterials();
+  </script>
+</body>
+
+</html>
+

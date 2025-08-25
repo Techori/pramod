@@ -47,7 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $item = trim($itemNames[$i]);
             $qty = (int) trim($quantities[$i]);
 
-            $stockResult = $conn->query("SELECT quantity FROM factory_stock WHERE item_name = '$item' LIMIT 1");
+            $stockResult = $conn->query("SELECT quantity FROM factory_stock WHERE item_name = '$item' AND created_for = '$user_name' ORDER BY record_date DESC, stock_id DESC LIMIT 1");
 
             if ($stockResult && $stockRow = $stockResult->fetch_assoc()) {
                 $currentStock = (int) $stockRow['quantity'];
@@ -126,7 +126,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $item = trim($itemNames[$i]);
             $qty = (int) trim($quantities[$i]);
 
-            $updateInventory = $conn->query("UPDATE factory_stock SET quantity = quantity - $qty WHERE item_name = '$item'");
+            // Get latest stock_id for this item
+            $latestStockSql = "SELECT stock_id FROM factory_stock WHERE item_name = '$item' AND created_for = '$user_name' ORDER BY record_date DESC, stock_id DESC LIMIT 1";
+            $latestStockResult = $conn->query($latestStockSql);
+            if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                $latestStockId = $latestStockRow['stock_id'];
+                // Update only latest entry
+                $updateInventory = $conn->query("UPDATE factory_stock SET quantity = quantity - $qty WHERE stock_id = '$latestStockId'");
+            }
         }
 
         if ($stmt->execute()) {
@@ -304,6 +311,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 </script>
 
+<?php
+// Check if user has Delete permission
+$hasDeletePermission = false;
+$permissionSql = "SELECT Permission FROM user_management WHERE User_Name = '$user_name'";
+$permissionResult = $conn->query($permissionSql);
+if ($permissionResult->num_rows > 0) {
+    $permissionRow = $permissionResult->fetch_assoc();
+    $permissions = json_decode($permissionRow['Permission'], true);
+    $hasDeletePermission = in_array('Delete', $permissions);
+}
+?>
+
 <!-- Factory Invoice table -->
 <div class="col-md-12 card p-3 shadow-sm my-4 table-responsive">
 
@@ -338,7 +357,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     <th>GST Amount</th>
                     <th>Grand Total</th>
                     <th>Created By</th>
+                    <th>Status</th>
+                    <?php if ($hasDeletePermission): ?>
                     <th>Actions</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -365,23 +387,100 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         echo "<td>₹" . number_format($row['GST_amount'], 2) . "</td>";
                         echo "<td>₹" . number_format($row['grand_total'], 2) . "</td>";
                         echo "<td>" . htmlspecialchars($row['created_by']) . "</td>";
+                        echo "<td>" . htmlspecialchars($row['status']) . "</td>";
                         echo '<td>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
-                                    <button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button>
-
-                                </div>
+                                <div class="d-flex gap-2">';
+                        if ($hasDeletePermission && $row['status'] !== 'Refund'): ?>
+                <form method="post" action=""
+                    onsubmit="return confirm('Are you sure you want to cancel this invoice?');">
+                    <input type="hidden" name="invoice_id" value="<?php echo htmlspecialchars($row['invoice_id']); ?>">
+                    <button type="submit" name="cancelInvoice" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                </form>
+                <?php endif;
+                        echo '</div>
                             </td>';
                         echo "</tr>";
                     }
                 } else {
-                    echo "<tr><td colspan='14' class='text-center'>No transactions found</td></tr>";
+                    echo "<tr><td colspan='17' class='text-center'>No transactions found</td></tr>";
                 }
                 ?>
             </tbody>
         </table>
     </div>
 </div>
+
+<?php
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cancelInvoice']) && $hasDeletePermission) {
+    $invoice_id = $conn->real_escape_string($_POST['invoice_id']);
+
+    // 1. Get items & quantities from invoice
+    $fetchSql = "SELECT item_name, quantity FROM invoice WHERE invoice_id = ? AND created_for = ?";
+    $fetchStmt = $conn->prepare($fetchSql);
+    $fetchStmt->bind_param("ss", $invoice_id, $user_name);
+    $fetchStmt->execute();
+    $fetchResult = $fetchStmt->get_result();
+    $invoiceRow = $fetchResult->fetch_assoc();
+    $fetchStmt->close();
+
+    if ($invoiceRow) {
+
+        // fallback if stored as comma separated
+        $itemNames = explode(",", $invoiceRow['item_name']);
+        $quantities = explode(",", $invoiceRow['quantity']);
+
+
+        // 2. Update invoice table (grand_total negative & status refund)
+        $sql = "UPDATE invoice 
+                SET grand_total = -grand_total, status = 'Refund' 
+                WHERE invoice_id = ? AND created_for = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $invoice_id, $user_name);
+
+        if ($stmt->execute()) {
+            // 3. Add cancelled items back to stock
+            for ($i = 0; $i < count($itemNames); $i++) {
+                $item = trim($itemNames[$i]);
+                $qty = intval($quantities[$i]);
+
+                if ($item && $qty > 0) {
+                    // Get latest stock_id for this item
+                    $latestStockSql = "SELECT stock_id FROM factory_stock 
+                                       WHERE item_name = ? AND created_for = ? 
+                                       ORDER BY record_date DESC, stock_id DESC LIMIT 1";
+                    $latestStockStmt = $conn->prepare($latestStockSql);
+                    $latestStockStmt->bind_param("ss", $item, $user_name);
+                    $latestStockStmt->execute();
+                    $latestStockResult = $latestStockStmt->get_result();
+
+                    if ($latestStockResult && $latestStockRow = $latestStockResult->fetch_assoc()) {
+                        $latestStockId = $latestStockRow['stock_id'];
+                        // Update only latest entry
+                        $updateSql = "UPDATE factory_stock SET quantity = quantity + ? WHERE stock_id = ?";
+                        $updateStmt = $conn->prepare($updateSql);
+                        $updateStmt->bind_param("is", $qty, $latestStockId);
+                        $updateStmt->execute();
+                        $updateStmt->close();
+                    }
+                    $latestStockStmt->close();
+                }
+            }
+
+            echo "<script>alert('Invoice cancelled successfully!'); window.location.href=window.location.href;</script>";
+        } else {
+            echo "<script>alert('Error cancelling invoice: " . $conn->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+}
+?>
+
+
+<!-- <button class="btn btn-outline-primary btn-sm"><i class="fa-regular fa-eye"></i></button>
+<button class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-print"></i></button> -->
 
 <?php
 
@@ -527,13 +626,14 @@ $formattedBilling = formatINR($totalBilling);
                                 <label class="form-label">Phone</label>
                                 <input type="text" name="customer_phone" class="form-control" required maxlength="10">
                             </div>
-                            <input type="submit" value="Save Customer" class="btn btn-success text-white" name="whatAction">
+                            <input type="submit" value="Save Customer" class="btn btn-success text-white"
+                                name="whatAction">
                         </form>
                     </div>
 
                     <!-- JS to Toggle Form -->
                     <script>
-                        document.getElementById("ADD").addEventListener('click', function() {
+                        document.getElementById("ADD").addEventListener('click', function () {
                             const form = document.getElementById("customerForm")
                             form.style.display = (form.style.display === "none") ? "block" : "none"
                         })
@@ -638,7 +738,7 @@ $formattedBilling = formatINR($totalBilling);
 
     // To open form
     function openInvoiceModal(event) {
-        activeInvoiceButtonId = event.target.id; // To store clicked button ID
+        activeInvoiceButtonId = event.currentTarget.id; // To store clicked button ID
 
         const modal = document.getElementById('invoiceModal');
         modal.style.display = 'block';
@@ -672,7 +772,7 @@ $formattedBilling = formatINR($totalBilling);
                 <?php
 
                 // Fetch transactions from the database
-                $result = $conn->query("SELECT item_name FROM factory_stock");
+                $result = $conn->query("SELECT DISTINCT item_name FROM factory_stock WHERE created_for = '$user_name'");
 
                 if ($result->num_rows > 0) {
                     while ($row = $result->fetch_assoc()) {
@@ -729,7 +829,7 @@ $formattedBilling = formatINR($totalBilling);
     }
 
     // Close form when clicking outside of it
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         const modal = document.getElementById('invoiceModal');
         if (event.target === modal) {
             closeInvoiceModal();
@@ -783,12 +883,12 @@ $formattedBilling = formatINR($totalBilling);
         };
 
         fetch("billing_system.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
-            })
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
             .then(res => res.text())
             .then(msg => {
                 // alert(msg);

@@ -2,6 +2,11 @@
 include '../../_conn.php';
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+
 // 1. Active Suppliers
 $activeSuppliers = 0;
 $sql = "SELECT COUNT(*) AS count FROM suppliers WHERE Actions = 'Active'";
@@ -20,14 +25,15 @@ if ($row = $result->fetch_assoc()) {
 
 // 3. This Month's Spending
 $thisMonthSpending = 0;
-$currentMonth = date('Y-m');
-$sql = "SELECT SUM(Amount) AS total FROM purchase_order WHERE DATE_FORMAT(Date, '%Y-%m') = ?";
+$currentMonthStart = date('Y-m-01');
+$currentMonthEnd = date('Y-m-t'); // Last day of the month
+$sql = "SELECT SUM(Amount) AS total FROM purchase_order WHERE Date BETWEEN ? AND ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $currentMonth);
+$stmt->bind_param("ss", $currentMonthStart, $currentMonthEnd);
 $stmt->execute();
 $result = $stmt->get_result();
 if ($row = $result->fetch_assoc()) {
-  $thisMonthSpending = $row['total'] ?? 0;
+    $thisMonthSpending = $row['total'] ?? 0;
 }
 $stmt->close();
 
@@ -60,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
   // ================= PURCHASE =================
   if ($_POST['whatAction'] === 'Purchase') {
-    $name = clean($_POST['name']);
+    $name = clean($_POST['supplier']);
     $amount = floatval($_POST['amount']);
     $date = clean($_POST['date']);
     $item = clean($_POST['item']);
@@ -112,7 +118,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
   }
 
   // ================ ADD SUPPLIER =================
-  elseif ($_POST['suppliers'] === 'AddSupplier') {
+  elseif ($_POST['whatAction'] === 'AddSupplier') {
     $name = clean($_POST['supplierName']);
     $type = clean($_POST['type']);
     $items = clean($_POST['items']);
@@ -164,12 +170,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       echo "Error adding supplier.";
     }
 
-  } else {
-    echo "Invalid action.";
   }
 
-} else {
-  echo "Invalid request.";
 }
 ?>
 
@@ -267,10 +269,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
 <div class="row mt-4">
   <div class="col-md-3">
-    <button class="btn btn-primary dashboard-btn">Create Purchase Order</button>
+    <button class="btn btn-primary dashboard-btn" data-bs-toggle="modal" data-bs-target="#purchaseModal">Create Purchase
+      Order</button>
   </div>
   <div class="col-md-3">
-    <button class="btn btn-light dashboard-btn">Add Supplier</button>
+    <button class="btn btn-light dashboard-btn" data-bs-toggle="modal" data-bs-target="#suppliersModal">Add
+      Supplier</button>
   </div>
   <!-- <div class="col-md-3">
     <button class="btn btn-light dashboard-btn">Supplier Report</button>
@@ -283,7 +287,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 <div class="row mt-4">
   <div class="col-md-4 col-sm-6">
     <div class="card p-3">
-      <h6>Spending by Supplier</h6>
+      <h6>Items Supplied</h6>
       <canvas id="spendingChart" height="150"></canvas> <!-- Adjust height of the canvas -->
     </div>
   </div>
@@ -296,7 +300,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 </div>
 
 <!-- Search and Add User Row -->
-<div class="tab-nav">
+<div class="tab-nav mt-4">
   <div>
     <a href="#purchase" class="active" onclick="showTab('purchase')">Purchase Orders</a>
     <a href="#suppliers" onclick="showTab('suppliers')">Suppliers</a>
@@ -320,7 +324,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
             <div class="modal-body">
               <div class="mb-3">
                 <label for="supplier" class="form-label">Supplier</label>
-                <input type="text" name="name" class="form-control" id="supplier" required>
+                <select class="form-select" id="supplier" name="supplier" required>
+                  <option>Select supplier</option>
+                  <?php
+                  $result = $conn->query("SELECT Supplier_Name FROM suppliers");
+                  if ($result->num_rows > 0) {
+                    while ($row = $result->fetch_assoc()) {
+                      echo '<option value="' . $row['Supplier_Name'] . '">' . $row['Supplier_Name'] . '</option>';
+                    }
+                  }
+                  ?>
+                </select>
               </div>
 
               <div class="mb-3">
@@ -377,82 +391,46 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
   </div>
 </div>
 
-<table class="table table-bordered" id="supplyTable">
-  <thead class="table-light">
-    <tr>
-      <th>Order ID</th>
-      <th>Supplier Name</th>
-      <th>Date</th>
-      <th>Item Name</th>
-      <th>Amount</th>
-      <th>Payment Method</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php
-    $result = $conn->query("SELECT * FROM purchase_order ORDER BY Date DESC");
+<div id="purchase" class="tab-content">
+  <table class="table table-bordered table-responsive" id="purchaseTable">
+    <thead class="table-light">
+      <tr>
+        <th>Order ID</th>
+        <th>Supplier Name</th>
+        <th>Date</th>
+        <th>Item Name</th>
+        <th>Amount</th>
+        <th>Payment Method</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php
+      $result = $conn->query("SELECT * FROM purchase_order ORDER BY Purchase_Id DESC");
 
-    if ($result && $result->num_rows > 0):
-      while ($row = $result->fetch_assoc()):
+      if ($result && $result->num_rows > 0):
+        while ($row = $result->fetch_assoc()):
+          ?>
+          <tr>
+            <td><?= htmlspecialchars($row['Purchase_Id']) ?></td>
+            <td><?= htmlspecialchars($row['Customer_Name']) ?></td>
+            <td><?= htmlspecialchars($row['Date']) ?></td>
+            <td><?= htmlspecialchars($row['Item']) ?></td>
+            <td><?= htmlspecialchars($row['Amount']) ?></td>
+            <td><?= htmlspecialchars($row['Payment_Method']) ?></td>
+            <td><?= htmlspecialchars($row['Status']) ?></td>
+          </tr>
+          <?php
+        endwhile;
+      else:
         ?>
         <tr>
-          <td><?= htmlspecialchars($row['Purchase_Id']) ?></td>
-          <td><?= htmlspecialchars($row['Customer_Name']) ?></td>
-          <td><?= htmlspecialchars($row['Date']) ?></td>
-          <td><?= htmlspecialchars($row['Item']) ?></td>
-          <td><?= htmlspecialchars($row['Amount']) ?></td>
-          <td><?= htmlspecialchars($row['Payment_Method']) ?></td>
-          <td><?= htmlspecialchars($row['Status']) ?></td>
-          <td>
-            <!-- Example actions -->
-            <button class="btn btn-sm btn-info">View</button>
-            <button class="btn btn-sm btn-danger">Delete</button>
-          </td>
+          <td colspan="7" class="text-center">No purchase orders found.</td>
         </tr>
-        <?php
-      endwhile;
-    else:
-      ?>
-      <tr>
-        <td colspan="8" class="text-center">No purchase orders found.</td>
-      </tr>
-    <?php endif; ?>
-  </tbody>
-</table>
-
-<script>
-  // Search Functionality
-  document.getElementById('searchInput').addEventListener('input', function () {
-    const searchText = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#supplyTable tbody tr');
-
-    rows.forEach(row => {
-      const cells = row.getElementsByTagName('td');
-      let match = false;
-      for (let i = 0; i < cells.length; i++) {
-        if (cells[i].textContent.toLowerCase().includes(searchText)) {
-          match = true;
-          break;
-        }
-      }
-      row.style.display = match ? '' : 'none';
-    });
-  });
-  // Filter Functionality (Filter by "Ordered" status)
-  document.getElementById('filterBtn').addEventListener('click', function () {
-    const rows = document.querySelectorAll('#supplyTable tbody tr');
-    rows.forEach(row => {
-      const status = row.cells[5].textContent.trim().toLowerCase();
-      if (status === 'ordered') {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
-    });
-  });
-</script>
+      <?php endif; ?>
+    </tbody>
+  </table>
+</div>
 
 <!-- Modal Structure -->
 <div class="modal fade" id="suppliersModal" tabindex="-1" aria-labelledby="addSuppliersLabel" aria-hidden="true">
@@ -515,7 +493,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 
 <div id="suppliers" class="tab-content d-none">
   <div class="table-heading">Suppliers</div>
-  <table class="table table-bordered" id="supplyTable">
+  <table class="table table-bordered" id="suppliersTable">
     <thead class="table-light">
       <tr>
         <th>ID</th>
@@ -524,12 +502,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
         <th>Items</th>
         <th>Orders</th>
         <th>Spending</th>
-        <th>Actions</th>
+        <th>Status</th>
       </tr>
     </thead>
     <tbody>
       <?php
-      $result = $conn->query("SELECT * FROM suppliers");
+      $result = $conn->query("SELECT * FROM suppliers ORDER BY Supplier_ID DESC");
 
       if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
@@ -552,10 +530,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
 </div>
 
 <script>
-  // Search Functionality
+
   document.getElementById('searchInput').addEventListener('input', function () {
     const searchText = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#supplyTable tbody tr');
+
+    let activeTab = document.querySelector('.tab-nav a.active').getAttribute('href').substring(1);
+    let tableId = activeTab === 'purchase' ? 'purchaseTable' : 'suppliersTable';
+
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
 
     rows.forEach(row => {
       const cells = row.getElementsByTagName('td');
@@ -569,29 +551,96 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       row.style.display = match ? '' : 'none';
     });
   });
+
+
   function showTab(tab) {
+    // Hide all tab-content sections
     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('d-none'));
+
+    // Show selected tab
     document.getElementById(tab).classList.remove('d-none');
+
+    // Remove active class from all links
     document.querySelectorAll('.tab-nav a').forEach(a => a.classList.remove('active'));
-    document.querySelector('.tab-nav a[href="#' + tab + '"]').classList.add('active');
 
-    document.getElementById('actionLabel').innerText = tab === 'purchase' ? 'New Order' : 'Add Supplier';
+    // Add active class to clicked tab
+    document.querySelector(`.tab-nav a[href="#${tab}"]`).classList.add('active');
 
-    // सही तरीका - बटन का data-bs-target अपडेट करना
-    let triggerButton = document.querySelector(`[data-bs-target="#${tab !== "purchase" ? 'purchase' : 'suppliers'}Modal"]`);
-    triggerButton.setAttribute('data-bs-target', `#${tab}Modal`);
+    // Change button label & modal target
+    let actionBtn = document.getElementById('modalTriggerButton');
+    if (tab === 'purchase') {
+      document.getElementById('actionLabel').innerText = 'New Order';
+      actionBtn.setAttribute('data-bs-target', '#purchaseModal');
+    } else {
+      document.getElementById('actionLabel').innerText = 'Add Supplier';
+      actionBtn.setAttribute('data-bs-target', '#suppliersModal');
+    }
   }
+
 
 </script>
 
+<!-- Items supplied -->
+<?php
+$currentYear = date('Y');
+$sql = "SELECT Item, SUM(Unit) AS total_quantity
+        FROM purchase_order
+        WHERE YEAR(Date) = ?
+        GROUP BY Item";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $currentYear);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$labels = [];
+$data = [];
+while ($row = $result->fetch_assoc()) {
+  $labels[] = $row['Item'];
+  $data[] = (int) $row['total_quantity'];
+}
+$stmt->close();
+?>
+
+<!-- Purchase order trend -->
+<?php
+$currentDate = date('Y-m-01'); // Current month ka first date
+$startDate = date('Y-m-01', strtotime('-5 months')); // 6 months range
+
+$sql = "SELECT DATE_FORMAT(Date, '%b') AS month_name, 
+               COUNT(*) AS order_count
+        FROM purchase_order
+        WHERE Date >= ? AND Date <= LAST_DAY(?)
+        GROUP BY YEAR(Date), MONTH(Date)
+        ORDER BY YEAR(Date), MONTH(Date)";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ss", $startDate, $currentDate);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$labels1 = [];
+$data1 = [];
+while ($row = $result->fetch_assoc()) {
+  $labels1[] = $row['month_name'];
+  $data1[] = (int) $row['order_count'];
+}
+$stmt->close();
+?>
+
+
+
 <script>
+  const labels = <?php echo json_encode($labels); ?>;
+  const data = <?php echo json_encode($data); ?>;
+  console.log(labels, data);
+
   const ctxPie = document.getElementById('spendingChart');
   new Chart(ctxPie, {
     type: 'pie',
     data: {
-      labels: ['Havells', 'Polycab', 'Orient', 'Bajaj', 'Anchor', 'Others'],
+      labels: labels,
       datasets: [{
-        data: [28, 23, 10, 8, 12, 18],
+        data: data,
         backgroundColor: ['#007bff', '#20c997', '#fd7e14', '#ff5733', '#6f42c1', '#343a40']
       }]
     },
@@ -600,14 +649,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
     }
   });
 
+  const labels1 = <?php echo json_encode($labels1); ?>;
+  const data1 = <?php echo json_encode($data1); ?>;
+
   const ctxLine = document.getElementById('ordersTrend');
   new Chart(ctxLine, {
     type: 'line',
     data: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      labels: labels1,
       datasets: [{
         label: 'Orders',
-        data: [38, 32, 45, 53, 48, 42],
+        data: data1,
         fill: false,
         borderColor: '#007bff',
         tension: 0.3
@@ -618,52 +670,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['whatAction'])) {
       plugins: {
         legend: {
           display: false
-        }
-      }
-    }
-  });
-  // Spending by Supplier (Pie Chart)
-  const spendingCtx = document.getElementById('spendingChart').getContext('2d');
-  const spendingChart = new Chart(spendingCtx, {
-    type: 'pie',
-    data: {
-      labels: ['Supplier A', 'Supplier B', 'Supplier C'],
-      datasets: [{
-        label: 'Spending',
-        data: [3000, 2000, 5000],
-        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        }
-      }
-    }
-  });
-
-  // Purchase Orders Trend (Line Chart)
-  const ordersCtx = document.getElementById('ordersTrend').getContext('2d');
-  const ordersTrend = new Chart(ordersCtx, {
-    type: 'line',
-    data: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-      datasets: [{
-        label: 'Purchase Orders',
-        data: [12, 19, 3, 5, 9],
-        fill: false,
-        borderColor: '#4BC0C0',
-        tension: 0.1
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true
         }
       }
     }
